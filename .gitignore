@@ -1,0 +1,8 @@
+build
+tools
+.DS_Store
+doc/html
+Twinlife.xcodeproj/xcuserdata
+Twinlife.xcodeproj/project.xcworkspace/xcuserdata
+*.log
+*~

@@ -1,0 +1,132 @@
+name: Twinlife
+
+############
+# Options
+############
+
+options:
+  minimumXcodeGenVersion: 2.10
+  groupSortPosition: top
+  generateEmptyDirectories: true
+  createIntermediateGroups: true
+  deploymentTarget: 
+    iOS: "12.0"
+
+
+include:
+  - headers.yml
+
+projectReferences:
+  WebRTCFramework:
+    path: ../WebRTCFramework/WebRTC.xcodeproj
+############
+# Targets
+############
+
+targetTemplates:
+  Twinlife:
+    type: library.static
+    platform: iOS
+
+    configFiles:
+      Debug: Twinlife.xcconfig
+      Release: Twinlife.xcconfig
+
+    settings:
+      base:
+        DEVELOPMENT_TEAM: "MU7KFWAKY9"
+        #iPhone only
+        TARGETED_DEVICE_FAMILY: 1
+        GCC_PREPROCESSOR_DEFINITIONS: "$(inherited) TWINLIFE_FRAMEWORK_VERSION='\"${TWINLIFE_FRAMEWORK_VERSION}\"' ${flavorName}"
+        GCC_PREFIX_HEADER: "Prefix.pch"
+        PUBLIC_HEADERS_FOLDER_PATH: "include/Twinlife"
+        ONLY_ACTIVE_ARCH: NO
+        #update this setting if you add a new pod to the Podfile
+        OTHER_LDFLAGS: '$(inherited) -ObjC'
+        HEADER_SEARCH_PATHS:
+          - ${SRCROOT}/../Pods/Headers/Public/CocoaLumberjack
+          - ${SRCROOT}/../Pods/Headers/Public/KissXML
+          - ${SRCROOT}/../Pods/Headers/Public/FMDB
+          - ${SRCROOT}/../Pods/Headers/Public/SQLCipher
+          - ${SRCROOT}/../WebRTCFramework/Headers
+          - ${SRCROOT}/../Pods/Headers/Public
+        SKIP_INSTALL: YES
+      
+      configs:
+        debug:
+           #HEADER_SEARCH_PATHS: 
+            # - '${SRCROOT}/../Pods/Headers/Public/**'
+             #- '${TARGET_BUILD_DIR}/include'
+          ENABLE_NS_ASSERTIONS: YES
+
+#        release:
+
+    # scheme
+    scheme:
+      gatherCoverageData: false
+        
+    # sources
+    sources:
+      - path: Twinlife
+        includes: 
+          - "**/*.m"
+          - "**/*.h"
+        buildPhase: sources
+
+    dependencies:
+      - target: WebRTCFramework/WebRTC
+
+targets:
+
+  # -----------
+  # Mytwinlife
+  # -----------
+
+  TwinlifeMytwinlife:
+    templates:
+      - Twinlife
+    templateAttributes:
+      flavorName: MYTWINLIFE
+
+  # -----------
+  # Mytwinlife+
+  # -----------
+
+  TwinlifeMytwinlifePlus:
+    templates:
+      - Twinlife
+    templateAttributes:
+      flavorName: MYTWINLIFE_PLUS
+
+  # -----------
+  # Twinme
+  # -----------
+
+  TwinlifeTwinme:
+    templates:
+      - Twinlife
+    templateAttributes:
+      flavorName: TWINME
+
+  # -----------
+  # Twinme Plus
+  # -----------
+
+  TwinlifeTwinmePlus:
+    templates:
+      - Twinlife
+    templateAttributes:
+      flavorName: TWINME_PLUS
+ 
+  # -----------
+  # Skred
+  # -----------
+
+  TwinlifeSkred:
+    templates:
+      - Twinlife
+    templateAttributes:
+      flavorName: SKRED
+    settings:
+      base:
+        DEVELOPMENT_TEAM: "V67CQ37J89"
