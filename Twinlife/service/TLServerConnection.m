@@ -402,10 +402,14 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (BOOL)sendWithData:(NSData *)message {
     DDLogVerbose(@"%@ sendWithData: %lu", LOG_TAG, message.length);
 
-    if (self.session) {
-        return [self.session sendWithMessage:message binary:YES];
-    } else {
-        return NO;
+    // Protect the sendWithMessage because it can be called by any thread (PeerConnectionService)
+    // while another thread is closing the session.
+    @synchronized (self) {
+        if (self.session) {
+            return [self.session sendWithMessage:message binary:YES];
+        } else {
+            return NO;
+        }
     }
 }
 
