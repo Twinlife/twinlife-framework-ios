@@ -194,7 +194,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 } else if ([proxy isKindOfClass:[TLSNIProxyDescriptor class]]) {
                     TLSNIProxyDescriptor *sniProxyDescriptor = (TLSNIProxyDescriptor *)proxy;
                     NSString *sni = [TLServerConnection createSNIWithList:hostList domainList:domainList tldList:tldList];
-                    [_sniProxies addObject:[[TLSNIProxyDescriptor alloc] initWithHost:sniProxyDescriptor.host port:sniProxyDescriptor.port customSNI:sni isUserProxy:NO]];
+                    [_sniProxies addObject:[[TLSNIProxyDescriptor alloc] initWithHost:sniProxyDescriptor.host port:sniProxyDescriptor.port stunPort:sniProxyDescriptor.stunPort customSNI:sni isUserProxy:NO]];
                 }
             }
         }

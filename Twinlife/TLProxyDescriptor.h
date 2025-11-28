@@ -17,10 +17,11 @@
 
 @property (readonly, nonnull) NSString *host;
 @property (readonly) int port;
+@property (readonly) int stunPort;
 @property (readonly) BOOL isUserProxy;
 @property TLConnectionError proxyStatus;
 
-- (nonnull instancetype)initWithHost:(nonnull NSString *)host port:(int)port isUserProxy:(BOOL)isUserProxy;
+- (nonnull instancetype)initWithHost:(nonnull NSString *)host port:(int)port stunPort:(int)stunPort isUserProxy:(BOOL)isUserProxy;
 
 /// Get the proxy description that can be saved to restore the proxy information.
 - (nonnull NSString *)proxyDescription;
@@ -38,7 +39,7 @@
 
 @property (readonly, nullable) NSString *key;
 
-- (nonnull instancetype)initWithAddress:(nonnull NSString *)address port:(int)port key:(nonnull NSString *)key;
+- (nonnull instancetype)initWithAddress:(nonnull NSString *)address port:(int)port stunPort:(int)stunPort key:(nonnull NSString *)key;
 
 - (nullable NSString *)proxyPathWithHost:(nonnull NSString *)host port:(int)port;
 
@@ -52,7 +53,7 @@
 
 @property (readonly, nullable) NSString *customSNI;
 
-- (nonnull instancetype)initWithHost:(nonnull NSString *)host port:(int)port customSNI:(nullable NSString *)customSNI isUserProxy:(BOOL)isUserProxy;
+- (nonnull instancetype)initWithHost:(nonnull NSString *)host port:(int)port stunPort:(int)stunPort customSNI:(nullable NSString *)customSNI isUserProxy:(BOOL)isUserProxy;
 
 + (nullable TLSNIProxyDescriptor *)createWithProxyDescription:(nonnull NSString *)proxyDescription;
 

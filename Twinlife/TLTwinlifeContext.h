@@ -70,7 +70,7 @@
 
 - (void)onErrorWithRequestId:(int64_t)requestId errorCode:(TLBaseServiceErrorCode)errorCode errorParameter:(NSString *)errorParameter;
 
-- (void)onFatalErrorWithErrorCode:(TLBaseServiceErrorCode)errorCode databaseError:(NSError *)databaseError;
+- (void)onFatalErrorWithErrorCode:(TLBaseServiceErrorCode)errorCode databaseError:(nullable NSError *)databaseError;
 
 @end
 

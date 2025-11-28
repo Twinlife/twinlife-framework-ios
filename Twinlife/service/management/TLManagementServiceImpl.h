@@ -44,14 +44,36 @@
 @end
 
 //
-// Interface: TLManagementPendingRequest ()
+// Interface: TLManagementPendingRequest
 //
 
 @interface TLManagementPendingRequest : NSObject
 
+@end
+
+//
+// Interface: TLManagementEventsPendingRequest ()
+//
+
+@interface TLManagementEventsPendingRequest : TLManagementPendingRequest
+
 @property (readonly, nonnull) NSArray<TLEvent *> *events;
 
 - (nonnull instancetype)initWithEvents:(nonnull NSArray<TLEvent *> *)events;
+
+@end
+
+typedef void (^TLFeedbackConsumer) (TLBaseServiceErrorCode status);
+
+//
+// Interface: TLManagementFeedbackPendingRequest ()
+//
+
+@interface TLManagementFeedbackPendingRequest : TLManagementPendingRequest
+
+@property (readonly, nonnull) TLFeedbackConsumer complete;
+
+- (nonnull instancetype)initWithConsumer:(nonnull TLFeedbackConsumer)complete;
 
 @end
 
@@ -69,7 +91,7 @@
 
 @property (nullable) TLBaseServiceImplConfiguration* configuration;
 
-- (void)configure:(TLBaseServiceConfiguration *)baseServiceConfiguration applicationId:(nonnull NSUUID *)applicationId;
+- (void)configure:(nonnull TLBaseServiceConfiguration *)baseServiceConfiguration applicationId:(nonnull NSUUID *)applicationId;
 
 - (BOOL)hasValidatedConfiguration;
 

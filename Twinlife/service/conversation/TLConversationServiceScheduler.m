@@ -447,6 +447,15 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
 - (void)onTwinlifeOnline {
     DDLogVerbose(@"%@: onTwinlifeOnline", LOG_TAG);
 
+    // Invalidate a possible job that was created in the past.  If it is still enabled, the runJob()
+    // could be executed immediately when that job has expired and because we are also online,
+    // this would execute `scheduleOperations()` and we could try to start creating outgoing P2P
+    // connections before the DELAY_AFTER_ONLINE below (we want to accept first incoming P2P).
+    if (self.scheduleJobId) {
+        [self.scheduleJobId cancel];
+        self.scheduleJobId = nil;
+    }
+
     // A twinlife::conversation::synchronize was asked in the past but it didn't complete.
     // do it immediately because we have the connection to Twinlife server and this may not
     // be the case if the P2P connection reaches the timeout.
@@ -998,23 +1007,24 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
     for (TLConversationImpl *conversation in operations) {
         NSObject *item = [operations objectForKey:conversation];
         if ([item isKindOfClass:[TLConversationServiceOperation class]]) {
-            [self addOperation:(TLConversationServiceOperation *)item conversation:conversation];
+            [self addOperation:(TLConversationServiceOperation *)item conversation:conversation delay:0.0];
         } else {
             NSArray<TLConversationServiceOperation *> *list = (NSArray *)item;
             for (TLConversationServiceOperation *operation in list) {
-                [self addOperation:operation conversation:conversation];
+                [self addOperation:operation conversation:conversation delay:0.0];
             }
         }
     }
 }
 
-- (void)addOperation:(nonnull TLConversationServiceOperation *)operation conversation:(nonnull TLConversationImpl*)conversation {
-    DDLogVerbose(@"%@ addOperation: %@ conversation: %@", LOG_TAG, operation, conversation.identifier);
+- (void)addOperation:(nonnull TLConversationServiceOperation *)operation conversation:(nonnull TLConversationImpl*)conversation delay:(NSTimeInterval)delay {
+    DDLogVerbose(@"%@ addOperation: %@ conversation: %@ delay: %f", LOG_TAG, operation, conversation.identifier, delay);
     
     BOOL schedule = NO;
     BOOL canExecute = NO;
     TLConversationOperationQueue *operations;
     TLDatabaseIdentifier *identifier = [conversation identifier];
+    NSDate *now = [NSDate date];
     @synchronized(self) {
         BOOL isActive;
         operations = self.conversationId2Operations[identifier];
@@ -1039,6 +1049,16 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
                 [self.waitingOperations removeObject:operations];
             }
         }
+
+        // When a delay is defined, we don't want to trigger an execution of the operations for that conversation immediately,
+        // and we have to wait that delay before trying to connect.  This is used when a SYNCHRONIZE operation is added when we
+        // received a conversation::synchronize invocation.  We may also receive after that invocation an incoming P2P
+        // for the same conversation and if we try to execute the SYNCHRONIZE, we will create an outgoing P2P before
+        // trying to accept the incoming P2P: it will be rejected with BUSY.  There is no way to be aware whether such
+        // incoming P2P is pending or not and the small delay is here to avoid that.
+        if (delay > 0 && [now compare:operations.deadline] <= 0) {
+            operations.deadline = [NSDate dateWithTimeInterval:delay sinceDate:now];
+        }
         [operations addObject:operation allowDuplicate:NO];
         if (!isActive) {
             [self.waitingOperations addObject:operations allowDuplicate:NO];
@@ -1060,7 +1080,7 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
     
     // If the conversation is opened, add the operation immediately.
     if ([conversation isOpened]) {
-        [self addOperation:operation conversation:conversation];
+        [self addOperation:operation conversation:conversation delay:0.0];
         return;
     }
 

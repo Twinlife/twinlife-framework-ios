@@ -143,6 +143,8 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
 - (BOOL)activate:(TLServerConnection *)stream {
     DDLogVerbose(@"%@: activate: %@", LOG_TAG, stream);
 
+    [super activate:stream];
+
     struct sockaddr_in6 zeroAddress;
     bzero(&zeroAddress, sizeof(zeroAddress));
     zeroAddress.sin6_len = sizeof(zeroAddress);
@@ -230,26 +232,32 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
         }
         self.userProxyConfig = list;
     }
-
+    
     NSUserDefaults *userDefaults = [TLTwinlife getAppSharedUserDefaults];
     if (self.lastProxyDescriptor) {
         [self saveWithUserDefaults:userDefaults proxyDescriptor:self.lastProxyDescriptor];
     }
     [userDefaults setObject:list forKey:WEB_SOCKET_CONNECTION_PREFERENCES_USER_PROXIES];
     [userDefaults synchronize];
+    [self reconnect];
 }
 
 - (void)saveWithProxyEnabled:(BOOL)proxyEnabled {
     DDLogVerbose(@"%@: saveWithProxyEnabled: %d", LOG_TAG, proxyEnabled);
 
+    BOOL reconnect;
     @synchronized (self) {
-        if (self.proxyEnabled != proxyEnabled) {
+        reconnect = self.proxyEnabled != proxyEnabled;
+        if (reconnect) {
             self.proxyEnabled = proxyEnabled;
 
             NSUserDefaults *userDefaults = [TLTwinlife getAppSharedUserDefaults];
             [userDefaults setBool:proxyEnabled forKey:WEB_SOCKET_CONNECTION_PREFERENCES_USER_PROXY_ENABLE];
             [userDefaults synchronize];
         }
+    }
+    if (reconnect) {
+        [self reconnect];
     }
 }
 
@@ -278,6 +286,14 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     if ([self saveWithUserDefaults:userDefaults proxyDescriptor:proxyDescriptor]) {
         [userDefaults synchronize];
     }
+}
+
+- (void)reconnect {
+    DDLogVerbose(@"%@: reconnect", LOG_TAG);
+
+    self.lastProxyDescriptor = nil;
+    [self.serverStream disconnect];
+    [self.serverStream connect];
 }
 
 - (BOOL)waitForConnectedNetworkWithTimeout:(NSTimeInterval)timeout {

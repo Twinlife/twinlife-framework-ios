@@ -193,7 +193,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     TLGroupInviteOperation *groupOperation = [[TLGroupInviteOperation alloc] initWithConversation:conversation type:TLConversationServiceOperationTypeInviteGroup invitationDescriptor:invitation];
     
     [self.serviceProvider storeOperation:groupOperation];
-    [self.scheduler addOperation:groupOperation conversation:conversationImpl];
+    [self.scheduler addOperation:groupOperation conversation:conversationImpl delay:0.0];
     
     // Notify invitation was queued.
     for (id delegate in self.conversationService.delegates) {
@@ -231,7 +231,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         TLUpdateDescriptorTimestampOperation *updateDescriptorTimestampOperation = [[TLUpdateDescriptorTimestampOperation alloc] initWithConversation:conversationImpl timestampType:TLUpdateDescriptorTimestampTypeDelete descriptorId:invitation.descriptorId timestamp:invitation.deletedTimestamp];
         
         [self.serviceProvider storeOperation:updateDescriptorTimestampOperation];
-        [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
+        [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl delay:0.0];
     }
     return TLBaseServiceErrorCodeSuccess;
 }
@@ -298,7 +298,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     TLGroupJoinOperation *groupOperation = [[TLGroupJoinOperation alloc] initWithConversation:conversation type:TLConversationServiceOperationTypeJoinGroup invitationDescriptor:invitation];
     
     [self.serviceProvider storeOperation:groupOperation];
-    [self.scheduler addOperation:groupOperation conversation:conversationImpl];
+    [self.scheduler addOperation:groupOperation conversation:conversationImpl delay:0.0];
     
     // Notify invitation was accepted or refused.
     for (id delegate in self.conversationService.delegates) {
@@ -802,7 +802,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 TLGroupJoinOperation *groupOperation = [[TLGroupJoinOperation alloc] initWithConversation:conversation type:TLConversationServiceOperationTypeInvokeAddMember groupTwincodeId:groupTwincodeId memberTwincodeId:memberTwincodeId permissions:permissions publicKey:memberPublicKey signedOffTwincodeId:signedOffByTwincodeId signature:signature];
 
                 [self.serviceProvider storeOperation:groupOperation];
-                [self.scheduler addOperation:groupOperation conversation:conversation];
+                [self.scheduler addOperation:groupOperation conversation:conversation delay:0.0];
             }
         }
     }
@@ -861,7 +861,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         TLGroupJoinOperation *groupOperation = [[TLGroupJoinOperation alloc] initWithConversation:conversationImpl type:TLConversationServiceOperationTypeJoinGroup invitationDescriptor:invitationDescriptor];
         
         [self.serviceProvider storeOperation:groupOperation];
-        [self.scheduler addOperation:groupOperation conversation:conversationImpl];
+        [self.scheduler addOperation:groupOperation conversation:conversationImpl delay:0.0];
     }
     
     if (result == TLConversationServiceProviderResultStored) {
@@ -1128,7 +1128,7 @@ static const int ddLogLevel = DDLogLevelWarning;
             TLGroupJoinOperation *groupOperation = [[TLGroupJoinOperation alloc] initWithConversation:conversation type:TLConversationServiceOperationTypeInvokeAddMember groupTwincodeId:groupTwincodeId memberTwincodeId:member.memberTwincodeId permissions:member.permissions publicKey:member.publicKey signedOffTwincodeId:signedOffTwincodeId signature:signature];
 
             [self.serviceProvider storeOperation:groupOperation];
-            [self.scheduler addOperation:groupOperation conversation:conversation];
+            [self.scheduler addOperation:groupOperation conversation:conversation delay:0.0];
         }
     }
                         
@@ -1326,7 +1326,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         TLGroupJoinOperation *groupOperation = [[TLGroupJoinOperation alloc] initWithConversation:memberConversation type:([memberTwincode isSigned] ? TLConversationServiceOperationTypeInvokeJoinGroup : TLConversationServiceOperationTypeJoinGroup) groupTwincodeId:groupConversation.peerTwincodeOutboundId memberTwincodeId:twincodeOutbound.uuid permissions:groupConversation.permissions publicKey:publicKey signedOffTwincodeId:signedOffTwincodeId signature:signature];
             
         [self.serviceProvider storeOperation:groupOperation];
-        [self.scheduler addOperation:groupOperation conversation:memberConversation];
+        [self.scheduler addOperation:groupOperation conversation:memberConversation delay:0.0];
     }
     
     return result;

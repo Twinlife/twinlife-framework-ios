@@ -95,7 +95,7 @@
 - (void)addOperations:(nonnull NSMapTable<TLConversationImpl *, NSObject *> *)operations;
 
 /// Add the operation for the conversation and schedule its execution.
-- (void)addOperation:(nonnull TLConversationServiceOperation *)operation conversation:(nonnull TLConversationImpl*)conversation;
+- (void)addOperation:(nonnull TLConversationServiceOperation *)operation conversation:(nonnull TLConversationImpl*)conversation delay:(NSTimeInterval)delay;
 
 /// Add the operation in the deferred queue and take it into account when we go in background or the conversation is opened.
 - (void)addDeferrableOperation:(nonnull TLConversationServiceOperation *)operation conversation:(nonnull TLConversationImpl*)conversation;

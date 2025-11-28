@@ -40,6 +40,7 @@
 #import "TLPeerConnection.h"
 #import "TLJobService.h"
 #import "TLSdp.h"
+#import "TLProxyDescriptor.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -47,7 +48,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define PEER_CONNECTION_SERVICE_VERSION @"2.2.3"
+#define PEER_CONNECTION_SERVICE_VERSION @"2.2.4"
 
 #define EVENT_ID_REPORT_QUALITY @"twinlife::peerConnectionService::quality"
 
@@ -461,7 +462,13 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 - (void)onUpdateConfigurationWithConfiguration:(TLBaseServiceImplConfiguration *)configuration {
     DDLogVerbose(@"%@ onUpdateConfigurationWithConfiguration: %@", LOG_TAG, configuration);
     
-    NSMutableArray *iceServers = [[NSMutableArray alloc] initWithCapacity:configuration.turnServers.count];
+    TLProxyDescriptor *activeProxy = [self.serverStream currentProxyDescriptor];
+    NSMutableArray *iceServers = [[NSMutableArray alloc] initWithCapacity:configuration.turnServers.count + 1];
+    if (activeProxy && activeProxy.stunPort > 0) {
+        NSMutableArray *urls = [[NSMutableArray alloc] initWithCapacity:1];
+        [urls addObject:[NSString stringWithFormat:@"stun:%@:%d", activeProxy.host, activeProxy.stunPort]];
+        [iceServers addObject:[[RTC_OBJC_TYPE(RTCIceServer) alloc] initWithURLStrings:urls username:nil credential:nil tlsCertPolicy:RTCTlsCertPolicyInsecureNoCheck]];
+    }
     for (TLTurnServer *turnServer in configuration.turnServers) {
         RTCTlsCertPolicy policy = [turnServer.url hasPrefix:@"turns"] ? RTCTlsCertPolicySecure : RTCTlsCertPolicyInsecureNoCheck;
         

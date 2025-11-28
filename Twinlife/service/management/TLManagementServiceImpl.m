@@ -38,7 +38,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define MANAGEMENT_SERVICE_VERSION @"2.2.0"
+#define MANAGEMENT_SERVICE_VERSION @"2.2.1"
 
 #define MANAGEMENT_SERVICE_PREFERENCES_HAS_CONFIGURATION @"ManagementServiceHasConfiguration"
 #define MANAGEMENT_SERVICE_PREFERENCES_MAX_SENT_FRAME_SIZE @"MaxSentFrameSize"
@@ -109,6 +109,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 @property BOOL checkPreviousCrash;
 @property (nonnull) NSMutableArray *events;
 @property (nullable) TLJobId *refreshJobId;
+@property int64_t firstAssertionTime;
+@property int assertionCount;
 
 - (void)runRefreshJob;
 
@@ -269,6 +271,17 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
 
 @implementation TLManagementPendingRequest
 
+@end
+
+//
+// Implementation: TLManagementEventsPendingRequest
+//
+
+#undef LOG_TAG
+#define LOG_TAG @"TLManagementEventsPendingRequest"
+
+@implementation TLManagementEventsPendingRequest
+
 - (nonnull instancetype)initWithEvents:(nonnull NSArray<TLEvent *> *)events {
     DDLogVerbose(@"%@ initWithEvents: %@", LOG_TAG, events);
     
@@ -276,6 +289,27 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
     
     if (self) {
         _events = events;
+    }
+    return self;
+}
+
+@end
+
+//
+// Implementation: TLManagementFeedbackPendingRequest
+//
+
+#undef LOG_TAG
+#define LOG_TAG @"TLManagementFeedbackPendingRequest"
+
+@implementation TLManagementFeedbackPendingRequest
+
+- (nonnull instancetype)initWithConsumer:(nonnull TLFeedbackConsumer)complete {
+    DDLogVerbose(@"%@ initWithConsumer: %@", LOG_TAG, complete);
+    
+    self = [super init];
+    if (self) {
+        _complete = complete;
     }
     return self;
 }
@@ -326,6 +360,8 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
         _serializerFactory = twinlife.serializerFactory;
         _pendingRequests = [[NSMutableDictionary alloc] init];
         _managementJob = [[TLManagementJob alloc] initWithService:self];
+        _firstAssertionTime = 0;
+        _assertionCount = 0;
 
         // Register the binary IQ handlers for the responses.
         [twinlife addPacketListener:IQ_ON_VALIDATE_CONFIGURATION_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
@@ -669,7 +705,7 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
     return result;
 }
 
-- (void)sendFeedbackWithDescription:(nonnull NSString *)description email:(nonnull NSString *)email subject:(nonnull NSString *)subject logReport:(nullable NSString *)logReport {
+- (void)sendFeedbackWithDescription:(nonnull NSString *)description email:(nonnull NSString *)email subject:(nonnull NSString *)subject logReport:(nullable NSString *)logReport withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode))block {
     DDLogVerbose(@"%@ sendFeedbackWithDescription: %@ email: %@ subject: %@ logReport: %@", LOG_TAG, description, email, subject, logReport);
     
     NSMutableString *deviceDescription = [NSMutableString stringWithCapacity:1024];
@@ -694,7 +730,11 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
         [deviceDescription appendString:logReport];
     }
 
-    TLFeedbackIQ *feedback =  [[TLFeedbackIQ alloc] initWithSerializer:IQ_FEEDBACK_SERIALIZER requestId:[TLTwinlife newRequestId] email:email subject:subject feedbackDescription:description deviceDescription:deviceDescription];
+    int64_t requestId = [TLTwinlife newRequestId];
+    @synchronized (self) {
+        self.pendingRequests[[NSNumber numberWithLongLong:requestId]] = [[TLManagementFeedbackPendingRequest alloc] initWithConsumer:block];
+    }
+    TLFeedbackIQ *feedback =  [[TLFeedbackIQ alloc] initWithSerializer:IQ_FEEDBACK_SERIALIZER requestId:requestId email:email subject:subject feedbackDescription:description deviceDescription:deviceDescription];
     [self sendBinaryIQ:feedback factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
 }
 
@@ -776,6 +816,20 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
     int64_t requestId = [TLTwinlife newRequestId];
     TLAssertionIQ *assertionIQ = [[TLAssertionIQ alloc] initWithSerializer:IQ_ASSERTION_SERIALIZER requestId:requestId applicationId:self.applicationId applicationVersion:self.applicationVersion assertPoint:assertPoint values:values exception:exception timestamp:timestamp];
     @synchronized (self) {
+        // Limit to MAX_ASSERTIONS the number of assertions we can report during the last 5 seconds
+        // This is a simplified token bucket algorithm but we want to keep consecutive assertions
+        // even if the rate is higher than the limit and fills the 5s time slot completely.
+        int64_t dt = timestamp - self.lastDatabaseErrorTime;
+        if (dt > 5000L) {
+            self.assertionCount = 0;
+            self.lastDatabaseErrorTime = timestamp;
+        }
+        self.assertionCount++;
+        if (self.assertionCount > MAX_ASSERTIONS) {
+            return;
+        }
+
+        // And in case we are not connected, also limit the queue to MAX_ASSERTIONS.
         if (self.pendingAssertions.count > MAX_ASSERTIONS) {
             return;
         }
@@ -907,8 +961,19 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
 
 - (void)onFeedbackWithIQ:(nonnull TLBinaryPacketIQ *)iq {
     DDLogVerbose(@"%@ onFeedbackWithIQ: %@", LOG_TAG, iq);
-
+    
     [self receivedBinaryIQ:iq];
+
+    NSNumber *lRequestId = [NSNumber numberWithLongLong:iq.requestId];
+    TLManagementPendingRequest *pendingRequest;
+    @synchronized (self) {
+        pendingRequest = [self.pendingRequests objectForKey:lRequestId];
+        [self.pendingRequests removeObjectForKey:lRequestId];
+    }
+    if (pendingRequest && [pendingRequest isKindOfClass:[TLManagementFeedbackPendingRequest class]]) {
+        TLManagementFeedbackPendingRequest *feedbackPendingRequest = (TLManagementFeedbackPendingRequest *)pendingRequest;
+        feedbackPendingRequest.complete(TLBaseServiceErrorCodeSuccess);
+    }
 }
 
 - (void)updateConfigurationWithIQ:(nonnull TLOnValidateConfigurationIQ *)iq {
@@ -950,12 +1015,18 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
         pendingRequest = [self.pendingRequests objectForKey:lRequestId];
         if (pendingRequest) {
             [self.pendingRequests removeObjectForKey:lRequestId];
-
-            // Prepare to send again the events if we failed due to network error.
-            if (errorPacketIQ.errorCode == TLBaseServiceErrorCodeTimeoutError || errorPacketIQ.errorCode == TLBaseServiceErrorCodeTwinlifeOffline) {
-                [self.events addObjectsFromArray:pendingRequest.events];
-            }
         }
+    }
+    if (!pendingRequest) {
+        return;
+    } else if ([pendingRequest isKindOfClass:[TLManagementFeedbackPendingRequest class]]) {
+        TLManagementFeedbackPendingRequest *feedbackPendingRequest = (TLManagementFeedbackPendingRequest *)pendingRequest;
+        feedbackPendingRequest.complete(errorPacketIQ.errorCode);
+    } else if ([pendingRequest isKindOfClass:[TLManagementEventsPendingRequest class]] && (errorPacketIQ.errorCode == TLBaseServiceErrorCodeTimeoutError || errorPacketIQ.errorCode == TLBaseServiceErrorCodeTwinlifeOffline)) {
+        TLManagementEventsPendingRequest *eventsPendingRequest = (TLManagementEventsPendingRequest *)pendingRequest;
+
+        // Prepare to send again the events if we failed due to network error.
+        [self.events addObjectsFromArray:eventsPendingRequest.events];
     }
 }
 
@@ -995,7 +1066,7 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
         events = self.events;
         requestId = [TLTwinlife newRequestId];
         self.events = [[NSMutableArray alloc] init];
-        self.pendingRequests[[NSNumber numberWithLongLong:requestId]] = [[TLManagementPendingRequest alloc] initWithEvents:events];
+        self.pendingRequests[[NSNumber numberWithLongLong:requestId]] = [[TLManagementEventsPendingRequest alloc] initWithEvents:events];
     }
 
     TLLogEventIQ *iq = [[TLLogEventIQ alloc] initWithSerializer:IQ_LOG_EVENT_SERIALIZER requestId:requestId events:events];

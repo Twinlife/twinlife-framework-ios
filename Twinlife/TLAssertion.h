@@ -183,7 +183,7 @@ typedef NS_ENUM(NSUInteger, TLAssertionParameter) {
 + (nonnull instancetype)initWithParameter:(TLAssertionParameter)parameter value:(nullable id)value;
 + (nonnull instancetype)initWithNumber:(int)value;
 + (nonnull instancetype)initWithServiceId:(TLBaseServiceId)serviceId;
-+ (nonnull instancetype)initWithNSError:(NSError *)error;
++ (nonnull instancetype)initWithNSError:(nullable NSError *)error;
 
 @end
 

@@ -385,14 +385,16 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         NSMutableArray<TLProxyDescriptor *> *proxies = [[NSMutableArray alloc] initWithCapacity:keyProxyCount + sniProxyCount];
         for (int i = 0; i < keyProxyCount; i++) {
             int port = [binaryDecoder readInt];
+            int stunPort = [binaryDecoder readInt];
             NSString *address = [binaryDecoder readIP];
             NSString *key = [binaryDecoder readString];
-            [proxies addObject:[[TLKeyProxyDescriptor alloc] initWithAddress:address port:port key:key]];
+            [proxies addObject:[[TLKeyProxyDescriptor alloc] initWithAddress:address port:port stunPort:stunPort key:key]];
         }
         for (int i = 0; i < sniProxyCount; i++) {
             int port = [binaryDecoder readInt];
+            int stunPort = [binaryDecoder readInt];
             NSString *address = [binaryDecoder readIP];
-            [proxies addObject:[[TLSNIProxyDescriptor alloc] initWithHost:address port:port isUserProxy:NO]];
+            [proxies addObject:[[TLSNIProxyDescriptor alloc] initWithHost:address port:port stunPort:stunPort isUserProxy:NO]];
         }
         _proxies = proxies;
 

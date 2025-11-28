@@ -74,19 +74,20 @@ static TLSerializer *PUSH_COMMAND_OPERATION_SERIALIZER = nil;
     int64_t requestId = [TLTwinlife newRequestId];
     [self updateWithRequestId:requestId];
     if ([connection isSupportedWithMajorVersion:CONVERSATION_SERVICE_MAJOR_VERSION_2 minorVersion:CONVERSATION_SERVICE_MINOR_VERSION_17]) {
-        TLPushTransientIQ *pushTransientObjectIQ = [[TLPushTransientIQ alloc] initWithSerializer:[TLPushTransientIQ SERIALIZER_3] requestId:requestId transientObjectDescriptor:commandDescriptor flags:0];
+        TLPushTransientIQ *pushTransientObjectIQ = [[TLPushTransientIQ alloc] initWithSerializer:[TLPushCommandIQ SERIALIZER_2] requestId:requestId transientObjectDescriptor:commandDescriptor flags:0];
         [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqSetPushTransient iq:pushTransientObjectIQ];
     } else {
         int majorVersion = [connection getMaxPeerMajorVersion];
         int minorVersion = [connection getMaxPeerMinorVersionWithMajorVersion:majorVersion];
         
-        TLConversationServicePushTransientObjectIQ *pushTransientObjectIQ = [[TLConversationServicePushTransientObjectIQ alloc] initWithFrom:connection.from to:connection.to requestId:requestId majorVersion:majorVersion minorVersion:minorVersion transientObjectDescriptor:commandDescriptor];
+        TLConversationServicePushCommandIQ *pushTransientObjectIQ = [[TLConversationServicePushCommandIQ alloc] initWithFrom:connection.from to:connection.to requestId:requestId majorVersion:majorVersion minorVersion:minorVersion commandDescriptor:commandDescriptor];
         
         NSMutableData *data = [[NSMutableData alloc] initWithCapacity:SERIALIZER_BUFFER_DEFAULT_SIZE];
         TLBinaryEncoder *binaryEncoder = [[TLBinaryEncoder alloc] initWithData:data];
         [binaryEncoder writeFixedWithData:[TLPeerConnectionService LEADING_PADDING] start:0 length:(int32_t)[[TLPeerConnectionService LEADING_PADDING] length]];
-        [[TLConversationServicePushTransientObjectIQ SERIALIZER] serializeWithSerializerFactory:connection.serializerFactory encoder:binaryEncoder object:pushTransientObjectIQ];
+        [[TLConversationServicePushCommandIQ SERIALIZER] serializeWithSerializerFactory:connection.serializerFactory encoder:binaryEncoder object:pushTransientObjectIQ];
         [connection sendMessageWithStatType:TLPeerConnectionServiceStatTypeIqSetPushTransient data:data];
+
     }
 
     return TLBaseServiceErrorCodeQueued;

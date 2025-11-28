@@ -236,7 +236,7 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
             data = [userDefaults dataForKey:key];
             if (data) {
                 data = [TLKeyChain decryptWithData:data];
-                if (data) {
+                if (data && !alternateApplication) {
                     [TLKeyChain createKeyChainWithKey:key tag:tag data:data];
                 }
             }

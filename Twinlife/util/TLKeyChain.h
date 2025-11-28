@@ -45,6 +45,6 @@ typedef NS_ENUM(NSUInteger, TLKeyChainTagType) {
 
 + (void)removeAllKeyChain;
 
-+ (NSData *)decryptWithData:(NSData *)data;
++ (nullable NSData *)decryptWithData:(nonnull NSData *)data;
 
 @end

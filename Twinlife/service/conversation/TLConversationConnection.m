@@ -125,7 +125,7 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
     TLConversationImpl *conversationImpl = connection.conversation;
     TLUpdateDescriptorTimestampOperation *updateDescriptorTimestampOperation = [[TLUpdateDescriptorTimestampOperation alloc] initWithConversation:conversationImpl timestampType:TLUpdateDescriptorTimestampTypeDelete descriptorId:fileDescriptor.descriptorId timestamp:fileDescriptor.deletedTimestamp];
     [self.conversationService.serviceProvider storeOperation:updateDescriptorTimestampOperation];
-    [self.conversationService.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
+    [self.conversationService.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl delay:0.0];
     return TLBaseServiceErrorCodeQueued;
 }
 

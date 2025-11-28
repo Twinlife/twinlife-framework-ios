@@ -1665,7 +1665,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
     if (!firstOperation || firstOperation.type != TLConversationServiceOperationTypeSynchronizeConversation) {
         TLSynchronizeConversationOperation *synchronizeConversationOperation = [[TLSynchronizeConversationOperation alloc] initWithConversation:conversationImpl];
         [self.serviceProvider storeOperation:synchronizeConversationOperation];
-        [self.scheduler addOperation:synchronizeConversationOperation conversation:conversationImpl];
+        [self.scheduler addOperation:synchronizeConversationOperation conversation:conversationImpl delay:0.5];
     }
 }
 
@@ -1821,7 +1821,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
             [self.serviceProvider storeOperation:resetConversationOperation];
 
             if (clearMode == TLConversationServiceClearBoth) {
-                [self.scheduler addOperation:resetConversationOperation conversation:conversationImpl];
+                [self.scheduler addOperation:resetConversationOperation conversation:conversationImpl delay:0.0];
             } else {
                 [self.scheduler addDeferrableOperation:resetConversationOperation conversation:conversationImpl];
             }
@@ -2328,7 +2328,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
     for (TLConversationImpl *conversationImpl in conversations) {
         
         TLPushTransientObjectOperation *pushTransientObjectOperation = [[TLPushTransientObjectOperation alloc] initWithConversation:conversationImpl transientObjectDescriptor:transientObjectDescriptor];
-        [self.scheduler addOperation:pushTransientObjectOperation conversation:conversationImpl];
+        [self.scheduler addOperation:pushTransientObjectOperation conversation:conversationImpl delay:0.0];
     }
     
     for (id delegate in self.delegates) {
@@ -2713,7 +2713,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
                 TLUpdateDescriptorTimestampOperation *updateDescriptorTimestampOperation = [[TLUpdateDescriptorTimestampOperation alloc] initWithConversation:conversationImpl timestampType:TLUpdateDescriptorTimestampTypeRead descriptorId:descriptorId timestamp:descriptor.readTimestamp];
                 [self.serviceProvider storeOperation:updateDescriptorTimestampOperation];
                 if (descriptor.expireTimeout > 0) {
-                    [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
+                    [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl delay:0.0];
                 } else {
                     [self.scheduler addDeferrableOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
                 }
@@ -3033,7 +3033,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
                     TLUpdateDescriptorTimestampOperation *updateDescriptorTimestampOperation = [[TLUpdateDescriptorTimestampOperation alloc] initWithConversation:conversationImpl timestampType:TLUpdateDescriptorTimestampTypePeerDelete descriptorId:descriptorId timestamp:[[NSDate date] timeIntervalSince1970] * 1000];
                     [self.serviceProvider storeOperation:updateDescriptorTimestampOperation];
                     if (descriptor.expireTimeout > 0) {
-                        [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
+                        [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl delay:0.0];
                     } else {
                         [self.scheduler addDeferrableOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
                     }
@@ -4223,7 +4223,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
             TLSynchronizeConversationOperation *synchronizeConversationOperation = [[TLSynchronizeConversationOperation alloc] initWithConversation:conversation];
             conversation.needSynchronize = NO;
             [self.serviceProvider storeOperation:synchronizeConversationOperation];
-            [self.scheduler addOperation:synchronizeConversationOperation conversation:conversation];
+            [self.scheduler addOperation:synchronizeConversationOperation conversation:conversation delay:0.0];
             
         } else if (errorCode == TLBaseServiceErrorCodeItemNotFound) {
             TLGroupConversationImpl *groupConversation = [conversation groupConversation];
@@ -4349,7 +4349,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
     TLConversationImpl *conversationImpl = connection.conversation;
     TLUpdateDescriptorTimestampOperation *updateDescriptorTimestampOperation = [[TLUpdateDescriptorTimestampOperation alloc] initWithConversation:conversationImpl timestampType:TLUpdateDescriptorTimestampTypeDelete descriptorId:fileDescriptor.descriptorId timestamp:fileDescriptor.deletedTimestamp];
     [self.serviceProvider storeOperation:updateDescriptorTimestampOperation];
-    [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl];
+    [self.scheduler addOperation:updateDescriptorTimestampOperation conversation:conversationImpl delay:0.0];
     return TLBaseServiceErrorCodeQueued;
 }
 
@@ -6241,7 +6241,6 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
     TLConversationServiceOperation *operation = [self.scheduler getOperationWithConversation:connection.conversation requestId:onPushFileChunkIQ.requestId];
     
     if (operation) {
-        BOOL updated = false;
         BOOL done = false;
         if ([operation isKindOfClass:[TLPushFileOperation class]])  {
             TLPushFileOperation *pushFileOperation = (TLPushFileOperation *)operation;

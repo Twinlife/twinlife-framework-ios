@@ -1445,7 +1445,7 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
             *rollback = YES;
             DDLogError(@"%@ exception inTransaction: %@", LOG_TAG, exception);
             [self.transaction rollback];
-            [self.twinlife exceptionWithAssertPoint:[TLDatabaseAssertPoint DATABASE_ERROR] exception:exception, nil];
+            [self.twinlife exceptionWithAssertPoint:[TLDatabaseAssertPoint DATABASE_ERROR] exception:exception, [TLAssertValue initWithNumber:exception.code], nil];
 
         } @catch (TLDatabaseFullException *exception) {
             result = TLBaseServiceErrorCodeNoStorageSpace;
