@@ -2303,80 +2303,88 @@ static const int ddLogLevel = DDLogLevelWarning;
             int64_t groupId = [resultSet longLongIntForColumnIndex:7];
             TLDatabaseIdentifier *conversationId = [[TLDatabaseIdentifier alloc] initWithIdentifier:cid factory:(groupId > 0 ? self.groupConversationFactory : self.conversationFactory)];
             TLConversationServiceOperation *operation;
-            switch (type) {
-                case 0:
-                    operation = [[TLResetConversationOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
+            @try {
+                switch (type) {
+                    case 0:
+                        operation = [[TLResetConversationOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 1:
+                        operation = [[TLSynchronizeConversationOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate];
+                        break;
+                        
+                    case 2:
+                        operation = [[TLPushObjectOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 4:
+                        operation = [[TLPushFileOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId chunkStart:chunkStart];
+                        break;
+                        
+                    case 5:
+                        operation = [[TLUpdateDescriptorTimestampOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 6:
+                        operation = [[TLGroupInviteOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInviteGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 7:
+                        operation = [[TLGroupInviteOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeWithdrawInviteGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 8:
+                        operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeJoinGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 9:
+                        operation = [[TLGroupLeaveOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeLeaveGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 10:
+                        operation = [[TLGroupUpdateOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeUpdateGroupMember conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 11:
+                        operation = [[TLPushGeolocationOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 12:
+                        operation = [[TLPushTwincodeOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 14:
+                        operation = [[TLUpdateAnnotationsOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 15: // Added 2024-09-09
+                        operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeJoinGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 16:
+                        operation = [[TLGroupLeaveOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeLeaveGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 17:
+                        operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeAddMember conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 18: // Added 2025-05-21
+                        operation = [[TLUpdateDescriptorOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                        
+                    case 3:  // Transient operation should never be saved!
+                    case 13: // Push command
+                    default:
+                        operation = nil;
+                        break;
+                }
+            } @catch (NSException *exception) {
+                NSData *content = [resultSet dataForColumnIndex:6];
+                int contentLength = content ? content.length : -1;
 
-                case 1:
-                    operation = [[TLSynchronizeConversationOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate];
-                    break;
-
-                case 2:
-                    operation = [[TLPushObjectOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
-                    break;
-
-                case 4:
-                    operation = [[TLPushFileOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId chunkStart:chunkStart];
-                    break;
-
-                case 5:
-                    operation = [[TLUpdateDescriptorTimestampOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 6:
-                    operation = [[TLGroupInviteOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInviteGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
-                    break;
-
-                case 7:
-                    operation = [[TLGroupInviteOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeWithdrawInviteGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
-                    break;
-
-                case 8:
-                    operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeJoinGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 9:
-                    operation = [[TLGroupLeaveOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeLeaveGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 10:
-                    operation = [[TLGroupUpdateOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeUpdateGroupMember conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 11:
-                    operation = [[TLPushGeolocationOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
-                    break;
-
-                case 12:
-                    operation = [[TLPushTwincodeOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
-                    break;
-
-                case 14:
-                    operation = [[TLUpdateAnnotationsOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
-                    break;
-
-                case 15: // Added 2024-09-09
-                    operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeJoinGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 16:
-                    operation = [[TLGroupLeaveOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeLeaveGroup conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 17:
-                    operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeAddMember conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 18: // Added 2025-05-21
-                    operation = [[TLUpdateDescriptorOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
-                    break;
-
-                case 3:  // Transient operation should never be saved!
-                case 13: // Push command
-                default:
-                    operation = nil;
-                    break;
+                TL_ASSERTION(self.twinlife, [TLTwinlifeAssertPoint CONVERSATION_OPERATION_ERROR], [TLAssertValue initWithNumber:type], [TLAssertValue initWithLength:contentLength], nil);
+                operation = nil;
             }
             if (operation) {
                 [operations addObject:operation];

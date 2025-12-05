@@ -2214,7 +2214,14 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
                     if (hasLock) {
                         DDLogInfo(@"%@ %@", LOG_TAG, @"connect...");
                         
-                        [self.serverConnection connect];
+                        if (![self.serverConnection connect]) {
+                            // Connection failed immediately, may be the Internet connectivity was lost,
+                            // exit this loop to check again BUT give 500ms to the libwebsocket to pause
+                            // because if we retry the call to connect() too quickly, we will get the
+                            // same error and consume CPU for nothing.
+                            [self.serverConnection serviceWithTimeout:500];
+                            break;
+                        }
                     }
                 }
                 [self.serverConnection serviceWithTimeout:5000];

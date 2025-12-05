@@ -370,15 +370,26 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
     self.currentStats = nil;
 
-    DDLogInfo(@"%@ connecting to %@:%d", LOG_TAG, self.hostName, self.hostPort);
+    DDLogInfo(@"%@ connecting to %@:%d as session %ld", LOG_TAG, self.hostName, self.hostPort, self.sessionId);
     self.session = [self.container createWithSession:self.sessionId delegate:self port:self.hostPort host:self.hostName customSNI:nil path:@"/twinlife/server" method:method timeout:20000 proxies:proxies];
-    return self.session != nil;
+    if (self.session == nil) {
+        DDLogInfo(@"%@ connection to %@:%d failed (network issue)", LOG_TAG, self.hostName, self.hostPort);
+
+        // When a nil session is returned, it means the connection failed immediately due to network
+        // connectivity issues.
+        @synchronized (self) {
+            self.connecting = NO;
+        }
+        return NO;
+    } else {
+        return YES;
+    }
 }
 
 - (BOOL)disconnect {
     DDLogVerbose(@"%@ disconnect", LOG_TAG);
 	
-    DDLogInfo(@"%@ disconnecting from %@", LOG_TAG, self.hostName);
+    DDLogInfo(@"%@ disconnecting session %ld from %@", LOG_TAG, self.sessionId, self.hostName);
     BOOL wasConnected;
     TLWebSocket *session;
     @synchronized (self) {
@@ -466,7 +477,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
         self.activeProxy = proxyDescriptor;
     }
-    DDLogInfo(@"%@ connected to %@%@%@ in %lld us", LOG_TAG, stats[active].ipAddr, (proxyDescriptor ? @" with proxy " : @""), (proxyDescriptor ? [proxyDescriptor proxyDescription] : @""), stats[active].txnResponseTime);
+    DDLogInfo(@"%@ session %ld connected to %@%@%@ in %lld us", LOG_TAG, self.sessionId, stats[active].ipAddr, (proxyDescriptor ? @" with proxy " : @""), (proxyDescriptor ? [proxyDescriptor proxyDescription] : @""), stats[active].txnResponseTime);
 
     [self.connectivityService saveLastProxyDescriptor:proxyDescriptor];
 
@@ -476,7 +487,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (void)onClose:(nonnull TLWebSocket *)websocket {
     DDLogVerbose(@"%@ onClose: %@", LOG_TAG, websocket);
     
-    DDLogInfo(@"%@ connection to %@ closed", LOG_TAG, self.hostName);
+    DDLogInfo(@"%@ session %ld connection to %@ closed", LOG_TAG, self.sessionId, self.hostName);
     @synchronized (self) {
         self.session = nil;
         self.connecting = NO;
@@ -504,7 +515,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (void)onConnectError:(nonnull TLWebSocket *)websocket stats:(nonnull NSArray<TLConnectionStats *> *)stats error:(int)error {
     DDLogVerbose(@"%@ onConnectError: %ld error: %d", LOG_TAG, [websocket sessionId], error);
     
-    DDLogInfo(@"%@ connection to %@ failed: %d", LOG_TAG, self.hostName, error);
+    DDLogInfo(@"%@ session %ld connection to %@ failed: %d", LOG_TAG, self.sessionId, self.hostName, error);
 
     @synchronized (self) {
         self.connecting = NO;

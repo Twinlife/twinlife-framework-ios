@@ -208,5 +208,6 @@ typedef NS_ENUM(NSUInteger, TLAssertionParameter) {
 +(nonnull TLAssertPoint *)INVALID_TAG_NSDEFAULTS;
 +(nonnull TLAssertPoint *)BAD_VALUE;
 +(nonnull TLAssertPoint *)STORE_ERROR;
++(nonnull TLAssertPoint *)CONVERSATION_OPERATION_ERROR;
 
 @end
