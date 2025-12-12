@@ -113,7 +113,6 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 @property int64_t lastSuspendDate;
 @property int64_t startTime;
 @property int64_t startSuspendTime;
-@property int64_t reconnectionTime;
 
 + (nonnull TLTwinlife *)sharedTwinlife;
 

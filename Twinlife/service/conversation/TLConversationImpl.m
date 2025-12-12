@@ -317,7 +317,7 @@ static const int BACKOFF_DELAYS_COUNT = sizeof(BACKOFF_DELAYS) / sizeof(BACKOFF_
     }
 
     // Outgoing P2P is accepted, create the connection instance.
-    self.connection = [[TLConversationConnection alloc] initWithConversation:self twinlife:twinlife];
+    self.connection = [[TLConversationConnection alloc] initWithConversation:self twinlife:twinlife incoming:NO];
     return self.connection;
 }
 
@@ -340,9 +340,10 @@ static const int BACKOFF_DELAYS_COUNT = sizeof(BACKOFF_DELAYS) / sizeof(BACKOFF_
         }
     }
 
-    self.connection = [[TLConversationConnection alloc] initWithConversation:self twinlife:twinlife];
+    self.connection = [[TLConversationConnection alloc] initWithConversation:self twinlife:twinlife incoming:YES];
     return self.connection;
 }
+
 - (BOOL)isOpened {
 
     return self.connection != nil && [self.connection state] == TLConversationStateOpen;

@@ -49,6 +49,7 @@ static const NSTimeInterval IDLE_FOREGROUND_FIRST_CHECK_DELAY = 10.0; // First c
 static const NSTimeInterval IDLE_BACKGROUND_FIRST_CHECK_DELAY = 1.0; // First check on idle P2P connection after 1s.
 static const NSTimeInterval IDLE_FOREGROUND_CHECK_DELAY = 5.0; // Then, other check for idle P2P connection each 5s.
 static const NSTimeInterval IDLE_BACKGROUND_CHECK_DELAY = 1.0; // Then, other check for idle P2P connection each 1s.
+static const NSTimeInterval RETRY_IMMEDIATELY_DELAY = 0.5; // Time to wait before retrying a P2P connection.
 static const double TIME_INFINITY = 1.0e10; // A very long time in ms.
 static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
 
@@ -893,8 +894,8 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
     return operation;
 }
 
-- (BOOL)closeWithConnection:(nonnull TLConversationConnection *)connection {
-    DDLogVerbose(@"%@ closeWithConnection: %@ next delay: %lld", LOG_TAG, connection.conversation.identifier, connection.conversation.delay);
+- (BOOL)closeWithConnection:(nonnull TLConversationConnection *)connection retryImmediately:(BOOL)retryImmediately {
+    DDLogVerbose(@"%@ closeWithConnection: %@ next delay: %lld retryImmediately: %d", LOG_TAG, connection.conversation.identifier, connection.conversation.delay, retryImmediately);
     
     BOOL synchronizePeerNotification = NO;
     BOOL needReschedule = NO;
@@ -913,10 +914,11 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
             }
             if (operations.count > 0) {
                 TLConversationServiceOperation *operation = operations.queue[0];
-                synchronizePeerNotification = operation.type != TLConversationServiceOperationTypeSynchronizeConversation;
+                synchronizePeerNotification = !retryImmediately && operation.type != TLConversationServiceOperationTypeSynchronizeConversation;
+                NSTimeInterval delay = retryImmediately ? RETRY_IMMEDIATELY_DELAY : conversation.delay / 1000;
 
                 // Put back the operations in the waiting queue with a new deadline.
-                operations.deadline = [[NSDate alloc] initWithTimeIntervalSinceNow:conversation.delay / 1000];
+                operations.deadline = [[NSDate alloc] initWithTimeIntervalSinceNow:delay];
                 [self.waitingOperations addObject:operations allowDuplicate:NO];
             } else {
                 [self.conversationId2Operations removeObjectForKey:conversation.identifier];

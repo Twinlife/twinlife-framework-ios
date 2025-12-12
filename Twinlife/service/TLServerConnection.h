@@ -49,6 +49,7 @@
 
 @property int64_t connectCount;
 @property int64_t connectTime;
+@property int64_t reconnectionTime;
 
 /// Create the server connection instance during application start.
 - (nonnull instancetype)initWithDomainName:(nonnull NSString *)domainName serverURL:(nonnull NSString *)serverURL delegate:(nonnull id<TLServerConnectionDelegate>)delegate connectivityService:(nonnull TLConnectivityService *)connectivityService twinlifeConfiguration:(nonnull TLTwinlifeConfiguration *)twinlifeConfiguration;
@@ -87,5 +88,7 @@
 
 /// Trigger the worker so that the service thread that executes the serviceWithTimeout can return earlier.
 - (void)triggerWorker;
+
+- (void)onPathUpdateWithInterfaces:(nonnull NSMutableDictionary<NSString *, NSNumber *> *)interfaces;
 
 @end

@@ -142,10 +142,12 @@ static const int ddLogLevel = DDLogLevelWarning;
                     kind = 0;
                     break;
             }
-            if ([value.object isKindOfClass:[NSNumber class]]) {
+            if (value.object == nil) {
+                [encoder writeInt:kind | 0];
+            } else if ([value.object isKindOfClass:[NSNumber class]]) {
                 if (value.parameter == TLAssertionParameterErrorCode) {
                     TLBaseServiceErrorCode errorCode = (TLBaseServiceErrorCode) ((NSNumber *)value.object).intValue;
-                    [encoder writeInt:kind | 1];
+                    [encoder writeInt:kind | 10];
                     [encoder writeInt:[TLBaseService fromErrorCode:errorCode]];
                     [encoder writeInt:(int) errorCode];
 

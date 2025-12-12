@@ -68,7 +68,7 @@
 
 - (void)onSignOut;
 
-- (void)onErrorWithRequestId:(int64_t)requestId errorCode:(TLBaseServiceErrorCode)errorCode errorParameter:(NSString *)errorParameter;
+- (void)onErrorWithRequestId:(int64_t)requestId errorCode:(TLBaseServiceErrorCode)errorCode errorParameter:(nullable NSString *)errorParameter;
 
 - (void)onFatalErrorWithErrorCode:(TLBaseServiceErrorCode)errorCode databaseError:(nullable NSError *)databaseError;
 
@@ -101,15 +101,15 @@
 
 @interface TLTwinlifeContext : NSObject <TLTwinlifeSuspendObserver>
 
-@property (weak) TLTwinlife *twinlife;
+@property (weak, nullable) TLTwinlife *twinlife;
 
-@property NSSet *delegates;
+@property (nullable) NSSet *delegates;
 
-- (instancetype)initWithConfiguration:(TLTwinlifeConfiguration *)configuration;
+- (nonnull instancetype)initWithConfiguration:(nonnull TLTwinlifeConfiguration *)configuration;
 
 - (void)start;
 
-- (void)stopWithCompletionHandler:(void (^)(TLBaseServiceErrorCode status))completionHandler;
+- (void)stopWithCompletionHandler:(nullable void (^)(TLBaseServiceErrorCode status))completionHandler;
 
 - (BOOL)isConnected;
 
@@ -124,43 +124,43 @@
 
 - (int64_t)newRequestId;
 
-- (void)addDelegate:(id)delegate;
+- (void)addDelegate:(nonnull id)delegate;
 
-- (void)removeDelegate:(id)delegate;
+- (void)removeDelegate:(nonnull id)delegate;
 
-- (TLAccountService *)getAccountService;
+- (nonnull TLAccountService *)getAccountService;
 
-- (TLConnectivityService *)getConnectivityService;
+- (nonnull TLConnectivityService *)getConnectivityService;
 
-- (TLConversationService *)getConversationService;
+- (nonnull TLConversationService *)getConversationService;
 
-- (TLNotificationService *)getNotificationService;
+- (nonnull TLNotificationService *)getNotificationService;
 
-- (TLManagementService *)getManagementService;
+- (nonnull TLManagementService *)getManagementService;
 
-- (TLPeerConnectionService *)getPeerConnectionService;
+- (nonnull TLPeerConnectionService *)getPeerConnectionService;
 
-- (TLRepositoryService *)getRepositoryService;
+- (nonnull TLRepositoryService *)getRepositoryService;
 
-- (TLTwincodeFactoryService *)getTwincodeFactoryService;
+- (nonnull TLTwincodeFactoryService *)getTwincodeFactoryService;
 
-- (TLTwincodeInboundService *)getTwincodeInboundService;
+- (nonnull TLTwincodeInboundService *)getTwincodeInboundService;
 
-- (TLTwincodeOutboundService *)getTwincodeOutboundService;
+- (nonnull TLTwincodeOutboundService *)getTwincodeOutboundService;
 
-- (TLImageService *)getImageService;
+- (nonnull TLImageService *)getImageService;
 
-- (TLPeerCallService *)getPeerCallService;
+- (nonnull TLPeerCallService *)getPeerCallService;
 
-- (TLJobService *)getJobService;
+- (nonnull TLJobService *)getJobService;
 
-- (TLAccountMigrationService *)getAccountMigrationService;
+- (nonnull TLAccountMigrationService *)getAccountMigrationService;
 
-- (TLSerializerFactory *)getSerializerFactory;
+- (nonnull TLSerializerFactory *)getSerializerFactory;
 
-- (NSDictionary<NSString *, TLServiceStats *> *)getServiceStats;
+- (nonnull NSDictionary<NSString *, TLServiceStats *> *)getServiceStats;
 
-- (void)fireOnErrorWithRequestId:(int64_t)requestId errorCode:(TLBaseServiceErrorCode)errorCode errorParameter:(NSString *)errorParameter;
+- (void)fireOnErrorWithRequestId:(int64_t)requestId errorCode:(TLBaseServiceErrorCode)errorCode errorParameter:(nullable NSString *)errorParameter;
 
 /// Report a failed assertion with a list of assertion values.
 - (void)assertionWithAssertPoint:(nonnull TLAssertPoint *)assertPoint, ... NS_REQUIRES_NIL_TERMINATION;

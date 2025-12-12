@@ -1135,7 +1135,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 
     [self twinlifeResume];
 
-    self.reconnectionTime = 0;
+    self.serverConnection.reconnectionTime = 0;
     if (self.connectivityService) {
         [self.connectivityService signalAll];
     }
@@ -1654,39 +1654,6 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         });
         return;
     }
-    
-    // Reconnect after a delay that depends on the error we got.
-    // A random delay is added to make sure devices will not reconnect at the same time
-    // in case the error is triggered by the server.
-    int64_t timeout;
-    switch (error) {
-        case TLConnectionErrorNone:
-            // Connection was closed by us or by the server.
-            timeout = 500 + arc4random_uniform(8000);
-            break;
-            
-        case TLConnectionErrorDNS:
-        case TLConnectionErrorIO:
-        case TLConnectionErrorTimeout:
-            // For transient error, we can retry more aggressively.
-            timeout = 2000 + arc4random_uniform(2000);
-            break;
-            
-        case TLConnectionErrorTLSHostname:
-        case TLConnectionErrorInvalidCA:
-            // Trying to connect to a wrong server, no need to retry very often.
-            timeout = 60000 + arc4random_uniform(60000);
-            break;
-            
-        default:
-            
-            timeout = 10000 + arc4random_uniform(10000);
-            break;
-    }
-    
-    self.reconnectionTime = [TLTwinlife timestamp] + timeout * 1000LL * 1000LL;
-    DDLogVerbose(@"%@ onDisconnect retry: %lld ms", LOG_TAG, timeout);
-
     [self.serverConnection triggerWorker];
 }
 
@@ -2184,15 +2151,24 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         monitor.running = NO;
     }
 
-    int64_t disconnectedTimeout = MIN_RECONNECTION_TIMEOUT;
+    NSTimeInterval disconnectedTimeout = 0.1;
     while (monitor.running) {
         do {
             DDLogInfo(@"%@ %@", LOG_TAG, @"wait for connected network...");
 
             // If we have some active P2P session, reduce the disconnect timeout to 1s when it is below 16.
             // In that case, we will use 1, 2s, 4s, 8s network detection timeout.
-            if (disconnectedTimeout >= MIN_DISCONNECTED_TIMEOUT && ![self.jobService isIdle]) {
-                disconnectedTimeout = MIN_RECONNECTION_TIMEOUT;
+            if ([self.jobService isVoIPActive]) {
+                disconnectedTimeout = 0.1;
+            } else if (![self.jobService isIdle]) {
+                // If we are not idle (app in foreground), be more pro-active in testing the network connectivity.
+                // The delay will start at 0 and we increase it by 250ms min until we reach 10s and then we start
+                // again from 1s.
+                // 0, 250, 625, 1187, 2030, 3305, 5207, 8060
+                disconnectedTimeout = 0.25 + (disconnectedTimeout / 2.0);
+                if (disconnectedTimeout > 10.0) {
+                    disconnectedTimeout = 1.0;
+                }
             }
             if (![self.connectivityService waitForConnectedNetworkWithTimeout:disconnectedTimeout]) {
                 DDLogInfo(@"%@ %@", LOG_TAG, @"network not connected");

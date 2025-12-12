@@ -433,6 +433,7 @@ TL_CREATE_ASSERT_POINT(EXCEPTION, 102)
 TL_CREATE_ASSERT_POINT(PROCESS_IQ, 103)
 TL_CREATE_ASSERT_POINT(PROCESS_LEGACY_IQ, 104)
 TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
+TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
 
 @end
 
@@ -1611,7 +1612,13 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
     if (connection && self.lockIdentifier) {
         int64_t lockTime = [self.serviceProvider lockConversation:conversationImpl lockIdentifier:self.lockIdentifier now:now];
         if (lockTime == 0) {
+            // If we failed to acquire the lock, cleanup the conversation otherwise a next incoming/outgoing
+            // P2P connection will be rejected with BUSY.
+            @synchronized (self) {
+                [conversationImpl closeConnection];
+            }
             connection = nil;
+            TL_ASSERTION(self.twinlife, [TLConversationServiceAssertPoint LOCK_CONVERSATION_FAILED], [TLAssertValue initWithSubject:conversation.subject], [TLAssertValue initWithPeerConnectionId:peerConnectionId], nil);
         } else {
             conversationImpl.lastConnectTime = lockTime;
         }
@@ -3835,6 +3842,12 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
         // If it is locked, don't try to open the connection because another process is using it.
         int64_t lockTime = [self.serviceProvider lockConversation:conversation lockIdentifier:self.lockIdentifier now:now];
         if (lockTime == 0) {
+            // If we failed to acquire the lock, cleanup the conversation otherwise a next incoming/outgoing
+            // P2P connection will be rejected with BUSY.
+            @synchronized (self) {
+                [conversation closeConnection];
+            }
+            TL_ASSERTION(self.twinlife, [TLConversationServiceAssertPoint LOCK_CONVERSATION_FAILED], [TLAssertValue initWithSubject:conversation.subject], nil);
             return;
         }
         conversation.lastConnectTime = lockTime;
@@ -3994,7 +4007,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
         }
     }
     
-    BOOL synchronizePeerNotification = [self.scheduler closeWithConnection:connection];
+    BOOL synchronizePeerNotification = [self.scheduler closeWithConnection:connection retryImmediately:retryImmediately];
 
     // Try to handle and recover from some errors.
     if (terminateReason == TLPeerConnectionServiceTerminateReasonNotEncrypted
@@ -4040,16 +4053,11 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
         }
     }
 
-    retryImmediately = retryImmediately && [self.scheduler hasOperationsWithConversation:conversationImpl];
-    if (!retryImmediately && synchronizePeerNotification) {
+    if (synchronizePeerNotification) {
         [self askConversationSynchronizeWithConversation:conversationImpl];
     }
     
-    if (retryImmediately) {
-        [self executeOperationWithConversation:conversationImpl];
-    } else {
-        [self.scheduler scheduleOperationsWithConversation:conversationImpl];
-    }
+    [self.scheduler scheduleOperationsWithConversation:conversationImpl];
 }
 
 - (void)addPacketListener:(nonnull TLBinaryPacketIQSerializer *)serializer listener:(nonnull TLPeerConnectionBinaryPacketListener)listener {
@@ -4099,7 +4107,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
 
         // Tell the scheduler the group incoming conversation can be dropped and it must now track the member conversation.
         // The group incoming conversation has no operation but the member's conversation can have pending operations.
-        [self.scheduler closeWithConnection:oldConnection];
+        [self.scheduler closeWithConnection:oldConnection retryImmediately:NO];
         [self.scheduler startOperationsWithConnection:connection state:TLConversationStateOpen];
         if (newMember) {
             DDLogVerbose(@"%@ auto-link P2P %@ to conversation %@", LOG_TAG, peerConnectionId, conversationImpl.uuid);
@@ -4240,7 +4248,7 @@ TL_CREATE_ASSERT_POINT(SERIALIZE_ERROR, 105)
     
     NSUUID *peerConnectionId = connection.peerConnectionId;
     if (peerConnectionId) {
-        [self closeWithPeerConnectionId:peerConnectionId terminateReason:terminateReason];
+        [self closeWithConnection:connection isIncoming:NO peerConnectionId:peerConnectionId terminateReason:terminateReason];
         [self.peerConnectionService terminatePeerConnectionWithPeerConnectionId:peerConnectionId terminateReason:terminateReason];
     }
 }

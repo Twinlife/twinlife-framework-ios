@@ -89,7 +89,7 @@
 
 /// Notify the scheduler that the connection for the conversation has closed.
 /// Returns true if a synchronize peer notification is required.
-- (BOOL)closeWithConnection:(nonnull TLConversationConnection *)connection;
+- (BOOL)closeWithConnection:(nonnull TLConversationConnection *)connection retryImmediately:(BOOL)retryImmediately;
 
 /// Add a list of operations associated with specific conversations and schedule their execution.
 - (void)addOperations:(nonnull NSMapTable<TLConversationImpl *, NSObject *> *)operations;

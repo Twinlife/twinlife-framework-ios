@@ -19,15 +19,9 @@
 
 @interface TLConnectivityService ()
 
-@property (readonly, nonnull) NSCondition *connectedCondition;
 @property (nullable) NSArray<TLProxyDescriptor *> *proxyDescriptors;
 @property (readonly, nonnull) NSMutableArray<TLSNIProxyDescriptor *> *userProxies;
-@property (nullable) NSString *userProxyConfig;
 @property (nullable) TLProxyDescriptor *lastProxyDescriptor;
-@property BOOL connectedNetwork;
-@property BOOL proxyEnabled;
-@property int proxyDescriptorLease;
-@property int activeProxyIndex;
 
 - (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife;
 

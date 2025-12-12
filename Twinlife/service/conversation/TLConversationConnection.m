@@ -47,8 +47,8 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
 
 @implementation TLConversationConnection
 
-- (nonnull instancetype)initWithConversation:(nonnull TLConversationImpl *)conversation twinlife:(nonnull TLTwinlife *)twinlife {
-    DDLogVerbose(@"%@ initWithConversation: %@ twinlife: %@", LOG_TAG, conversation, twinlife);
+- (nonnull instancetype)initWithConversation:(nonnull TLConversationImpl *)conversation twinlife:(nonnull TLTwinlife *)twinlife incoming:(BOOL)incoming {
+    DDLogVerbose(@"%@ initWithConversation: %@ twinlife: %@ incoming: %d", LOG_TAG, conversation, twinlife, incoming);
 
     self = [super init];
     if (self) {
@@ -57,6 +57,11 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
         _peerConnectionService = [twinlife getPeerConnectionService];
         _conversationService = [twinlife getConversationService];
         _withLeadingPadding = YES;
+        if (incoming) {
+            _incomingState = TLConversationStateCreating;
+        } else {
+            _outgoingState = TLConversationStateCreating;
+        }
     }
     return self;
 }
@@ -274,7 +279,7 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
 - (nonnull TLConversationConnection *)transferConnectionWithConversation:(nonnull TLConversationImpl*)conversation twinlife:(nonnull TLTwinlife *)twinlife {
     DDLogVerbose(@"%@ transferConnectionWithConversation: %@", LOG_TAG, conversation);
 
-    TLConversationConnection *result = [[TLConversationConnection alloc] initWithConversation:conversation twinlife:twinlife];
+    TLConversationConnection *result = [[TLConversationConnection alloc] initWithConversation:conversation twinlife:twinlife incoming:NO];
     result.incomingState = self.incomingState;
     result.outgoingState = self.outgoingState;
     result.accessedTime = self.accessedTime;

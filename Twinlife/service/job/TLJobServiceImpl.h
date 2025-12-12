@@ -65,6 +65,8 @@ typedef enum {
 
 - (TLApplicationState)applicationState;
 
+- (BOOL)isVoIPActive;
+
 - (void)onTwinlifeOnline;
 
 - (void)onTwinlifeOffline;
@@ -85,5 +87,6 @@ typedef enum {
 - (BOOL)onTwinlifeSuspended;
 
 - (nonnull TLDeviceInfo *)getDeviceInfo;
+
 
 @end

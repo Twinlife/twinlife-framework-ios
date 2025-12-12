@@ -40,6 +40,7 @@ typedef void (^TLPeerConnectionBinaryPacketListener) (TLConversationConnection *
 +(nonnull TLAssertPoint *)PROCESS_IQ;
 +(nonnull TLAssertPoint *)PROCESS_LEGACY_IQ;
 +(nonnull TLAssertPoint *)RESET_CONVERSATION;
++(nonnull TLAssertPoint *)LOCK_CONVERSATION_FAILED;
 
 @end
 

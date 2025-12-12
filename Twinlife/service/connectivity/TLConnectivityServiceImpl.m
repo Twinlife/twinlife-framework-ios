@@ -11,6 +11,7 @@
 #import <ifaddrs.h>
 #import <netdb.h>
 #import <sys/socket.h>
+#import <Network/Network.h>
 
 #import <CocoaLumberjack.h>
 
@@ -39,6 +40,24 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
 
     [object reachabilityCallback:flags];
 }
+
+//
+// Interface: TLConnectivityService ()
+//
+
+@interface TLConnectivityService ()
+
+@property (readonly, nonnull) NSCondition *connectedCondition;
+@property (readonly, nonnull) dispatch_queue_t monitorQueue;
+@property (readonly, nonnull) void *monitorQueueTag;
+@property (nullable) nw_path_monitor_t pathMonitor;
+@property (nullable) NSString *userProxyConfig;
+@property BOOL connectedNetwork;
+@property BOOL proxyEnabled;
+@property int proxyDescriptorLease;
+@property int activeProxyIndex;
+
+@end
 
 //
 // Implementation: TLConnectivityServiceConfiguration
@@ -83,6 +102,8 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     if (self = [super initWithTwinlife:twinlife]) {
         _connectedCondition = [[NSCondition alloc] init];
         _userProxies = [[NSMutableArray alloc] init];
+        _monitorQueueTag = &_monitorQueueTag;
+        _monitorQueue = dispatch_queue_create("monitorNetworkQueue", DISPATCH_QUEUE_SERIAL);
     }
     return self;
 }
@@ -153,9 +174,52 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     reachability = SCNetworkReachabilityCreateWithAddress(kCFAllocatorDefault, (const struct sockaddr *)&zeroAddress);
     SCNetworkReachabilityContext context = {0, (__bridge void *)(self), NULL, NULL, NULL};
     if (SCNetworkReachabilitySetCallback(reachability, ReachabilityCallback, &context)) {
-        SCNetworkReachabilitySetDispatchQueue(reachability, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+        SCNetworkReachabilitySetDispatchQueue(reachability, self.monitorQueue);
     }
     return YES;
+}
+
+- (void)onTwinlifeSuspend {
+    DDLogVerbose(@"%@: onTwinlifeSuspend", LOG_TAG);
+
+    nw_path_monitor_cancel(self.pathMonitor);
+    self.pathMonitor = nil;
+}
+
+- (void)onTwinlifeResume {
+    DDLogVerbose(@"%@: onTwinlifeResume", LOG_TAG);
+
+    self.pathMonitor = nw_path_monitor_create();
+    nw_path_monitor_set_update_handler(self.pathMonitor, ^(nw_path_t path) {
+        __block NSMutableDictionary<NSString *, NSNumber *> *interfaces = [[NSMutableDictionary alloc] init];
+        nw_path_status_t status = nw_path_get_status(path);
+
+        if (status == nw_path_status_unsatisfied) {
+            [self onPathUpdateWithInterfaces:interfaces];
+            return;
+        }
+
+        nw_path_enumerate_interfaces(path, (nw_path_enumerate_interfaces_block_t) ^ (nw_interface_t interface) {
+            const char *name = nw_interface_get_name(interface);
+            nw_interface_type_t interfaceType = nw_interface_get_type(interface);
+            [interfaces setObject:[NSNumber numberWithInt:interfaceType] forKey:[NSString stringWithUTF8String:name]];
+        });
+
+        [self onPathUpdateWithInterfaces:interfaces];
+    });
+    nw_path_monitor_set_queue(self.pathMonitor, self.monitorQueue);
+    nw_path_monitor_start(self.pathMonitor);
+}
+
+- (void)onPathUpdateWithInterfaces:(nonnull NSMutableDictionary<NSString *, NSNumber *> *)interfaces {
+    DDLogVerbose(@"%@: onPathUpdateWithInterfaces: %@", LOG_TAG, interfaces);
+
+    if (interfaces.count == 0) {
+        [self reachabilityCallback:0];
+    } else {
+        [self reachabilityCallback:kSCNetworkReachabilityFlagsReachable];
+    }
+    [self.serverStream onPathUpdateWithInterfaces:interfaces];
 }
 
 - (void)onConnect {

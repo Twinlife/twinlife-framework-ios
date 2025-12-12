@@ -396,6 +396,14 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 }
 
+- (BOOL)isVoIPActive {
+    DDLogVerbose(@"%@ isVoIPActive", LOG_TAG);
+
+    @synchronized (self) {
+        return self.callCount > 0;
+    }
+}
+
 - (BOOL)isForeground {
     DDLogVerbose(@"%@ isForeground", LOG_TAG);
 

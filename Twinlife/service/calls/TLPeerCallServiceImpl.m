@@ -63,7 +63,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define PEER_CALL_SERVICE_VERSION @"1.4.1"
+#define PEER_CALL_SERVICE_VERSION @"1.4.2"
 
 static TLBinaryPacketIQSerializer *IQ_CREATE_CALL_ROOM_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_CREATE_CALL_ROOM_SERIALIZER = nil;
@@ -895,6 +895,12 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     if (![iq isKindOfClass:[TLSessionInitiateIQ class]]) {
         return;
     }
+
+    // If we are suspended or going to suspend, we must not accept an incoming P2P connection.
+    // Do not acknowledge if we are shutting down.
+    if ([self.twinlife status] != TLTwinlifeStatusStarted) {
+        return;
+    }
     
     TLSessionInitiateIQ *sessionInitiateIQ = (TLSessionInitiateIQ *)iq;
     TLVersion *version = [[TLVersion alloc] initWithMajor:sessionInitiateIQ.majorVersion minor:sessionInitiateIQ.minorVersion patch:0];
@@ -924,6 +930,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
         return;
     }
     
+    // Do not acknowledge if we are shutting down.
+    if ([self.twinlife status] != TLTwinlifeStatusStarted) {
+        return;
+    }
+    
     TLSessionAcceptIQ *sessionAcceptIQ = (TLSessionAcceptIQ *)iq;
     TLVersion *version = [[TLVersion alloc] initWithMajor:sessionAcceptIQ.majorVersion minor:sessionAcceptIQ.minorVersion patch:0];
     TLOffer *offer = [TLPeerCallService createOfferWithOffer:sessionAcceptIQ.offer version:version];
@@ -946,6 +957,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     if (![iq isKindOfClass:[TLSessionUpdateIQ class]]) {
         return;
     }
+
+    // Do not acknowledge if we are shutting down.
+    if ([self.twinlife status] != TLTwinlifeStatusStarted) {
+        return;
+    }
     
     TLSessionUpdateIQ *sessionUpdateIQ = (TLSessionUpdateIQ *)iq;
     RTCSdpType type = (sessionUpdateIQ.updateType & OFFER_ANSWER) ? RTCSdpTypeAnswer : RTCSdpTypeOffer;
@@ -965,6 +981,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     DDLogVerbose(@"%@ onTransportInfoWithIQ: %@", LOG_TAG, iq);
     
     if (![iq isKindOfClass:[TLTransportInfoIQ class]]) {
+        return;
+    }
+
+    // Do not acknowledge if we are shutting down.
+    if ([self.twinlife status] != TLTwinlifeStatusStarted) {
         return;
     }
     
@@ -990,7 +1011,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     if (![iq isKindOfClass:[TLSessionTerminateIQ class]]) {
         return;
     }
-    
+
+    // Take into account even if we are shutting down.
+
     TLSessionTerminateIQ *sessionTerminateIQ = (TLSessionTerminateIQ *)iq;
     [self.peerSignalingDelegate onSessionTerminateWithSessionId:sessionTerminateIQ.sessionId reason:sessionTerminateIQ.reason];
 

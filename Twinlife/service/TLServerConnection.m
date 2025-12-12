@@ -78,6 +78,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 @property (nonnull) NSMutableArray<TLProxyDescriptor *> *shuffledProxies;
 @property (nullable) TLProxyDescriptor *lastProxy;
 @property (nullable) TLProxyDescriptor *activeProxy;
+@property (nullable) NSMutableDictionary<NSString *, NSNumber *> *interfaces;
 @property NSTimeInterval lastSendReceiveTime;
 @property uint64_t connectStartTime;
 @property (nullable) TLWebSocket *session;
@@ -133,13 +134,13 @@ static const int ddLogLevel = DDLogLevelWarning;
     int hostIdx = (int)arc4random_uniform((uint32_t)hostList.count);
     int domainIdx = (int)arc4random_uniform((uint32_t)domainList.count);
     int tldIdx = (int)arc4random_uniform((uint32_t)tldList.count);
-
+    
     return [NSString stringWithFormat:@"%@.%@.%@", hostList[hostIdx], domainList[domainIdx], tldList[tldIdx]];
 }
 
 - (nonnull instancetype)initWithDomainName:(nonnull NSString *)domainName serverURL:(nonnull NSString *)serverURL delegate:(nonnull id<TLServerConnectionDelegate>)delegate connectivityService:(nonnull TLConnectivityService *)connectivityService twinlifeConfiguration:(nonnull TLTwinlifeConfiguration *)twinlifeConfiguration {
     DDLogVerbose(@"%@ initWithDomainName: %@ serverURL: %@", LOG_TAG, domainName, serverURL);
-
+    
     self = [super init];
     if (self) {
         _hostPort = 443;
@@ -167,7 +168,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _shuffledDeadline = 0;
         _shuffledProxies = nil;
         _lastProxy = nil;
-
+        
         // Separate the Keyed proxies vs the SNI ones.
         NSArray<TLProxyDescriptor *> *proxies = connectivityService.proxyDescriptors;
         if (proxies) {
@@ -190,7 +191,7 @@ static const int ddLogLevel = DDLogLevelWarning;
             for (TLProxyDescriptor *proxy in proxies) {
                 if ([proxy isKindOfClass:[TLKeyProxyDescriptor class]]) {
                     [_keyProxies addObject:(TLKeyProxyDescriptor *)proxy];
-
+                    
                 } else if ([proxy isKindOfClass:[TLSNIProxyDescriptor class]]) {
                     TLSNIProxyDescriptor *sniProxyDescriptor = (TLSNIProxyDescriptor *)proxy;
                     NSString *sni = [TLServerConnection createSNIWithList:hostList domainList:domainList tldList:tldList];
@@ -198,7 +199,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 }
             }
         }
-
+        
         // See how many proxies we can use for the setupProxies() algorithm where we try
         // to allocate one SNI proxy and one keyed proxy randomly until we fill the MAX_PROXIES.
         int count = (int) MIN(_keyProxies.count, _sniProxies.count);
@@ -226,12 +227,12 @@ static const int ddLogLevel = DDLogLevelWarning;
     if ((now < self.shuffledDeadline || self.shuffledProxyCount == 0) && lastProxy == self.lastProxy) {
         return;
     }
-
+    
     self.shuffledDeadline = now + (3 * 3600L * 1000L) + arc4random_uniform(4L * 3600L * 1000L);
     self.lastProxy = lastProxy;
     NSMutableArray<TLKeyProxyDescriptor *> *ksList = [[NSMutableArray alloc] initWithArray:self.keyProxies];
     NSMutableArray<TLSNIProxyDescriptor *> *sList = [[NSMutableArray alloc] initWithArray:self.sniProxies];
-
+    
     // Remove the last proxy that will be tried as first proxy from the list (to make sure we don't make another connection to it).
     if (lastProxy) {
         for (int i = 0; i < ksList.count; i++) {
@@ -272,13 +273,13 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (BOOL)isConnecting {
     DDLogVerbose(@"%@ isConnecting (session: %ld)", LOG_TAG, self.sessionId);
-
+    
     return self.isConnecting;
 }
 
 - (BOOL)isOpened {
     DDLogVerbose(@"%@ isOpened (session=%ld)", LOG_TAG, self.sessionId);
-
+    
     return self.session != nil && [self.session isConnected];
 }
 
@@ -288,7 +289,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 }
 
 - (TLConnectionStatus)connectionStatus {
-
+    
     TLConnectionStatus result;
     @synchronized (self) {
         if (self.isConnected) {
@@ -299,14 +300,14 @@ static const int ddLogLevel = DDLogLevelWarning;
             result = TLConnectionStatusNoService;
         }
     }
-
+    
     DDLogVerbose(@"%@ connectionStatus %d", LOG_TAG, result);
     return result;
 }
 
 - (BOOL)connect {
     DDLogVerbose(@"%@ connect to %@:%d", LOG_TAG, self.hostName, self.hostPort);
-
+    
     @synchronized (self) {
         if (self.connecting || self.isConnected) {
             return YES;
@@ -315,10 +316,10 @@ static const int ddLogLevel = DDLogLevelWarning;
         self.disconnecting = NO;
         self.activeProxy = nil;
     }
-
+    
     TLProxyDescriptor *lastProxy = [self.connectivityService lastProxyDescriptor];
     [self setupProxiesWithLastProxy:lastProxy];
-
+    
     // Build a list of proxies to use for the connection and put the last proxy as first proxy in the list.
     [self.proxies removeAllObjects];
     if (lastProxy) {
@@ -349,32 +350,32 @@ static const int ddLogLevel = DDLogLevelWarning;
             [self.proxies addObject:proxy];
         }
     }
-
+    
     NSMutableArray<TLSocketProxyDescriptor *> *proxies = [[NSMutableArray alloc] init];
     for (TLProxyDescriptor *proxy in self.proxies) {
         if ([proxy isKindOfClass:[TLSNIProxyDescriptor class]]) {
             TLSNIProxyDescriptor *sniProxy = (TLSNIProxyDescriptor *)proxy;
             [proxies addObject:[[TLSocketProxyDescriptor alloc] initWithHostname:sniProxy.host port:sniProxy.port customSNI:sniProxy.customSNI]];
-
+            
         } else if ([proxy isKindOfClass:[TLKeyProxyDescriptor class]]) {
             TLKeyProxyDescriptor *keyProxy = (TLKeyProxyDescriptor *)proxy;
             NSString *path = [keyProxy proxyPathWithHost:self.hostName port:self.hostPort];
             [proxies addObject:[[TLSocketProxyDescriptor alloc] initWithHostname:keyProxy.host port:keyProxy.port path:path]];
         }
     }
-
+    
     self.sessionId++;
     int method = TL_CONFIG_SECURE | TL_CONFIG_DIRECT_CONNECT | PROXY_START_DELAY;
     if (lastProxy) {
         method |= TL_CONFIG_FIRST_PROXY | PROXY_FIRST_START_DELAY;
     }
     self.currentStats = nil;
-
+    
     DDLogInfo(@"%@ connecting to %@:%d as session %ld", LOG_TAG, self.hostName, self.hostPort, self.sessionId);
     self.session = [self.container createWithSession:self.sessionId delegate:self port:self.hostPort host:self.hostName customSNI:nil path:@"/twinlife/server" method:method timeout:20000 proxies:proxies];
     if (self.session == nil) {
         DDLogInfo(@"%@ connection to %@:%d failed (network issue)", LOG_TAG, self.hostName, self.hostPort);
-
+        
         // When a nil session is returned, it means the connection failed immediately due to network
         // connectivity issues.
         @synchronized (self) {
@@ -388,7 +389,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (BOOL)disconnect {
     DDLogVerbose(@"%@ disconnect", LOG_TAG);
-	
+    
     DDLogInfo(@"%@ disconnecting session %ld from %@", LOG_TAG, self.sessionId, self.hostName);
     BOOL wasConnected;
     TLWebSocket *session;
@@ -405,14 +406,14 @@ static const int ddLogLevel = DDLogLevelWarning;
         [session close];
     } else {
         [self.delegate onDisconnectWithError:TLConnectionErrorNone];
-
+        
     }
     return !wasConnected;
 }
 
 - (BOOL)sendWithData:(NSData *)message {
     DDLogVerbose(@"%@ sendWithData: %lu", LOG_TAG, message.length);
-
+    
     // Protect the sendWithMessage because it can be called by any thread (PeerConnectionService)
     // while another thread is closing the session.
     @synchronized (self) {
@@ -426,7 +427,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (void)serviceWithTimeout:(long)timeout {
     DDLogVerbose(@"%@ serviceWithTimeout: %ld", LOG_TAG, timeout);
-
+    
     [self.container serviceWithTimeout:(int)timeout];
 }
 
@@ -449,8 +450,38 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (void)triggerWorker {
     DDLogVerbose(@"%@ triggerWorker", LOG_TAG);
-
+    
     [self.container triggerWorker];
+}
+
+#pragma mark TLWebSocketDelegate Delegate
+
+- (void)onPathUpdateWithInterfaces:(nonnull NSMutableDictionary<NSString *, NSNumber *> *)interfaces {
+    DDLogVerbose(@"%@ onPathUpdateWithInterfaces: %@", LOG_TAG, interfaces);
+
+    // Check if the interfaces were changed and we must reconnect.
+    BOOL needReconnect = NO;
+    @synchronized (self) {
+        if (self.interfaces) {
+            for (NSString *interface in interfaces) {
+                if (self.interfaces[interface]) {
+                    [self.interfaces removeObjectForKey:interface];
+                } else {
+                    needReconnect = YES;
+                    break;
+                }
+            }
+            needReconnect = needReconnect || self.interfaces.count > 0;
+        } else {
+            needReconnect = YES;
+        }
+        self.interfaces = interfaces;
+        needReconnect = needReconnect && self.isConnected;
+    }
+    if (needReconnect) {
+        [self disconnect];
+        [self triggerWorker];
+    }
 }
 
 #pragma mark TLWebSocketDelegate Delegate
@@ -564,6 +595,38 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
     }
     
+    // Reconnect after a delay that depends on the error we got.
+    // A random delay is added to make sure devices will not reconnect at the same time
+    // in case the error is triggered by the server.
+    int64_t timeout;
+    switch (error) {
+        case TLConnectionErrorNone:
+            // Connection was closed by us or by the server.
+            timeout = 500 + arc4random_uniform(8000);
+            break;
+            
+        case TLConnectionErrorDNS:
+        case TLConnectionErrorIO:
+        case TLConnectionErrorTimeout:
+            // For transient error, we can retry more aggressively.
+            timeout = 2000 + arc4random_uniform(2000);
+            break;
+            
+        case TLConnectionErrorTLSHostname:
+        case TLConnectionErrorInvalidCA:
+            // Trying to connect to a wrong server, no need to retry very often.
+            timeout = 60000 + arc4random_uniform(60000);
+            break;
+            
+        default:
+            
+            timeout = 10000 + arc4random_uniform(10000);
+            break;
+    }
+    
+    self.reconnectionTime = [TLTwinlife timestamp] + timeout * 1000LL * 1000LL;
+    DDLogVerbose(@"%@ onDisconnect retry: %lld ms", LOG_TAG, timeout);
+
     [self.delegate onDisconnectWithError:error];
 
     @synchronized (self) {

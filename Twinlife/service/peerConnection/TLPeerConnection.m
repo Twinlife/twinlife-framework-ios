@@ -61,6 +61,7 @@ typedef enum {
 } TLPeerConnectionServiceCameraConstraints;
 
 static const int64_t RESTART_ICE_DELAY = 2500; // ms delay to wait before restarting ICE after a disconnect.
+static const int64_t RESTART_DATA_ICE_DELAY = 5000; // ms delay to wait before restarting ICE after a disconnect.
 
 static const int STATS_REPORT_VERSION = 2;
 static const int CONNECT_REPORT_VERSION = 2;
@@ -334,6 +335,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property BOOL dataSourceOn;
 @property BOOL ignoreOffer;
 @property BOOL isSettingRemoteAnswerPending;
+@property BOOL withMedia;
 @property RTCIceConnectionState state;
 @property RTC_OBJC_TYPE(RTCRtpSender) *audioStreamTrackSender;
 @property RTC_OBJC_TYPE(RTCAudioTrack) *audioTrack;
@@ -349,6 +351,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property int64_t stopTimestamp;
 @property int64_t acceptedTimestamp;
 @property int64_t connectedTimestamp;
+@property int64_t restartIceTimestamp;
 @property atomic_int remoteIceCandidatesCount;
 @property atomic_int localIceCandidatesCount;
 @property int *statCounters;
@@ -924,8 +927,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     // We avoid the creation and initialization of audio threads, audio devices, codecs and WebRTC media engine.
     // However, if the media aware peer connection factory is available, we are going to use it.
     RTC_OBJC_TYPE(RTCPeerConnectionFactory) *peerConnectionFactory;
-    BOOL withMedia = (self.offer.audio || self.offer.video || self.offer.videoBell);
-    peerConnectionFactory = [self.peerConnectionService getPeerConnectionFactoryWithMedia:withMedia];
+    self.withMedia = (self.offer.audio || self.offer.video || self.offer.videoBell);
+    peerConnectionFactory = [self.peerConnectionService getPeerConnectionFactoryWithMedia:self.withMedia];
     self.peerConnectionFactory = peerConnectionFactory;
 
     NSDictionary *optionalConstraints = @{
@@ -973,7 +976,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
         // If this is a data-channel only WebRTC connection, start the offer or answer immediately.
         // For the audio/video, this will be done at the first call to initSources().
-        if (!withMedia) {
+        if (!self.withMedia) {
             if (self.initiator) {
                 [self createOfferInternal];
             } else {
@@ -1762,44 +1765,29 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             }
             break;
             
-        case RTCIceConnectionStateDisconnected: {
+        case RTCIceConnectionStateDisconnected:
+        case RTCIceConnectionStateFailed: {
             if (self.connectedTimestamp > 0) {
-                // Trigger the ICE restart in 2 seconds in case it was a transient disconnect.
-                // We must be careful that the P2P connection could have been terminated and released.
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, RESTART_ICE_DELAY * NSEC_PER_MSEC), self.executorQueue, ^{
-                    __strong typeof(self) strongSelf = weakSelf;
-                    if (strongSelf) {
-                        if (atomic_load(&strongSelf->_terminated)) {
-                            return;
+                __uint64_t now = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+                if (self.restartIceTimestamp + 15L * NSEC_PER_SEC < now) {
+                    // Trigger the ICE restart in 2.5 (audio/video) or 5.0 (data) seconds in case it was a transient disconnect.
+                    // We must be careful that the P2P connection could have been terminated and released.
+                    int64_t delay = (self.withMedia ? RESTART_ICE_DELAY * NSEC_PER_MSEC : RESTART_DATA_ICE_DELAY * NSEC_PER_MSEC);
+                    DDLogInfo(@"%@ dispatch restart-ice for %@ in %ld", LOG_TAG, self.uuid, (long)delay);
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delay), self.executorQueue, ^{
+                        __strong typeof(self) strongSelf = weakSelf;
+                        if (strongSelf) {
+                            [strongSelf restartIce];
                         }
-                        
-                        @synchronized(strongSelf) {
-                            if (!strongSelf.peerConnection || strongSelf.state == RTCIceConnectionStateDisconnected) {
-                                return;
-                            }
-                        }
-
-                        // Allow and trigger renegotiation.
-                        atomic_store(&strongSelf->_renegotiationNeeded, 0);
-                        [strongSelf.peerConnection restartIce];
-                    }
-                });
-                return;
+                    });
+                    return;
+                }
             }
             dispatch_async(self.executorQueue, ^{
                 __strong typeof(self) strongSelf = weakSelf;
                 if (strongSelf) {
-                    [strongSelf terminatePeerConnectionInternalWithTerminateReason:TLPeerConnectionServiceTerminateReasonDisconnected notifyPeer:YES];
-                }
-            });
-            break;
-        }
-        
-        case RTCIceConnectionStateFailed: {
-            dispatch_async(self.executorQueue, ^{
-                __strong typeof(self) strongSelf = weakSelf;
-                if (strongSelf) {
-                    [strongSelf terminatePeerConnectionInternalWithTerminateReason:TLPeerConnectionServiceTerminateReasonConnectivityError notifyPeer:YES];
+                    TLPeerConnectionServiceTerminateReason terminateReason = iceConnectionState == RTCIceConnectionStateDisconnected ? TLPeerConnectionServiceTerminateReasonDisconnected : TLPeerConnectionServiceTerminateReasonConnectivityError;
+                    [strongSelf terminatePeerConnectionInternalWithTerminateReason:terminateReason notifyPeer:YES];
                 }
             });
             break;
@@ -2019,6 +2007,48 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             [self onSendServerWithErrorCode:errorCode requestId:requestId];
         }
     }];
+}
+
+- (void)restartIce {
+    DDLogVerbose(@"%@: restartIce", LOG_TAG);
+    
+    if (atomic_load(&_terminated)) {
+        return;
+    }
+    
+    @synchronized(self) {
+        if (!self.peerConnection) {
+            return;
+        }
+        if (self.state != RTCIceConnectionStateDisconnected && self.state != RTCIceConnectionStateFailed) {
+            return;
+        }
+    }
+    self.restartIceTimestamp = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+
+    DDLogInfo(@"%@ restart-ice for %@ in state %ld", LOG_TAG, self.uuid, (long)self.state);
+
+    // Allow and trigger renegotiation.
+    atomic_store(&_renegotiationNeeded, 0);
+    [self.peerConnection restartIce];
+
+    // Give 5s to recover or fail.
+    __weak typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5000 * NSEC_PER_MSEC), self.executorQueue, ^{
+        __strong typeof(self) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (atomic_load(&strongSelf->_terminated)) {
+                return;
+            }
+            
+            @synchronized(self) {
+                if (strongSelf.state == RTCIceConnectionStateConnected) {
+                    return;
+                }
+            }
+            [strongSelf terminatePeerConnectionWithTerminateReason:TLPeerConnectionServiceTerminateReasonDisconnected notifyPeer:YES];
+        }
+    });
 }
 
 - (NSString *)getAudioReport {

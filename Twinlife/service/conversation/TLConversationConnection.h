@@ -155,7 +155,7 @@ typedef enum {
 @property (nullable) NSMapTable<TLFileDescriptor *, TLReceivingFileInfo *> *receivingFiles;
 @property (nullable) NSMapTable<TLFileDescriptor *, TLSendingFileInfo *> *sendingFiles;
  
-- (nonnull instancetype)initWithConversation:(nonnull TLConversationImpl *)conversation twinlife:(nonnull TLTwinlife *)twinlife;
+- (nonnull instancetype)initWithConversation:(nonnull TLConversationImpl *)conversation twinlife:(nonnull TLTwinlife *)twinlife incoming:(BOOL)incoming;
 
 - (nonnull NSString *)to;
 
