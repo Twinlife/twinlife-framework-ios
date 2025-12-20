@@ -1398,15 +1398,15 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         self.acceptedTimestamp = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
     }
 
-    // Create the answer by setting the local description and let Web-RTC define the correct answer.
+    RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil optionalConstraints:nil];
     __weak typeof(self) weakSelf = self;
-    [self.peerConnection setLocalDescriptionWithCompletionHandler:^(NSError *error) {
+    [self.peerConnection answerForConstraints:mediaConstraints completionHandler:^(RTC_OBJC_TYPE(RTCSessionDescription) *sessionDescription, NSError *error) {
         __strong typeof(self) strongSelf = weakSelf;
         if (!strongSelf) {
             return;
         }
 
-        [strongSelf onSetLocalDescriptionWithSessionDescription:nil error:error];
+        [strongSelf onCreateOfferWithSessionDescription:sessionDescription error:error];
     }];
 }
 
@@ -1414,16 +1414,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     DDLogVerbose(@"%@ createOfferInternal", LOG_TAG);
     DDLogInfo(@"%@ creating-offer for %@", LOG_TAG, self.uuid);
 
-    NSMutableDictionary *mandatoryConstraints = [[NSMutableDictionary alloc] init];
-    if (self.offerToReceive.video && self.videoTrack) {
-        mandatoryConstraints[@"OfferToReceiveVideo"] = @"YES";
-    }
-    
-    if (self.offerToReceive.audio && self.audioTrack) {
-        mandatoryConstraints[@"OfferToReceiveAudio"] = @"YES";
-    }
-    
-    RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:mandatoryConstraints optionalConstraints:nil];
+    RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil optionalConstraints:nil];
     __weak typeof(self) weakSelf = self;
     [self.peerConnection offerForConstraints:mediaConstraints completionHandler:^(RTC_OBJC_TYPE(RTCSessionDescription) *sessionDescription, NSError *error) {
         __strong typeof(self) strongSelf = weakSelf;
@@ -1616,15 +1607,15 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     
     DDLogInfo(@"%@ doing-renegotiation for %@", LOG_TAG, self.uuid);
 
+    RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil optionalConstraints:nil];
     __weak typeof(self) weakSelf = self;
-    [self.peerConnection setLocalDescriptionWithCompletionHandler:^(NSError *error) {
+    [self.peerConnection offerForConstraints:mediaConstraints completionHandler:^(RTC_OBJC_TYPE(RTCSessionDescription) *sessionDescription, NSError *error) {
         __strong typeof(self) strongSelf = weakSelf;
         if (!strongSelf) {
-
             return;
         }
 
-        [strongSelf onSetLocalDescriptionWithSessionDescription:nil error:error];
+        [strongSelf onCreateOfferWithSessionDescription:sessionDescription error:error];
     }];
 }
 
