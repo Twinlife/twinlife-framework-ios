@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2025 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -283,68 +283,43 @@ static const int ddLogLevel = DDLogLevelWarning;
             } else if ((secretFlags & TLCryptoServiceUseSecret1) != 0) {
                 keyIndex = 1;
                 useSecret = secret1;
-                if ((options & (TLCryptoServiceProviderCreateSecret | TLCryptoServiceProviderCreateNextSecret)) != 0) {
+                if ((options & TLCryptoServiceProviderCreateNextSecret) != 0) {
                     keyIndex = 2;
                     // Prepare for the new secret 2 (don't change until we clear the NEW_SECRET2 flag).
-                    if ((options & TLCryptoServiceProviderCreateNextSecret) != 0) {
-                        if ((secretFlags & TLCryptoServiceNewSecret2) == 0) {
-                            secretFlags |= TLCryptoServiceNewSecret2;
-                            useSecret = secret;
-                            createSecret = YES;
-                        } else {
-                            useSecret = secret2;
-                        }
-                    } else {
-                        // Switch to use secret2 (without waiting for the peer to acknowledge).
-                        secretFlags |= TLCryptoServiceUseSecret2;
-                        secretFlags &= ~TLCryptoServiceUseSecret1;
+                    if ((secretFlags & TLCryptoServiceNewSecret2) == 0) {
+                        secretFlags |= TLCryptoServiceNewSecret2;
                         useSecret = secret;
                         createSecret = YES;
+                    } else {
+                        useSecret = secret2;
                     }
                 }
             } else if ((secretFlags & TLCryptoServiceUseSecret2) != 0) {
                 keyIndex = 2;
                 useSecret = secret2;
-                if ((options & (TLCryptoServiceProviderCreateSecret | TLCryptoServiceProviderCreateNextSecret)) != 0) {
+                if ((options & TLCryptoServiceProviderCreateNextSecret) != 0) {
                     keyIndex = 1;
                     // Prepare for the new secret 1 (don't change until we clear the NEW_SECRET1 flag).
-                    if ((options & TLCryptoServiceProviderCreateNextSecret) != 0) {
-                        if ((secretFlags & TLCryptoServiceNewSecret1) == 0) {
-                            secretFlags |= TLCryptoServiceNewSecret1;
-                            useSecret = secret;
-                            createSecret = YES;
-                        } else {
-                            useSecret = secret1;
-                        }
-                    } else {
-                        // Switch to use secret1 (without waiting for the peer to acknowledge).
-                        secretFlags |= TLCryptoServiceUseSecret1;
-                        secretFlags &= ~TLCryptoServiceUseSecret2;
+                    if ((secretFlags & TLCryptoServiceNewSecret1) == 0) {
+                        secretFlags |= TLCryptoServiceNewSecret1;
                         useSecret = secret;
                         createSecret = YES;
+                    } else {
+                        useSecret = secret1;
                     }
                 }
             } else if ((options & TLCryptoServiceProviderCreateNextSecret) != 0) {
+                // This secret is new but it must be acknowledged by the peer to be used.
                 secretFlags = TLCryptoServiceNewSecret1;
                 useSecret = secret;
                 createSecret = YES;
                 keyIndex = 1;
             } else if ((options & TLCryptoServiceProviderCreateSecret) != 0) {
+                // This secret can be used immediately.
                 secretFlags = TLCryptoServiceUseSecret1;
                 useSecret = secret;
                 createSecret = YES;
                 keyIndex = 1;
-            } else if ((options & TLCryptoServiceProviderCreateFirstSecret) != 0) {
-                // If secret1 was already created, use it.
-                if ((secretFlags & TLCryptoServiceNewSecret1) != 0) {
-                    useSecret = secret1;
-                    keyIndex = 1;
-                } else {
-                    secretFlags = TLCryptoServiceNewSecret1;
-                    useSecret = secret;
-                    createSecret = YES;
-                    keyIndex = 1;
-                }
             } else {
                 keyIndex = 0;
                 useSecret = nil;

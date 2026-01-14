@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -390,10 +390,6 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         configuration.cryptoOptions = [[RTC_OBJC_TYPE(RTCCryptoOptions) alloc] initWithSrtpEnableGcmCryptoSuites:true srtpEnableAes128Sha1_32CryptoCipher:false srtpEnableEncryptedRtpHeaderExtensions:false sframeRequireFrameEncryption:false];
         
         _peerConnectionConfiguration = configuration;
-        
-        NSMutableDictionary<NSString *, NSString *> *fieldTrials = [[NSMutableDictionary alloc] init];
-        [fieldTrials setObject:kRTCFieldTrialEnabledValue forKey:kRTCFieldTrialUseNWPathMonitor];
-        RTCInitFieldTrialDictionary(fieldTrials);
     }
     return self;
 }

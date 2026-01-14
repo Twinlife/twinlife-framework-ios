@@ -85,8 +85,11 @@ typedef void (^TLWaitingCodeBlock) (void);
 @property (readonly, nonnull) NSMutableArray<NSUUID *> *invocationList;
 @property (readonly, nullable, weak) id<TLRepositoryObject> subject;
 @property (nullable) NSMutableArray<TLWaitingCodeBlock> *waitingCodeBlocks;
+@property (nullable) NSMutableArray<TLTwincodeInvocation *> *waitingInvocations;
 
 -(nonnull instancetype)initWithTwincodeId:(nonnull NSUUID *)twincodeId invocationId:(nonnull NSUUID *)invocationId subject:(nonnull id<TLRepositoryObject>)subject;
+
+-(BOOL)queueWithInvocation:(nonnull TLTwincodeInvocation *)invocation;
 
 @end
 
@@ -107,9 +110,26 @@ typedef void (^TLWaitingCodeBlock) (void);
         _twincodeId = twincodeId;
         _invocationList = [[NSMutableArray alloc] init];
         _subject = subject;
+        _waitingInvocations = nil;
         [_invocationList addObject:invocationId];
     }
     return self;
+}
+
+-(BOOL)queueWithInvocation:(nonnull TLTwincodeInvocation *)invocation {
+    DDLogVerbose(@"%@ queueWithInvocation: %@", LOG_TAG, invocation);
+
+    // If the first invocationId in `invocationList` is the invocation, we don't need to queue
+    // and we can execute immediately.
+    if (self.invocationList.count == 0 || [invocation.invocationId isEqual:self.invocationList[0]]) {
+        return NO;
+    }
+    
+    if (!self.waitingInvocations) {
+        self.waitingInvocations = [[NSMutableArray alloc] init];
+    }
+    [self.waitingInvocations addObject:invocation];
+    return YES;
 }
 
 @end
@@ -653,6 +673,8 @@ typedef void (^TLWaitingCodeBlock) (void);
     DDLogVerbose(@"%@: finishInvocationWithId: %@", LOG_TAG, invocationId);
 
     TLPendingInvocation* pendingInvocation;
+    TLTwincodeInvocation *invocation;
+    NSMutableArray<TLWaitingCodeBlock> *waitingCodeBlocks;
     @synchronized (self) {
         pendingInvocation = self.pendingInvocations[invocationId];
         if (!pendingInvocation) {
@@ -660,14 +682,24 @@ typedef void (^TLWaitingCodeBlock) (void);
         }
         [self.pendingInvocations removeObjectForKey:invocationId];
         [pendingInvocation.invocationList removeObject:invocationId];
-        if (pendingInvocation.invocationList.count > 0) {
-            return;
+        
+        if (!pendingInvocation.waitingInvocations || pendingInvocation.waitingInvocations.count == 0) {
+            invocation = nil;
+            waitingCodeBlocks = pendingInvocation.invocationList.count > 0 ? nil : pendingInvocation.waitingCodeBlocks;
+        } else {
+            invocation = pendingInvocation.waitingInvocations[0];
+            [pendingInvocation.waitingInvocations removeObjectAtIndex:0];
+            waitingCodeBlocks = nil;
         }
     }
 
+    if (invocation) {
+        [self executeWithInvocation:invocation];
+    }
+
     // All invocation have been processed, if we have some code blocks execute them.
-    if (pendingInvocation.waitingCodeBlocks) {
-        for (TLWaitingCodeBlock block in pendingInvocation.waitingCodeBlocks) {
+    if (waitingCodeBlocks) {
+        for (TLWaitingCodeBlock block in waitingCodeBlocks) {
             block();
         }
     }
@@ -832,24 +864,37 @@ typedef void (^TLWaitingCodeBlock) (void);
         invocation = [[TLTwincodeInvocation alloc] initWithInvocationId:invocationId subject:subject action:invokeTwincodeIQ.actionName attributes:invokeTwincodeIQ.attributes peerTwincodeId:nil keyIndex:0 secretKey:nil publicKey:nil trustMethod:TLTrustMethodNone];
     }
 
-    // A twincode invocation can be handled by only one handler because we have to respond:
-    // - if the handler returns TLBaseServiceErrorCodeQueued, it must acknowledge itself the invocation,
-    // - otherwise the invocation is acknowledged with the returned code.
-    TLTwincodeInvocationListener listener = self.invocationListeners[invocation.action];
-    if (!listener) {
-        [self acknowledgeInvocationWithInvocationId:invocationId errorCode:TLBaseServiceErrorCodeBadRequest];
-        return;
-    }
-    
     // This twincode is having its first invocation, remember it.
+    BOOL queued;
     if (!pendingInvocation) {
         pendingInvocation = [[TLPendingInvocation alloc] initWithTwincodeId:key invocationId:invocationId subject:subject];
 
         @synchronized (self) {
             [self.pendingInvocations setObject:pendingInvocation forKey:invocation.invocationId];
         }
+        queued = NO;
+    } else {
+        @synchronized (self) {
+            queued = [pendingInvocation queueWithInvocation:invocation];
+        }
     }
+    if (!queued) {
+        [self executeWithInvocation:invocation];
+    }
+}
 
+- (void)executeWithInvocation:(nonnull TLTwincodeInvocation *)invocation {
+    DDLogVerbose(@"%@: executeWithInvocation: %@", LOG_TAG, invocation);
+
+    // A twincode invocation can be handled by only one handler because we have to respond:
+    // - if the handler returns TLBaseServiceErrorCodeQueued, it must acknowledge itself the invocation,
+    // - otherwise the invocation is acknowledged with the returned code.
+    TLTwincodeInvocationListener listener = self.invocationListeners[invocation.action];
+    if (!listener) {
+        [self acknowledgeInvocationWithInvocationId:invocation.invocationId errorCode:TLBaseServiceErrorCodeBadRequest];
+        return;
+    }
+    
     dispatch_async([self.twinlife twinlifeQueue], ^{
         TLBaseServiceErrorCode errorCode = listener(invocation);
         if (errorCode != TLBaseServiceErrorCodeQueued) {
@@ -858,7 +903,7 @@ typedef void (^TLWaitingCodeBlock) (void);
                 DDLogError(@"%@: Invocation '%@' failed: %d", LOG_TAG, invocation.action, errorCode);
             }
 #endif
-            [self acknowledgeInvocationWithInvocationId:invocationId errorCode:errorCode];
+            [self acknowledgeInvocationWithInvocationId:invocation.invocationId errorCode:errorCode];
         }
     });
 }
