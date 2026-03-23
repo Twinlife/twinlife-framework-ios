@@ -13,6 +13,8 @@
 @class TLCryptoServiceProvider;
 @class TLTransaction;
 @class TLTwincodeInbound;
+@class TLCryptoDataOutput;
+@class TLCryptoDataInput;
 
 #define TL_KEY_TYPE_MASK    0x0ff
 #define TL_KEY_TYPE_25519       1
@@ -137,6 +139,22 @@
 @end
 
 //
+// Interface: TLRawKeyInfo
+//
+
+@interface TLRawKeyInfo : NSObject
+
+@property (readonly) int64_t creationDate;
+@property (readonly) int64_t modificationDate;
+@property (nonnull, readonly) NSData *signingKey;
+@property (nonnull, readonly) NSData *encryptionKey;
+@property (readonly) int flags;
+
+- (nonnull instancetype)initWithCreationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate signingKey:(nonnull NSData *)signingKey encryptionKey:(nonnull NSData *)encryptionKey flags:(int)flags;
+
+@end
+
+//
 // Interface: TLCryptoService ()
 //
 
@@ -168,4 +186,13 @@
 
 - (nullable TLSdp *)encryptWithSessionKeyPair:(nonnull id<TLSessionKeyPair>)sessionKeyPair sdp:(nonnull TLSdp *)sdp errorCode:(nonnull TLBaseServiceErrorCode *)errorCode;
 
+- (nullable TLRawKeyInfo *)getRawTwincodeKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound;
+
+- (TLBaseServiceErrorCode)restoreKeyInfoWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound rawKeyInfo:(nonnull TLRawKeyInfo *)rawKeyInfo;
+
+- (nullable TLCryptoDataOutput *)createCryptoDataOutputWithFileHandle:(nonnull NSFileHandle *)fileHandle password:(nonnull NSData *)password;
+
+- (nullable TLCryptoDataInput *)createCryptoDataInputWithFileHandle:(nonnull NSFileHandle *)fileHandle password:(nonnull NSData *)password;
+
+- (nullable NSData *)deriveKeyWithPassword:(nonnull NSData *)password salt:(nonnull NSData *)salt;
 @end

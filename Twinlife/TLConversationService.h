@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2025 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -143,14 +143,16 @@ typedef enum {
     TLDescriptorAnnotationTypeForwarded,  /// The descriptor was forwarded.
     TLDescriptorAnnotationTypeSave,       /// The descriptor was saved.
     TLDescriptorAnnotationTypeLike,       /// The descriptor is marked by a like annotation: the getValue() returns the like code.
-    TLDescriptorAnnotationTypePoll        /// The descriptor is marked by an answer of a poll: the getValue() gives the vote entry.
+    TLDescriptorAnnotationTypePoll,       /// The descriptor is marked by an answer of a poll: the getValue() gives the vote entry.
+    TLDescriptorAnnotationTypeReceived,   /// The descriptor was received by the peer: the getValue() gives the timestamp (group conversations only)
+    TLDescriptorAnnotationTypeRead,       /// The descriptor was read by the peer: the getValue() gives the timestamp (group conversations only)
 } TLDescriptorAnnotationType;
 
 @interface TLDescriptorAnnotation : NSObject
 
 @property (readonly) TLDescriptorAnnotationType type;
 @property (readonly) int count;
-@property (readonly) int value;
+@property (readonly) int64_t value;
 
 @end
 
@@ -533,6 +535,8 @@ typedef enum {
 
 - (nonnull NSMutableArray<id<TLConversation>> *)listConversationsWithFilter:(nullable TLFilter *)filter;
 
+- (nonnull NSArray<id<TLConversation>> *)listGroupConversations;
+
 - (nullable id <TLConversation>)getOrCreateConversationWithSubject:(nonnull id<TLRepositoryObject>)subject create:(BOOL)create;
 
 - (nullable id<TLConversation>)getConversationWithSubject:(nonnull id<TLRepositoryObject>)subject;
@@ -597,7 +601,7 @@ typedef enum {
 - (void)markDescriptorDeletedWithRequestId:(int64_t)requestId descriptorId:(nonnull TLDescriptorId *)descriptorId;
 
 /// Set the annotation with the value on the descriptor.  If the annotation already exists, the value is updated.
-- (TLBaseServiceErrorCode)setAnnotationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId type:(TLDescriptorAnnotationType)type value:(int)value;
+- (TLBaseServiceErrorCode)setAnnotationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId type:(TLDescriptorAnnotationType)type value:(int64_t)value;
 
 /// Remove the annotation on the descriptor.  The operation can only remove the annotations that the current device has set.
 - (TLBaseServiceErrorCode)deleteAnnotationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId type:(TLDescriptorAnnotationType)type;
@@ -609,11 +613,13 @@ typedef enum {
 - (TLBaseServiceErrorCode)toggleAnnotationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId type:(TLDescriptorAnnotationType)type value:(int)value;
 
 /// Get the descriptor annotation indexed by the owner twincode id.
-- (nullable NSMutableDictionary<NSUUID *, TLDescriptorAnnotationPair *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId;
+- (nullable NSDictionary<NSUUID *, NSArray<TLDescriptorAnnotationPair *> *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId;
 
 - (void)deleteDescriptorWithRequestId:(int64_t)requestId descriptorId:(nonnull TLDescriptorId *)descriptorId;
 
 - (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner;
+
+- (nullable id<TLConversation>)restoreGroupConversationWithDatabaseId:(int64_t)databaseId conversationId:(nonnull NSUUID *)conversationId creationDate:(int64_t)creationDate groupId:(int64_t)groupId subjectId:(int64_t)subjectId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId resourceId:(nonnull NSUUID *)resourceId peerResourceId:(nullable NSUUID *)peerResourceId invitedContactId:(nullable NSUUID *)invitedContactId permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions flags:(int)flags;
 
 - (TLBaseServiceErrorCode)inviteGroupWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation group:(nonnull id<TLRepositoryObject>)group name:(nonnull NSString *)name;
 
@@ -640,6 +646,9 @@ typedef enum {
 - (void)acceptCallWithRequestId:(int64_t)requestId twincodeOutboundId:(nonnull NSUUID *)twincodeOutboundId descriptorId:(nonnull TLDescriptorId *)descriptorId;
 
 - (void)terminateCallWithRequestId:(int64_t)requestId twincodeOutboundId:(nonnull NSUUID *)twincodeOutboundId descriptorId:(nonnull TLDescriptorId *)descriptorId terminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason;
+
+/// Save or update a call that was made for the given subject at the given time.
+- (TLBaseServiceErrorCode)startCallWithSubject:(nonnull id<TLRepositoryObject>)subject startDate:(int64_t)startDate endDate:(int64_t)endDate;
 
 @end
 

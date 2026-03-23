@@ -26,4 +26,8 @@
 
 - (nullable TLTwincodeInbound *)importTwincodeWithTwincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate;
 
+- (nonnull NSArray<TLTwincodeInbound *> *)loadTwincodes;
+
+- (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId modificationDate:(int64_t)modificationDate;
+
 @end

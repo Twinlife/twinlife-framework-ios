@@ -56,6 +56,9 @@
 #import "TLAccountServiceSecuredConfiguration.h"
 #import "TLDatabaseService.h"
 #import "TLAccountMigrationServiceImpl.h"
+#import "TLBackupService.h"
+
+#import "TLTwinlifeContext+Protected.h"
 
 #if 0
 // static const int ddLogLevel = DDLogLevelVerbose;
@@ -279,13 +282,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 #define DATABASE_VERSION 25
 
-static NSTimeInterval MIN_DISCONNECTED_TIMEOUT = 16; // s
 static NSTimeInterval MAX_DISCONNECTED_TIMEOUT = 512; // s
-//static NSTimeInterval MIN_CONNECTED_TIMEOUT = 64; // s
-//static NSTimeInterval NO_RECONNECTION_TIMEOUT = 0; // s
-static NSTimeInterval MIN_RECONNECTION_TIMEOUT = 1; // s
-//static NSTimeInterval MAX_RECONNECTION_TIMEOUT = 8; // s
-//static NSTimeInterval CONNECTING_TIMEOUT = 10; // s
 
 static TLTwinlife *sharedTwinlife;
 static atomic_ullong requestId;
@@ -365,6 +362,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         _imageServiceConfiguration = [[TLImageServiceConfiguration alloc] init];
         _peerCallServiceConfiguration = [[TLPeerCallServiceConfiguration alloc] init];
         _accountMigrationServiceConfiguration = [[TLAccountMigrationServiceConfiguration alloc] init];
+        _backupServiceConfiguration = [[TLBackupServiceConfiguration alloc] init];
 
         NSString* path = [[NSBundle mainBundle] pathForResource:@"tool" ofType:@"cfg"];
         NSData *data = [NSData dataWithContentsOfFile:path];
@@ -425,6 +423,12 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     _running = YES;
     return self;
 }
+
+@end
+
+@interface TLTwinlife ()
+
+@property BOOL restoreMode;
 
 @end
 
@@ -528,6 +532,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     #endif
 }
 
++ (nonnull NSString *)BACKUP_EXTENSION {
+    
+    return BACKUP_EXTENSION;
+}
+
 + (nonnull TLBinaryPacketIQSerializer *)IQ_ON_ERROR_SERIALIZER {
     
     return IQ_ON_ERROR_SERIALIZER_INSTANCE;
@@ -555,6 +564,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         _peerConnectionService = [[TLPeerConnectionService alloc] initWithTwinlife:self];
         _conversationService = [[TLConversationService alloc] initWithTwinlife:self peerConnectionService:_peerConnectionService];
         _accountMigrationService = [[TLAccountMigrationService alloc] initWithTwinlife:self];
+        _backupService = [[TLBackupService alloc] initWithTwinlife:self];
+        
         //
         // AccountService should be the last service to call onConnect before onSignIn
         // in all services
@@ -571,7 +582,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
                               _twincodeOutboundService,
                               _imageService,
                               _accountMigrationService,
-                              _accountService
+                              _accountService,
+                              _backupService
                               ];
 
         const char *twinlifeQueueName = "twinlifeQueue";
@@ -600,14 +612,17 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         _connectLockFile = path.path;
         _connectLockFd = -1;
         _darwinNotificationCenter = CFNotificationCenterGetDarwinNotifyCenter();
+        _restoreMode = NO;
     }
     return self;
 }
 
 #pragma mark - TLTwinlife
 
-- (TLBaseServiceErrorCode)configure:(TLTwinlifeConfiguration *)twinlifeConfiguration {
+- (TLBaseServiceErrorCode)configure:(TLTwinlifeConfiguration *)twinlifeConfiguration twinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext {
     DDLogVerbose(@"%@ configure: %@", LOG_TAG, twinlifeConfiguration);
+    
+    self.twinlifeContext = twinlifeContext;
     
     NSUUID *applicationId = twinlifeConfiguration.applicationId;
     NSUUID *serviceId = twinlifeConfiguration.serviceId;
@@ -725,6 +740,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 
     [self.accountMigrationService configure:twinlifeConfiguration.accountMigrationServiceConfiguration];
     self.twinlifeConfiguration.accountMigrationServiceConfiguration = (TLAccountMigrationServiceConfiguration *) self.accountMigrationService.serviceConfiguration;
+    
+    [self.backupService configure:twinlifeConfiguration.backupServiceConfiguration];
+    self.twinlifeConfiguration.backupServiceConfiguration = (TLBackupServiceConfiguration *)self.backupService.serviceConfiguration;
     
     self.configured = YES;
     for (TLBaseService *service in self.twinlifeServices) {
@@ -963,6 +981,10 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 
 - (nonnull TLAccountMigrationService *)getAccountMigrationService {
     return self.accountMigrationService;
+}
+
+- (nonnull TLBackupService *)getBackupService {
+    return self.backupService;
 }
 
 - (nonnull TLCryptoService *)getCryptoService {
@@ -1767,6 +1789,28 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     return NO;
 }
 
+- (void)enableRestoreMode {
+    @synchronized (self) {
+        if (self.databaseQueue) {
+            [self.databaseQueue close];
+            self.databaseQueue = nil;
+        }
+        self.restoreMode = YES;
+    }
+    
+    [self openDatabase];
+    
+    //TODO BKP: disable jobs, unsolicited IQs from the server, ...
+}
+
+- (void)disableRestoreMode {
+    @synchronized (self) {
+        self.restoreMode = NO;
+    }
+        
+    //TODO BKP: enable jobs, process IQs from the server, ...
+}
+
 - (TLBaseServiceErrorCode)openDatabase {
     DDLogVerbose(@"%@ openDatabase", LOG_TAG);
     
@@ -1783,80 +1827,87 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
             [self assertionWithAssertPoint:[TLTwinlifeAssertPoint BAD_CONFIGURATION], [TLAssertValue initWithLine:__LINE__], nil];
             return TLBaseServiceErrorCodeWrongLibraryConfiguration;
         }
-        NSURL *path = [groupURL URLByAppendingPathComponent:CIPHER_V5_DATABASE_NAME];
-        NSString *databasePath = path.path;
+        
+        NSString *databasePath;
         NSString *databaseKey = self.twinlifeSecuredConfiguration.databaseKey;
         NSString *oldDatabaseKey = self.twinlifeSecuredConfiguration.oldDatabaseKey;
         int cipherVersion = 4;
 
-        // Look for a V4 or V3 database if V5 does not exist.
-        if (self.databaseVersion != DATABASE_VERSION && ![fileManager fileExistsAtPath:databasePath]) {
-            NSURL *cipherV4DatabasePath = [groupURL URLByAppendingPathComponent:CIPHER_V4_DATABASE_NAME];
-            NSURL *cipherV3DatabasePath = [groupURL URLByAppendingPathComponent:CIPHER_V3_DATABASE_NAME];
-            BOOL hasV3 = [fileManager fileExistsAtPath:cipherV3DatabasePath.path];
-            BOOL hasV4 = [fileManager fileExistsAtPath:cipherV4DatabasePath.path];
-            NSError *cpError;
+        if (self.restoreMode) {
+            databasePath = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME].path;
+        } else {
+            NSURL *path = [groupURL URLByAppendingPathComponent:CIPHER_V5_DATABASE_NAME];
+            databasePath = path.path;
             
-            // When setup is disabled (iOS extension), we are not allowed to migrate or create the database.
-            if (!hasV4 && !hasV3 && !self.twinlifeConfiguration.enableSetup) {
+            // Look for a V4 or V3 database if V5 does not exist.
+            if (self.databaseVersion != DATABASE_VERSION && ![fileManager fileExistsAtPath:databasePath]) {
+                NSURL *cipherV4DatabasePath = [groupURL URLByAppendingPathComponent:CIPHER_V4_DATABASE_NAME];
+                NSURL *cipherV3DatabasePath = [groupURL URLByAppendingPathComponent:CIPHER_V3_DATABASE_NAME];
+                BOOL hasV3 = [fileManager fileExistsAtPath:cipherV3DatabasePath.path];
+                BOOL hasV4 = [fileManager fileExistsAtPath:cipherV4DatabasePath.path];
+                NSError *cpError;
                 
-                return TLBaseServiceErrorCodeNoPermission;
-            }
-
-            // If the database V4 cipher file does not exist, look for V3 cipher file.
-            // We could also have the V4 but a short key which means the V3 file has not completed its migration.
-            // Note: the old case where the database was not encrypted is no longer supported (migration done in 2017).
-            if (hasV3 && (!hasV4 || databaseKey.length != 96)) {
-                // Mark we are upgrading before the V3 -> V4 migration.
-                self.databaseUpgraded = YES;
+                // When setup is disabled (iOS extension), we are not allowed to migrate or create the database.
+                if (!hasV4 && !hasV3 && !self.twinlifeConfiguration.enableSetup) {
                     
-                // Get a new database encryption key for the V4 implementation.
-                BOOL success;
-                NSString *newKey = [TLTwinlifeSecuredConfiguration generateDatabaseKey];
-                if (!newKey) {
-                    success = NO;
-                } else {
-                    // Make sure the V4 cipher database file does not exist
-                    // (it could in some rare cases if we are interrupted in the middle of database migration).
-                    // Migrate the V3 to the intermediate V4!
-                    [fileManager removeItemAtPath:cipherV4DatabasePath.path error:nil];
-                    success = [self tryMigrateCipher3WithPath:cipherV3DatabasePath.path newPath:cipherV4DatabasePath.path newKey:newKey];
-                        
-                    // Database was successfully migrated save the encryption key NOW!
-                    // (see second call to changeDatabaseKeyWithKey later).
-                    if (success) {
-                        success = [self.twinlifeSecuredConfiguration changeDatabaseKeyWithKey:newKey];
-                    }
+                    return TLBaseServiceErrorCodeNoPermission;
                 }
+                
+                // If the database V4 cipher file does not exist, look for V3 cipher file.
+                // We could also have the V4 but a short key which means the V3 file has not completed its migration.
+                // Note: the old case where the database was not encrypted is no longer supported (migration done in 2017).
+                if (hasV3 && (!hasV4 || databaseKey.length != 96)) {
+                    // Mark we are upgrading before the V3 -> V4 migration.
+                    self.databaseUpgraded = YES;
                     
-                if (success) {
-                    DDLogWarn(@"%@ openDatabase: migration to SQLCipher 4 done", LOG_TAG);
-                    [fileManager removeItemAtPath:cipherV3DatabasePath.path error:nil];
-                    cipherVersion = 4;
-                    databaseKey = newKey;
-                    hasV4 = YES;
-                } else {
-                    DDLogError(@"%@ openDatabase: migration to SQLCipher 4 failed, using SQLCipher 3", LOG_TAG);
-                        
-                    // If the V3 to V4 migration failed, make sure the new database V4 file does not exist.
-                    // (it could be partially created and something failed).
-                    if ([fileManager fileExistsAtPath:cipherV4DatabasePath.path]) {
-                        DDLogWarn(@"%@ removing failed database migration file", LOG_TAG);
+                    // Get a new database encryption key for the V4 implementation.
+                    BOOL success;
+                    NSString *newKey = [TLTwinlifeSecuredConfiguration generateDatabaseKey];
+                    if (!newKey) {
+                        success = NO;
+                    } else {
+                        // Make sure the V4 cipher database file does not exist
+                        // (it could in some rare cases if we are interrupted in the middle of database migration).
+                        // Migrate the V3 to the intermediate V4!
                         [fileManager removeItemAtPath:cipherV4DatabasePath.path error:nil];
-                    }
+                        success = [self tryMigrateCipher3WithPath:cipherV3DatabasePath.path newPath:cipherV4DatabasePath.path newKey:newKey];
                         
-                    // Use SQLCipher v4 in compatibility mode.
-                    cipherVersion = 3;
-                    databasePath = cipherV3DatabasePath.path;
+                        // Database was successfully migrated save the encryption key NOW!
+                        // (see second call to changeDatabaseKeyWithKey later).
+                        if (success) {
+                            success = [self.twinlifeSecuredConfiguration changeDatabaseKeyWithKey:newKey];
+                        }
+                    }
+                    
+                    if (success) {
+                        DDLogWarn(@"%@ openDatabase: migration to SQLCipher 4 done", LOG_TAG);
+                        [fileManager removeItemAtPath:cipherV3DatabasePath.path error:nil];
+                        cipherVersion = 4;
+                        databaseKey = newKey;
+                        hasV4 = YES;
+                    } else {
+                        DDLogError(@"%@ openDatabase: migration to SQLCipher 4 failed, using SQLCipher 3", LOG_TAG);
+                        
+                        // If the V3 to V4 migration failed, make sure the new database V4 file does not exist.
+                        // (it could be partially created and something failed).
+                        if ([fileManager fileExistsAtPath:cipherV4DatabasePath.path]) {
+                            DDLogWarn(@"%@ removing failed database migration file", LOG_TAG);
+                            [fileManager removeItemAtPath:cipherV4DatabasePath.path error:nil];
+                        }
+                        
+                        // Use SQLCipher v4 in compatibility mode.
+                        cipherVersion = 3;
+                        databasePath = cipherV3DatabasePath.path;
+                    }
                 }
-            }
-            
-            if (hasV4) {
-                //DDLogError(@"%@ Copy old V4 to V5 for testing migration", LOG_TAG);
-                [fileManager moveItemAtPath:cipherV4DatabasePath.path toPath:databasePath error:&cpError];
-                if (cpError) {
-                    DDLogError(@"%@ openDatabase: failed to copy database: %@", LOG_TAG, cpError);
-                    return TLBaseServiceErrorCodeNoStorageSpace;
+                
+                if (hasV4) {
+                    //DDLogError(@"%@ Copy old V4 to V5 for testing migration", LOG_TAG);
+                    [fileManager moveItemAtPath:cipherV4DatabasePath.path toPath:databasePath error:&cpError];
+                    if (cpError) {
+                        DDLogError(@"%@ openDatabase: failed to copy database: %@", LOG_TAG, cpError);
+                        return TLBaseServiceErrorCodeNoStorageSpace;
+                    }
                 }
             }
         }
@@ -2082,6 +2133,137 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         [fileManager removeItemAtPath:cipherDatabasePath.path error:nil];
         self.databaseQueue = nil;
     }
+}
+
+- (TLBaseServiceErrorCode)prepareDatabaseForRestoreWithInPlaceRestore:(BOOL)inPlaceRestore {
+    DDLogDebug(@"%@ prepareDatabaseForRestoreWithInPlaceRestore:%@", LOG_TAG, inPlaceRestore ? @"YES" : @"NO");
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *groupURL = [TLTwinlife getAppGroupURL:fileManager];
+    if (!groupURL) {
+        DDLogError(@"%@ openDatabase: invalid AppGroup", LOG_TAG);
+        [self assertionWithAssertPoint:[TLTwinlifeAssertPoint BAD_CONFIGURATION], [TLAssertValue initWithLine:__LINE__], nil];
+        return TLBaseServiceErrorCodeWrongLibraryConfiguration;
+    }
+
+    NSError *error;
+    
+    NSString *databasePath = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME].path;
+    if ([fileManager fileExistsAtPath:databasePath]) {
+        [fileManager removeItemAtPath:databasePath error:&error];
+        
+        if (error) {
+            DDLogError(@"%@ Could not delete database %@: %@", LOG_TAG, databasePath, error.userInfo);
+            return TLBaseServiceErrorCodeDatabaseError;
+        }
+    }
+    
+    [self closeDatabase];
+    
+    if (inPlaceRestore && [fileManager fileExistsAtPath:self.databasePath]) {
+        if (self.databaseVersion != DATABASE_VERSION) {
+            DDLogError(@"%@ Existing DB is not up-to-date, can't perform in-place restore. Current version: %d, expected version: %d", LOG_TAG, self.databaseVersion, DATABASE_VERSION);
+            return TLBaseServiceErrorCodeDatabaseError;
+        }
+        
+        [fileManager copyItemAtPath:self.databasePath toPath:databasePath error:&error];
+        
+        if (error) {
+            DDLogError(@"%@ Could not copy existing database %@: %@", LOG_TAG, databasePath, error.userInfo);
+            return TLBaseServiceErrorCodeDatabaseError;
+        }
+    }
+    
+    [self setRestoreMode:YES];
+    
+    return [self openDatabase];
+}
+
+- (BOOL)commitRestoredDatabase {
+    DDLogVerbose(@"%@ commitRestoredDatabase", LOG_TAG);
+    
+    if (!self.restoreMode) {
+        DDLogWarn(@"%@ Not in restore mode, ignoring commit DB request", LOG_TAG);
+        return NO;
+    }
+    
+    [self closeDatabase];
+
+    NSError *error;
+
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *groupURL = [TLTwinlife getAppGroupURL:fileManager];
+        
+    for (NSString *existingDbName in @[CIPHER_V3_DATABASE_NAME, CIPHER_V4_DATABASE_NAME, CIPHER_V5_DATABASE_NAME]) {
+        NSURL *existingDbUrl = [groupURL URLByAppendingPathComponent:existingDbName];
+        
+        if ([fileManager fileExistsAtPath:existingDbUrl.path]) {
+            [fileManager removeItemAtURL:existingDbUrl error:&error];
+        
+            if (error) {
+                DDLogError(@"%@ Couldn't remove existing DB: %@", LOG_TAG, existingDbUrl.path);
+                return NO;
+            }
+        }
+    }
+    
+    NSURL *restoredDatabaseUrl = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME];
+    NSURL *databaseUrl = [groupURL URLByAppendingPathComponent:CIPHER_V5_DATABASE_NAME];
+    
+    BOOL result;
+    
+    result = [fileManager moveItemAtURL:restoredDatabaseUrl toURL:databaseUrl error:&error];
+    if (!result || error) {
+        DDLogError(@"%@ couldn't move restored DB to active DB, error: %@", LOG_TAG, error.userInfo);
+        return NO;
+    }
+    
+    self.restoreMode = NO;
+    
+    TLBaseServiceErrorCode dbOpen = [self openDatabase];
+    if (dbOpen != TLBaseServiceErrorCodeSuccess) {
+        [self.twinlifeContext onSignInErrorWithErrorCode:dbOpen];
+        return NO;
+    }
+    
+    return YES;
+}
+
+- (BOOL)deleteRestoredDatabase {
+    DDLogVerbose(@"%@ deleteRestoredDatabase", LOG_TAG);
+    
+    if (!self.restoreMode) {
+        DDLogWarn(@"%@ Not in restore mode, ignoring delete DB request", LOG_TAG);
+        return YES;
+    }
+    
+    [self closeDatabase];
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *groupURL = [TLTwinlife getAppGroupURL:fileManager];
+    NSURL *restoredDatabasePath = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME];
+
+    if ([fileManager fileExistsAtPath:restoredDatabasePath.path]) {
+        NSError *error;
+        [fileManager removeItemAtURL:restoredDatabasePath error:&error];
+        
+        if (error) {
+            DDLogError(@"%@ Couldn't remove restored DB %@: %@", LOG_TAG, restoredDatabasePath.path, error.userInfo);
+            return NO;
+        }
+    }
+    
+    self.restoreMode = NO;
+    
+    TLBaseServiceErrorCode dbOpen = [self openDatabase];
+    if (dbOpen != TLBaseServiceErrorCodeSuccess) {
+        [self.twinlifeContext onSignInErrorWithErrorCode:dbOpen];
+        return NO;
+    }
+    
+    [self.twinlifeContext onTwinlifeReady];
+    
+    return YES;
 }
 
 - (void)prepareForRestart {

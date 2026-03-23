@@ -24,6 +24,7 @@
 
 @interface TLTwincode ()
 
+@property int64_t creationDate;
 @property int64_t modificationDate;
 @property (nullable) NSMutableArray<TLAttributeNameValue *> *attributes;
 

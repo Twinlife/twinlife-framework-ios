@@ -1,14 +1,17 @@
 /*
- *  Copyright (c) 2014-2022 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Shiyi Gu (Shiyi.Gu@twinlife-systems.com)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLBaseService.h"
+
+@class TLAccountServiceSecuredConfiguration;
 
 typedef enum {
     TLAccountServiceAuthenticationAuthorityUnregistered, // Account is not registered yet.
@@ -94,5 +97,15 @@ typedef enum {
 - (void)subscribeFeatureWithRequestId:(int64_t)requestId merchantId:(TLMerchantIdentificationType)merchantId purchaseProductId:(nonnull NSString *)purchaseProductId purchaseToken:(nonnull NSString *)purchaseToken purchaseOrderId:(nonnull NSString *)purchaseOrderId;
 
 - (void)cancelFeatureWithRequestId:(int64_t)requestId merchantId:(TLMerchantIdentificationType)merchantId purchaseToken:(nonnull NSString *)purchaseToken purchaseOrderId:(nonnull NSString *)purchaseOrderId;
+
+- (void)restoreAccountSecuredConfigurationWithAccountConfiguration:(nonnull TLAccountServiceSecuredConfiguration *)accountConfiguration restoreCount:(int)restoreCount;
+
+- (void)restoreChallengeWithAccountConfiguration:(nonnull TLAccountServiceSecuredConfiguration *)accountConfiguration backupId:(nonnull NSUUID *)backupId withBlock:(nonnull void (^)(TLBaseServiceErrorCode status))block;
+
+- (BOOL)isCurrentAccountWithAccountConfiguration:(nonnull TLAccountServiceSecuredConfiguration *)accountConfiguration;
+
+- (void)commitRestoreWithBlock:(nonnull void (^)(TLBaseServiceErrorCode status, int incarnationCount))block;
+
+- (void)rollbackRestoreWithBlock:(nonnull void (^)(TLBaseServiceErrorCode status, int incarnationCount))block;
 
 @end

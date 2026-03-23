@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -106,6 +106,17 @@ typedef enum {
 /// @param twincodeInboundId the member twincode.
 /// @param p2pSessionIds the optional P2P sessions that we have with the call room members.
 - (void)joinCallRoomWithRequestId:(int64_t)requestId callRoomId:(nonnull NSUUID *)callRoomId twincodeInboundId:(nonnull NSUUID *)twincodeInboundId p2pSessionIds:(nonnull NSArray<TLPeerSessionInfo *> *)p2pSessionIds;
+
+/// Join the meeting represented by a meeting twincode.
+/// The `memberTwincode` must be owned by the current user and represents the current user in the meeting.
+/// A call room is created when a first user joins the meeting and a list of existing members will be returned.
+/// The response is received by the onJoinCallRoom() observer.
+///
+/// @param requestId the request identifier.
+/// @param meetingTwincodeId the meeting twincode to join.
+/// @param memberTwincode the member twincode.
+/// @param waitTime the delay to wait.
+- (void)joinMeetingWithRequestId:(int64_t)requestId meetingTwincodeId:(nonnull NSUUID *)meetingTwincodeId memberTwincode:(nonnull NSUUID *)memberTwincode waitTime:(int)waitTime;
 
 /// Leave the call room.
 ///

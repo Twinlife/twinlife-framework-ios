@@ -111,4 +111,8 @@ typedef void (^TLTriggerInvocationConsumer) (void);
 
 + (void)initialize;
 
+- (nonnull NSArray<TLTwincodeInbound *> *)getLocalTwincodes;
+
+- (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId modificationDate:(int64_t)modificationDate;
+
 @end

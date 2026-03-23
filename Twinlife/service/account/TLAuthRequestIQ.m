@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2021-2022 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLAuthRequestIQ.h"
@@ -13,6 +14,33 @@
 
 /**
  * Authenticate Request after the AuthChallenge request IQ.
+ *
+ * Schema version 3
+ * <pre>
+ * {
+ *  "schemaId":"BF0A6327-FD04-4DFF-998E-72253CFD91E5",
+ *  "schemaVersion":"3",
+ *
+ *  "type":"record",
+ *  "name":"AuthRequestIQ",
+ *  "namespace":"org.twinlife.schemas.account",
+ *  "super":"org.twinlife.schemas.BinaryPacketIQ"
+ *  "fields": [
+ *     {"name":"accountIdentifier", "type":"string"},
+ *     {"name":"resourceIdentifier", "type":"string"},
+ *     {"name":"deviceNonce", "type":"bytes"},
+ *     {"name":"deviceProof", "type":"bytes"},
+ *     {"name":"deviceState", "type":"int"}
+ *     {"name":"deviceLatency", "type":"int"},
+ *     {"name":"deviceTimestamp", "type":"long"},
+ *     {"name":"serverTimestamp", "type":"long"},
+ *     {"name":"incarnationCount", "type":"int"}
+ *  ]
+ * }
+ *
+ * </pre>
+ *
+
  *
  * Schema version 2
  * <pre>
@@ -83,6 +111,7 @@
     [encoder writeInt:authRequestIQ.deviceLatency];
     [encoder writeLong:authRequestIQ.deviceTimestamp];
     [encoder writeLong:authRequestIQ.serverTimestamp];
+    [encoder writeInt:authRequestIQ.incarnationCount];
 }
 
 - (NSObject *)deserializeWithSerializerFactory:(TLSerializerFactory *)serializerFactory decoder:(id<TLDecoder>)decoder {
@@ -98,7 +127,7 @@
 
 @implementation TLAuthRequestIQ
 
-- (nonnull instancetype)initWithSerializer:(nonnull TLBinaryPacketIQSerializer *)serializer requestId:(int64_t)requestId  accountIdentifier:(nonnull NSString *)accountIdentifier resourceIdentifier:(nonnull NSString *)resourceIdentifier deviceNonce:(nonnull NSData *)deviceNonce deviceProof:(nonnull NSData *)deviceProof deviceState:(int)deviceState deviceLatency:(int)deviceLatency deviceTimestamp:(int64_t)deviceTimestamp serverTimestamp:(int64_t)serverTimestamp {
+- (nonnull instancetype)initWithSerializer:(nonnull TLBinaryPacketIQSerializer *)serializer requestId:(int64_t)requestId  accountIdentifier:(nonnull NSString *)accountIdentifier resourceIdentifier:(nonnull NSString *)resourceIdentifier deviceNonce:(nonnull NSData *)deviceNonce deviceProof:(nonnull NSData *)deviceProof deviceState:(int)deviceState deviceLatency:(int)deviceLatency deviceTimestamp:(int64_t)deviceTimestamp serverTimestamp:(int64_t)serverTimestamp incarnationCount:(int)incarnationCount {
 
     self = [super initWithSerializer:serializer requestId:requestId];
     
@@ -111,6 +140,7 @@
         _deviceLatency = deviceLatency;
         _deviceTimestamp = deviceTimestamp;
         _serverTimestamp = serverTimestamp;
+        _incarnationCount = incarnationCount;
     }
     return self;
 }

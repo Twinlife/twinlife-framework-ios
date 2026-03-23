@@ -90,7 +90,11 @@ typedef enum {
     TLBaseServiceErrorCodeDecryptError,
     TLBaseServiceErrorCodeBadEncryptionFormat,
     TLBaseServiceErrorCodeFileNotFound,
-    TLBaseServiceErrorCodeFileNotSupported
+    TLBaseServiceErrorCodeFileNotSupported,
+    TLBaseServiceErrorCodeDatabaseCorruption,
+    TLBaseServiceErrorCodeRestoreInProgress,
+    TLBaseServiceErrorCodeAccountRestored,
+    TLBaseServiceErrorCodeExists
 } TLBaseServiceErrorCode;
 
 /**

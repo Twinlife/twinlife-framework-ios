@@ -22,6 +22,7 @@
 
 #define CIPHER_V4_DATABASE_NAME @"twinlife-4.cipher"
 #define CIPHER_V5_DATABASE_NAME @"twinlife-5.cipher"
+#define RESTORE_DATABASE_NAME @"twinlife-5-restore.cipher"
 
 @protocol TLTwinlifeSuspendObserver;
 
@@ -50,6 +51,7 @@
 @class TLBinaryPacketIQSerializer;
 @class TLDatabaseService;
 @class TLCryptoService;
+@class TLBackupService;
 
 typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 
@@ -57,7 +59,7 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 
 @property (nonnull) TLTwinlifeConfiguration *twinlifeConfiguration;
 @property (nullable) TLTwinlifeSecuredConfiguration *twinlifeSecuredConfiguration;
-
+@property (nonnull) TLTwinlifeContext *twinlifeContext;
 //
 // Services
 //
@@ -79,6 +81,7 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 @property (readonly, nonnull) TLAccountMigrationService *accountMigrationService;
 @property (readonly, nonnull) NSArray *twinlifeServices;
 @property (readonly, nonnull) TLDatabaseService *databaseService;
+@property (readonly, nonnull) TLBackupService *backupService;
 
 @property (readonly, nonnull) TLSerializerFactory *serializerFactory;
 @property (readonly, nonnull) NSMutableDictionary<TLSerializerKey *, TLBinaryPacketListener> *binaryPacketListeners;
@@ -164,6 +167,12 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 
 - (void)closeDatabase;
 
+- (TLBaseServiceErrorCode)prepareDatabaseForRestoreWithInPlaceRestore:(BOOL)inPlaceRestore;
+
+- (BOOL)commitRestoredDatabase;
+
+- (BOOL)deleteRestoredDatabase;
+
 - (void)prepareForRestart;
 
 - (nonnull NSString *)toBareJIDWithUsername:(nonnull NSString *)username;
@@ -194,6 +203,10 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 - (nonnull NSString *)getDatabaseDiagnostic;
 
 - (nonnull NSString *)getOpenedFileDiagnostic;
+
+- (void)enableRestoreMode;
+
+- (void)disableRestoreMode;
 
 #if defined(DEBUG) && DEBUG == 1
 /// Internal development method to export the database and other files to the private application area in the 'export' directory.

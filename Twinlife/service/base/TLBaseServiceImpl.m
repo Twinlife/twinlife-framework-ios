@@ -380,7 +380,19 @@ static const int8_t ATTRIBUTE_NAME_UUID_VALUE = 5;
 
         case TLBaseServiceErrorCodeFileNotSupported:
             return 35;
-
+        
+        case TLBaseServiceErrorCodeDatabaseCorruption:
+            return 36;
+            
+        case TLBaseServiceErrorCodeRestoreInProgress:
+            return 37;
+            
+        case TLBaseServiceErrorCodeAccountRestored:
+            return 38;
+        
+        case TLBaseServiceErrorCodeExists:
+            return 39;
+            
         case TLBaseServiceErrorCodeTimeoutError:
         case TLBaseServiceErrorCodeAccountDeleted:
         case TLBaseServiceErrorCodeDatabaseKeyError:
@@ -528,7 +540,31 @@ static const int8_t ATTRIBUTE_NAME_UUID_VALUE = 5;
         case 33:
             errorCode = TLBaseServiceErrorCodeNotEncrypted;
             break;
+            
+        case 34:
+           errorCode = TLBaseServiceErrorCodeFileNotFound;
+           break;
 
+        case 35:
+           errorCode = TLBaseServiceErrorCodeFileNotSupported;
+           break;
+
+        case 36:
+           errorCode = TLBaseServiceErrorCodeDatabaseCorruption;
+           break;
+
+        case 37:
+           errorCode = TLBaseServiceErrorCodeRestoreInProgress;
+           break;
+
+        case 38:
+           errorCode = TLBaseServiceErrorCodeAccountRestored;
+           break;
+
+        case 39:
+           errorCode = TLBaseServiceErrorCodeExists;
+           break;
+            
         default:
             errorCode = TLBaseServiceErrorCodeLibraryTooOld;
     }

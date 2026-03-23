@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2015-2024 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Shiyi Gu (Shiyi.Gu@twinlife-systems.com)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -65,6 +66,12 @@ static NSUUID* NOT_DEFINED_UUID;
     DDLogVerbose(@"%@ objectId: %@", LOG_TAG, self.uuid);
 
     return self.uuid;
+}
+
+- (nonnull NSArray<TLAttributeNameValue *> *)getAttributes {
+    DDLogVerbose(@"%@ getAttributes", LOG_TAG);
+
+    return self.attributes ? self.attributes : [NSArray array];
 }
 
 - (nullable id)getAttributeWithName:(nonnull NSString *)name {

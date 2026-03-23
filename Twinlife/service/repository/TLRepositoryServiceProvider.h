@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2025 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -70,6 +70,8 @@
 
 - (nullable id<TLRepositoryObject>)importObjectWithFactory:(nonnull TLRepositoryObjectFactoryImpl *)factory uuid:(nonnull NSUUID *)uuid creationDate:(int64_t)creationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes objectKey:(nullable NSUUID *)objectKey;
 
+- (nullable id<TLRepositoryObject>)importObjectWithFactory:(nonnull TLRepositoryObjectFactoryImpl *)factory databaseId:(nullable NSNumber *)databaseId uuid:(nonnull NSUUID *)uuid creationDate:(int64_t)creationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes objectKey:(nullable NSUUID *)objectKey;
+
 - (void)updateWithObject:(nonnull id<TLRepositoryObject>)object modificationDate:(int64_t)modificationDate;
 
 - (BOOL)hasObjectsWithSchemaId:(nonnull NSUUID *)schemaId;
@@ -84,6 +86,10 @@
 
 - (void)updateWithStats:(nonnull NSArray<TLObjectStatImpl *> *)stats;
 
+- (TLBaseServiceErrorCode)saveAttributesWithObject:(nonnull id<TLRepositoryObject>)object;
+
 - (void)deleteObject:(nonnull id<TLRepositoryObject>)object;
+
+- (nonnull NSArray<id<TLRepositoryObject>> *)loadRepositoryObjectsWithSupportedSchemaIds:(nonnull NSArray<NSUUID *> *)supportedSchemaIds;
 
 @end

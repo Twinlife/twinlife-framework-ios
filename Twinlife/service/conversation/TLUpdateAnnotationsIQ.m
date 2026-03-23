@@ -39,7 +39,7 @@
  *       {"name":"annotationCount", "type":"int"},
  *       {"name":"annotations": [
  *         {"name":"annotationType", "type":"int"}
- *         {"name":"annotationValue", "type":"int"}
+ *         {"name":"annotationValue", "type":"long"}
  *       ]}
  *     ]}
  * }
@@ -115,7 +115,7 @@
                     @throw [NSException exceptionWithName:@"TLEncoderException" reason:nil userInfo:nil];
 
             }
-            [encoder writeInt:annotation.value];
+            [encoder writeLong:annotation.value];
         }
     }
 }
@@ -156,7 +156,7 @@
             annotationCount--;
 
             int kind = [decoder readEnum];
-            int value = [decoder readInt];
+            int64_t value = [decoder readLong];
             switch (kind) {
                 case 1:
                     [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeForward value:value count:0]];

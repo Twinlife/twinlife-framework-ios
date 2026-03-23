@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -47,7 +47,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define REPOSITORY_SERVICE_VERSION @"3.1.0"
+#define REPOSITORY_SERVICE_VERSION @"3.2.0"
 
 #define CREATE_OBJECT_SCHEMA_ID      @"cc1de051-04c9-49c2-827d-2d8c8545ff41"
 #define ON_CREATE_OBJECT_SCHEMA_ID   @"fde9aa2f-c0e3-437a-a1d1-0121e72e43bd"
@@ -868,6 +868,17 @@ static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
     return [self.serviceProvider findObjectWithInboundId:YES uuid:key factories:[self.serviceProvider getFactories]];
 }
 
+- (nullable id<TLRepositoryObject>)findObjectWithObjectId:(nonnull NSUUID *)objectId {
+    DDLogVerbose(@"%@ findObjectWithObjectId: %@", LOG_TAG, objectId);
+    
+    if (!self.serviceOn) {
+        return nil;
+    }
+
+    return [self.serviceProvider findObjectWithInboundId:NO uuid:objectId factories:[self.serviceProvider getFactories]];
+}
+
+
 - (void)createObjectWithFactory:(nonnull id<TLRepositoryObjectFactory>)factory accessRights:(TLRepositoryServiceAccessRights)accessRights withInitializer:(nonnull void (^)(id<TLRepositoryObject> _Nonnull object))initializer withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, id<TLRepositoryObject> _Nullable object))block {
     DDLogVerbose(@"%@ createObjectWithFactory: %@", LOG_TAG, factory);
     
@@ -990,6 +1001,86 @@ static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
 
     TLGetObjectIQ *iq = [[TLGetObjectIQ alloc] initWithSerializer:IQ_DELETE_OBJECT_SERIALIZER requestId:requestId.longLongValue objectSchemaId:[identifier schemaId] objectId:[object objectId]];
     [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+}
+
+- (nonnull NSArray<id<TLRepositoryObject>> *)getLocalObjectsWithSupportedSchemaIds:(nonnull NSArray<NSUUID *> *)supportedSchemaIds {
+    DDLogVerbose(@"%@: getLocalObjects", LOG_TAG);
+
+    if (!self.serviceOn) {
+        return [NSArray array];
+    }
+    
+    return [self.serviceProvider loadRepositoryObjectsWithSupportedSchemaIds: supportedSchemaIds];
+}
+
+- (nullable id<TLRepositoryObject>)restoreExistingObjectWithSchemaId:(nonnull NSUUID *)schemaId databaseId:(int64_t)databaseId objectId:(nonnull NSUUID *)objectId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes {
+    DDLogVerbose(@"%@: restoreExistingObjectWithSchemaId: %@ databaseId: %lld", LOG_TAG, schemaId, databaseId);
+
+    TLRepositoryObjectFactoryImpl *factory = [self.serviceProvider factoryWithSchemaId:schemaId];
+    
+    if (!factory) {
+        DDLogWarn(@"%@ No factory found for schemaId: %@", LOG_TAG, schemaId.UUIDString);
+        return nil;
+    }
+
+    id<TLRepositoryObject> repositoryObject = [self.serviceProvider loadObjectWithFactory:factory dbId:databaseId uuid:objectId];
+    
+    if (!repositoryObject) {
+        DDLogWarn(@"%@ Object not found for ID: %lld", LOG_TAG, databaseId);
+        return nil;
+    }
+    
+    NSString *name = [TLAttributeNameValue getStringAttributeWithName:@"name" list:attributes];
+    NSString *description = [TLAttributeNameValue getStringAttributeWithName:@"description" list:attributes];
+    
+    [factory loadObjectWithObject:repositoryObject name:name description:description attributes:attributes modificationDate:modificationDate];
+    
+    [self.serviceProvider updateWithObject:repositoryObject modificationDate:repositoryObject.modificationDate];
+    
+    return repositoryObject;
+}
+
+
+- (nullable id<TLRepositoryObject>)restoreObjectWithSchemaId:(nonnull NSUUID *)schemaId databaseId:(int64_t)databaseId objectId:(nonnull NSUUID *)objectId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes {
+    DDLogVerbose(@"%@: restoreObjectWithSchemaId: %@ databaseId: %lld", LOG_TAG, schemaId, databaseId);
+
+    TLRepositoryObjectFactoryImpl *factory = [self.serviceProvider factoryWithSchemaId:schemaId];
+    
+    if (!factory) {
+        DDLogWarn(@"%@ No factory found for schemaId: %@", LOG_TAG, schemaId.UUIDString);
+        return nil;
+    }
+    
+    return [self.serviceProvider importObjectWithFactory:factory databaseId:[NSNumber numberWithLongLong:databaseId] uuid:objectId creationDate:creationDate attributes:attributes objectKey:nil];
+}
+
+
+
+- (void)syncObjectAfterRestoreWithTwinlifecontext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block {
+    DDLogVerbose(@"%@: updateObjectAfterRestoreWithObject: %@", LOG_TAG, object);
+
+    TLRepositoryObjectFactoryImpl *factory = [self.serviceProvider factoryWithSchemaId:object.identifier.schemaId];
+    
+    if (!factory) {
+        DDLogWarn(@"%@ No factory found for schemaId: %@", LOG_TAG, object.identifier.schemaId.UUIDString);
+        return;
+    }
+    
+    [factory syncObjectWithTwinlifeContext:twinlifeContext object:object withBlock:block];
+}
+
+- (void)deleteObjectAfterRestoreWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block {
+    DDLogVerbose(@"%@: deleteObjectAfterRestoreWithTwinlifeContext: %@", LOG_TAG, object);
+
+    TLRepositoryObjectFactoryImpl *factory = [self.serviceProvider factoryWithSchemaId:object.identifier.schemaId];
+    
+    if (!factory) {
+        DDLogWarn(@"%@ No factory found for schemaId: %@", LOG_TAG, object.identifier.schemaId.UUIDString);
+        return;
+    }
+    
+    [factory deleteObjectWithTwinlifeContext:twinlifeContext object:object withBlock:block];
+
 }
 
 - (void)incrementStatWithObject:(nonnull id<TLRepositoryObject>)object statType:(TLRepositoryServiceStatType)statType {
@@ -1198,6 +1289,26 @@ static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
     @synchronized(self) {
         self.weights[schemaId] = weights;
     }
+}
+
+- (TLBaseServiceErrorCode)saveAttributesWithObject:(nonnull id<TLRepositoryObject>)object {
+    DDLogVerbose(@"%@: saveAttributesWithObject: %@", LOG_TAG, object);
+
+    if (!self.serviceOn) {
+        return TLBaseServiceErrorCodeServiceUnavailable;
+    }
+
+    TLBaseServiceErrorCode result = [self.serviceProvider saveAttributesWithObject:object];
+    if (result == TLBaseServiceErrorCodeSuccess) {
+        for (id<TLBaseServiceDelegate> delegate in self.delegates) {
+            if ([delegate respondsToSelector:@selector(onUpdateWithObject:)]) {
+                dispatch_async([self.twinlife twinlifeQueue], ^{
+                    [(id<TLRepositoryServiceDelegate>)delegate onUpdateWithObject:object];
+                });
+            }
+        }
+    }
+    return result;
 }
 
 - (nonnull NSString *)serializeWithAttributes:(nonnull NSArray <TLAttributeNameValue *> *)attributes {

@@ -169,7 +169,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     int count = 0;
     FMResultSet *resultSet = [database executeQuery:@"SELECT"
                                       " twout.id, twout.twincodeId, twout.modificationDate, twout.name,"
-                                      " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags"
+                                      " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags, twout.creationDate"
                                       " FROM twincodeOutbound AS twout"
                               " WHERE twout.modificationDate > ?", [NSNumber numberWithLongLong:lastSuspendDate]];
     if (!resultSet) {
@@ -200,7 +200,9 @@ static const int ddLogLevel = DDLogLevelWarning;
     NSString *capabilities = [cursor stringForColumnIndex:offset + 5];
     NSData *content = [cursor dataForColumnIndex:offset + 6];
     int flags = [cursor intForColumnIndex:offset + 7];
-    return [[TLTwincodeOutbound alloc] initWithIdentifier:identifier twincodeId:twincodeId name:name description:description avatarId:avatarId != 0 ? [[TLImageId alloc] initWithLocalId:avatarId] : nil capabilities:capabilities content:content modificationDate:modificationDate flags:flags];
+    int64_t creationDate = [cursor longLongIntForColumnIndex:offset + 8];
+
+    return [[TLTwincodeOutbound alloc] initWithIdentifier:identifier twincodeId:twincodeId name:name description:description avatarId:avatarId != 0 ? [[TLImageId alloc] initWithLocalId:avatarId] : nil capabilities:capabilities content:content creationDate:creationDate modificationDate:modificationDate flags:flags];
 }
 
 - (BOOL)loadWithObject:(nonnull id<TLDatabaseObject>)object cursor:(nonnull FMResultSet *)cursor offset:(int)offset {
@@ -217,11 +219,13 @@ static const int ddLogLevel = DDLogLevelWarning;
     NSString *capabilities = [cursor stringForColumnIndex:offset + 5];
     NSData *content = [cursor dataForColumnIndex:offset + 6];
     int flags = [cursor intForColumnIndex:offset + 7];
-    [twincodeOutbound updateWithName:name description:description avatarId:avatarId != 0 ? [[TLImageId alloc] initWithLocalId:avatarId] : nil capabilities:capabilities content:content modificationDate:modificationDate flags:flags];
+    int64_t creationDate = [cursor longLongIntForColumnIndex:offset + 8];
+
+    [twincodeOutbound updateWithName:name description:description avatarId:avatarId != 0 ? [[TLImageId alloc] initWithLocalId:avatarId] : nil capabilities:capabilities content:content creationDate:creationDate modificationDate:modificationDate flags:flags];
     return YES;
 }
 
-- (nonnull id<TLDatabaseObject>)storeObjectWithTransaction:(nonnull TLTransaction *)transaction identifier:(nonnull TLDatabaseIdentifier *)identifier twincodeId:(nonnull NSUUID *)twincodeId attributes:()attributes flags:(int)flags modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp initialize:(nonnull void (^)(id<TLDatabaseObject> _Nullable object))initialize {
+- (nonnull id<TLDatabaseObject>)storeObjectWithTransaction:(nonnull TLTransaction *)transaction identifier:(nonnull TLDatabaseIdentifier *)identifier twincodeId:(nonnull NSUUID *)twincodeId attributes:()attributes flags:(int)flags creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp initialize:(nonnull void (^)(id<TLDatabaseObject> _Nullable object))initialize {
     DDLogVerbose(@"%@ storeObjectWithTransaction: %@ twincodeId: %@ flags: %x", LOG_TAG, identifier, twincodeId, flags);
     
     TLTwincodeOutbound *twincodeOutbound = [[TLTwincodeOutbound alloc] initWithIdentifier:identifier twincodeId:twincodeId attributes:attributes flags:flags modificationDate:modificationDate];
@@ -237,8 +241,10 @@ static const int ddLogLevel = DDLogLevelWarning;
     NSObject *avatarId = [TLDatabaseService toObjectWithImageId:twincodeOutbound.avatarId];
     NSObject *cap = [TLDatabaseService toObjectWithString:twincodeOutbound.capabilities];
     NSObject *content = [TLDatabaseService toObjectWithData:[twincodeOutbound serialize]];
-    NSNumber *creationDate = [NSNumber numberWithLongLong:modificationDate];
-    [transaction executeUpdate:@"INSERT INTO twincodeOutbound (id, twincodeId, name, description, avatarId, capabilities, creationDate, modificationDate, attributes, refreshPeriod, refreshDate, refreshTimestamp, flags) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [identifier identifierNumber], [twincodeId toString], name, description, avatarId, cap, creationDate, creationDate, content, [NSNumber numberWithLongLong:refreshPeriod], [NSNumber numberWithLongLong:refreshDate], [NSNumber numberWithLongLong:refreshTimestamp], [NSNumber numberWithInt:flags]];
+    NSNumber *creationDateNb = [NSNumber numberWithLongLong:creationDate];
+    NSNumber *modificationDateNb = [NSNumber numberWithLongLong:modificationDate];
+
+    [transaction executeUpdate:@"INSERT INTO twincodeOutbound (id, twincodeId, name, description, avatarId, capabilities, creationDate, modificationDate, attributes, refreshPeriod, refreshDate, refreshTimestamp, flags) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [identifier identifierNumber], [twincodeId toString], name, description, avatarId, cap, creationDateNb, modificationDateNb, content, [NSNumber numberWithLongLong:refreshPeriod], [NSNumber numberWithLongLong:refreshDate], [NSNumber numberWithLongLong:refreshTimestamp], [NSNumber numberWithInt:flags]];
     [self.database putCacheWithObject:twincodeOutbound];
     return twincodeOutbound;
 }
@@ -299,6 +305,31 @@ static const int ddLogLevel = DDLogLevelWarning;
     }];
 }
 
+- (nonnull NSArray<TLTwincodeOutbound *> *)loadTwincodes {
+    __block NSMutableArray<TLTwincodeOutbound *> *result = [NSMutableArray array];
+    
+    [self inTransaction:^(TLTransaction * transaction) {
+        FMResultSet *resultSet = [transaction executeQuery:@"SELECT twincodeId FROM twincodeOutbound"];
+        if (!resultSet) {
+            return;
+        }
+        while ([resultSet next]) {
+            NSUUID *uuid = [resultSet uuidForColumnIndex:0];
+            
+            if (uuid) {
+                TLTwincodeOutbound *twincodeOutbound = [self loadTwincodeWithTwincodeId:uuid];
+                if (twincodeOutbound) {
+                    [result addObject:twincodeOutbound];
+                }
+            }
+        }
+        [resultSet close];
+    }];
+    
+    return result;
+}
+
+
 /// Import a possibly new twincode from the server in the database.  The twincode is associated with the refresh
 /// timestamp and period.  The refresh update is scheduled to be the current date + refresh period.
 - (nullable TLTwincodeOutbound *)importTwincodeWithTwincodeId:(nonnull NSUUID *)twincodeId attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes pubSigningKey:(nullable NSData *)pubSigningKey pubEncryptionKey:(nullable NSData *)pubEncryptionKey keyIndex:(int)keyIndex secretKey:(nullable NSData *)secretKey trustMethod:(TLTrustMethod)trustMethod modificationDate:(int64_t)modificationDate  refreshPeriod:(int64_t)refreshPeriod {
@@ -336,7 +367,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 result.flags = flags;
             }
         } else {
-            TLTwincodeOutbound *twincodeOutbound = [transaction storeTwincodeOutboundWithTwincode:twincodeId attributes:attributes flags:flags modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:0 refreshTimestamp:0];
+            TLTwincodeOutbound *twincodeOutbound = [transaction storeTwincodeOutboundWithTwincodeId:twincodeId attributes:attributes flags:flags modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:0 refreshTimestamp:0];
             if (pubSigningKey) {
                 [transaction storePublicKeyWithTwincode:twincodeOutbound flags:TL_KEY_TYPE_25519 pubSigningKey:pubSigningKey pubEncryptionKey:pubEncryptionKey keyIndex:keyIndex secretKey:secretKey];
             }
@@ -563,6 +594,30 @@ static const int ddLogLevel = DDLogLevelWarning;
     }];
 }
 
+- (nullable TLTwincodeOutbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:attributes flags:(int)flags {
+    
+    DDLogVerbose(@"%@ restoreTwincodeWithDatabaseId: %lld", LOG_TAG, databaseId);
+
+    __block TLTwincodeOutbound *result = nil;
+
+    [self inTransaction:^(TLTransaction *transaction) {
+        int64_t existingId = [transaction longForQuery:@"SELECT twout.id FROM twincodeOutbound AS twout WHERE twout.twincodeId=?", twincodeId.UUIDString];
+        
+        if (existingId > 0) {
+            DDLogWarn(@"%@ Twincode %@ already exists in database", LOG_TAG, twincodeId.UUIDString);
+            return;
+        }
+        
+        TLTwincodeOutbound *twincodeOutbound = [transaction storeTwincodeOutboundWithDatabaseId:databaseId twincode:twincodeId attributes:attributes flags:flags creationDate:creationDate modificationDate:modificationDate refreshPeriod:TL_REFRESH_PERIOD refreshDate:0 refreshTimestamp:0];
+        
+        [transaction commit];
+        
+        result = twincodeOutbound;
+    }];
+    
+    return result;
+}
+
 #pragma mark - private
 
 - (void)internalUpdateWithTransaction:(nonnull TLTransaction *)transaction twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes flags:(int)flags previousAttributes:(nullable NSMutableArray<TLAttributeNameValue *> *)previousAttributes modificationDate:(int64_t)modificationDate {
@@ -616,7 +671,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                     }
                 }
                 if ([dataInputStream isCompleted] && twincodeId) {
-                    [transaction storeTwincodeOutboundWithTwincode:twincodeId attributes:attributes flags:0 modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:refreshDate refreshTimestamp:refreshTimestamp];
+                    [transaction storeTwincodeOutboundWithTwincodeId:twincodeId attributes:attributes flags:0 modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:refreshDate refreshTimestamp:refreshTimestamp];
                 }
             }
         }

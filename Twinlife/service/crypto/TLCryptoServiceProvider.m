@@ -166,7 +166,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         FMResultSet *resultSet = [database executeQuery:@"SELECT k.flags, k.modificationDate, k.signingKey,"
                                   " k.encryptionKey,"
                                   " twout.id, twout.twincodeId, twout.modificationDate, twout.name,"
-                                  " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags"
+                                  " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags, twout.creationDate"
                                   " FROM twincodeOutbound AS twout"
                                   " INNER JOIN twincodeKeys AS k ON k.id=twout.id"
                                   " WHERE twout.twincodeId=?", [TLDatabaseService toObjectWithUUID:twincodeId]];
@@ -577,6 +577,56 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
     return errorCode;
 }
+
+- (nullable TLRawKeyInfo *)loadRawTwincodeKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound {
+    DDLogVerbose(@"%@ loadRawTwincodeKeyWithTwincode: %@", LOG_TAG, twincodeOutbound);
+
+    __block TLRawKeyInfo *info = nil;
+    [self inDatabase:^(FMDatabase *database) {
+        if (!database) {
+            return;
+        }
+
+        NSNumber *twincodeDbId = [NSNumber numberWithLongLong:twincodeOutbound.identifier.identifier];
+        
+        FMResultSet *resultSet = [database executeQuery:@"SELECT k.flags, k.modificationDate, k.signingKey, k.encryptionKey FROM twincodeKeys AS k WHERE k.id=?", twincodeDbId];
+        if (!resultSet || ![resultSet next]) {
+            return;
+        }
+
+        int flags = [resultSet intForColumnIndex:0];
+        int64_t modificationDate = [resultSet longLongIntForColumnIndex:1];
+        NSData *signingKey = [resultSet dataForColumnIndex:2];
+        NSData *encryptionKey = [resultSet dataForColumnIndex:3];
+
+        info = [[TLRawKeyInfo alloc] initWithCreationDate:modificationDate modificationDate:modificationDate signingKey:signingKey encryptionKey:encryptionKey flags:flags];
+    }];
+
+    return info;
+
+    
+}
+
+
+- (TLBaseServiceErrorCode)restoreKeyInfoWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound rawKeyInfo:(nonnull TLRawKeyInfo *)rawKeyInfo {
+    DDLogVerbose(@"%@ restoreKeyInfoWithTwincodeOutbound: %@ rawKeyInfo:%@", LOG_TAG, twincodeOutbound, rawKeyInfo);
+
+    __block TLBaseServiceErrorCode errorCode = TLBaseServiceErrorCodeDatabaseError;
+    [self inTransaction:^(TLTransaction *transaction) {
+        
+        NSNumber *creationDateNb = [NSNumber numberWithLongLong:rawKeyInfo.creationDate];
+        NSNumber *modificationDateNb = [NSNumber numberWithLongLong:rawKeyInfo.modificationDate];
+        NSNumber *flagsNb = [NSNumber numberWithInt:rawKeyInfo.flags];
+        
+        [transaction executeUpdate:@"INSERT OR IGNORE INTO twincodeKeys (id, creationDate, modificationDate, flags, signingKey, encryptionKey, nonceSequence) VALUES(?, ?, ?, ?, ?, ?, 0)", [twincodeOutbound.identifier identifierNumber], creationDateNb, modificationDateNb, flagsNb, [TLDatabaseService toObjectWithData:rawKeyInfo.signingKey], [TLDatabaseService toObjectWithData:rawKeyInfo.encryptionKey]];
+        [transaction commit];
+        
+        errorCode = TLBaseServiceErrorCodeSuccess;
+    }];
+    
+    return errorCode;
+}
+
 
 - (nullable TLImageInfo *)loadImageInfoWithId:(int64_t)identifier {
     DDLogVerbose(@"%@ loadImageInfoWithId: %lld", LOG_TAG, identifier);

@@ -43,6 +43,8 @@ typedef NS_ENUM(NSUInteger, TLTrustMethod) {
 
 - (nullable id)getAttributeWithName:(nonnull NSString *)name;
 
+- (nonnull NSArray<TLAttributeNameValue *> *)getAttributes;
+
 - (BOOL)hasAttributeWithName:(nonnull NSString *)name;
 
 - (TLTwincodeFacet)getFacet;

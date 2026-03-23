@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -19,6 +19,8 @@
 @class TLTwincodeOutbound;
 @class TLDatabaseIdentifier;
 @class TLFilter;
+@class TLTwinlife;
+@class TLTwinlifeContext;
 
 typedef enum {
     TLRepositoryServiceAccessRightsPrivate,
@@ -143,6 +145,12 @@ typedef enum {
 
 - (void)importWithObject:(nonnull id<TLRepositoryObject>)object twincodeFactoryId:(nullable NSUUID *)twincodeFactoryId twincodeInboundId:(nullable NSUUID *)twincodeInboundId twincodeOutboundId:(nullable NSUUID *)twincodeOutboundId peerTwincodeOutboundId:(nullable NSUUID *)peerTwincodeOutboundId ownerId:(nullable NSUUID *)ownerId;
 
+- (void)loadObjectWithObject:(nonnull id<TLRepositoryObject>)object name:(nullable NSString *)name description:(nullable NSString *)description attributes:(nullable NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate;
+
+- (void)syncObjectWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block;
+
+- (void)deleteObjectWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block;
+
 @end
 
 #define TL_REPOSITORY_OBJECT_FACTORY_USE_INBOUND       0x01
@@ -192,6 +200,10 @@ typedef enum {
 /// Create an object instance (Profile, Contact, Group, Space, ...) to import either from
 /// the old repository implementation or from the server.
 - (nonnull id<TLRepositoryObject>)importObjectWithId:(nonnull TLDatabaseIdentifier *)identifier importService:(nonnull id<TLRepositoryImportService>)importService uuid:(nonnull NSUUID *)uuid key:(nullable NSUUID *)key creationDate:(int64_t)creationDate attributes:(nullable NSArray<TLAttributeNameValue *> *)attributes;
+
+- (void)syncObjectWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block;
+
+- (void)deleteObjectWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block;
 
 @end
 
@@ -259,6 +271,12 @@ typedef enum {
 
 - (void)deleteObjectWithObject:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable uuid))block;
 
+- (nonnull NSArray<id<TLRepositoryObject>> *)getLocalObjectsWithSupportedSchemaIds:(nonnull NSArray<NSUUID *> *)supportedSchemaIds;
+
+- (nullable id<TLRepositoryObject>)restoreExistingObjectWithSchemaId:(nonnull NSUUID *)schemaId databaseId:(int64_t)databaseId objectId:(nonnull NSUUID *)objectId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes;
+
+- (nullable id<TLRepositoryObject>)restoreObjectWithSchemaId:(nonnull NSUUID *)schemaId databaseId:(int64_t)databaseId objectId:(nonnull NSUUID *)objectId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes;
+
 - (BOOL)hasObjectsWithSchemaId:(nonnull NSUUID *)schemaId;
 
 - (void)incrementStatWithObject:(nonnull id<TLRepositoryObject>)object statType:(TLRepositoryServiceStatType)statType;
@@ -272,5 +290,7 @@ typedef enum {
 - (void)checkpointStats;
 
 - (void)setWeightTableWithSchemaId:(nonnull NSUUID *)schemaId weights:(nonnull NSArray<TLObjectWeight *> *)weights;
+
+- (TLBaseServiceErrorCode)saveAttributesWithObject:(nonnull id<TLRepositoryObject>)object;
 
 @end

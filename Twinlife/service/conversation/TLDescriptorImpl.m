@@ -207,8 +207,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 @implementation TLDescriptorAnnotation
 
-- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int)value count:(int)count {
-    DDLogVerbose(@"%@ initWithType: %d value: %d count: %d", LOG_TAG, type, value, count);
+- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int64_t)value count:(int)count {
+    DDLogVerbose(@"%@ initWithType: %d value: %lld count: %d", LOG_TAG, type, value, count);
     
     self = [super init];
     

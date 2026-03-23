@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -20,6 +20,8 @@
 #import "TLInviteCallRoomIQ.h"
 #import "TLJoinCallRoomIQ.h"
 #import "TLOnJoinCallRoomIQ.h"
+#import "TLJoinMeetingIQ.h"
+#import "TLOnJoinMeetingIQ.h"
 #import "TLMemberNotificationIQ.h"
 #import "TLLeaveCallRoomIQ.h"
 #import "TLSessionTerminateIQ.h"
@@ -39,6 +41,8 @@
 #define ON_LEAVE_CALL_ROOM_SCHEMA_ID     @"ae2211fe-60ed-4518-ae90-e9dc5393f0d9"
 #define DESTROY_CALL_ROOM_SCHEMA_ID      @"f4e195c7-3f84-4e05-a268-b4e3a956a787"
 #define ON_DESTROY_CALL_ROOM_SCHEMA_ID   @"fac9a8de-c608-4d8f-b0e0-6c390584c41a"
+#define JOIN_MEETING_SCHEMA_ID           @"02166307-8400-4521-bec1-1be77d6233e7"
+#define ON_JOIN_MEETING_SCHEMA_ID        @"64728bdd-d4b7-4042-b90d-d94c6a56fae6"
 
 #define SESSION_INITIATE_SCHEMA_ID       @"0ac5f97d-0fa1-4e18-bd99-c13297086752"
 #define SESSION_ACCEPT_SCHEMA_ID         @"fd545960-d9ac-4e3e-bddf-76f381f163a5"
@@ -63,7 +67,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define PEER_CALL_SERVICE_VERSION @"1.4.2"
+#define PEER_CALL_SERVICE_VERSION @"1.5.1"
 
 static TLBinaryPacketIQSerializer *IQ_CREATE_CALL_ROOM_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_CREATE_CALL_ROOM_SERIALIZER = nil;
@@ -76,6 +80,8 @@ static TLBinaryPacketIQSerializer *IQ_LEAVE_CALL_ROOM_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_LEAVE_CALL_ROOM_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_DESTROY_CALL_ROOM_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_DESTROY_CALL_ROOM_SERIALIZER = nil;
+static TLBinaryPacketIQSerializer *IQ_JOIN_MEETING_SERIALIZER = nil;
+static TLBinaryPacketIQSerializer *IQ_ON_JOIN_MEETING_SERIALIZER = nil;
 
 static TLBinaryPacketIQSerializer *IQ_SESSION_INITIATE_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_SESSION_ACCEPT_SERIALIZER = nil;
@@ -244,6 +250,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     IQ_ON_INVITE_CALL_ROOM_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_INVITE_CALL_ROOM_SCHEMA_ID schemaVersion:1];
     IQ_ON_JOIN_CALL_ROOM_SERIALIZER = [[TLOnJoinCallRoomIQSerializer alloc] initWithSchema:ON_JOIN_CALL_ROOM_SCHEMA_ID schemaVersion:1];
     IQ_ON_LEAVE_CALL_ROOM_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_LEAVE_CALL_ROOM_SCHEMA_ID schemaVersion:1];
+    IQ_JOIN_MEETING_SERIALIZER = [[TLJoinMeetingIQSerializer alloc] initWithSchema:JOIN_MEETING_SCHEMA_ID schemaVersion:1];
+    IQ_ON_JOIN_MEETING_SERIALIZER = [[TLOnJoinMeetingIQSerializer alloc] initWithSchema:ON_JOIN_MEETING_SCHEMA_ID schemaVersion:1];
 
     IQ_SESSION_INITIATE_SERIALIZER = [[TLSessionInitiateIQSerializer alloc] initWithSchema:SESSION_INITIATE_SCHEMA_ID schemaVersion:1];
     IQ_SESSION_ACCEPT_SERIALIZER = [[TLSessionAcceptIQSerializer alloc] initWithSchema:SESSION_ACCEPT_SCHEMA_ID schemaVersion:1];
@@ -305,6 +313,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     }];
     [twinlife addPacketListener:IQ_ON_JOIN_CALL_ROOM_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
         [self onJoinCallRoomWithIQ:iq];
+    }];
+    [twinlife addPacketListener:IQ_ON_JOIN_MEETING_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
+        [self onJoinMeetingWithIQ:iq];
     }];
     [twinlife addPacketListener:IQ_ON_LEAVE_CALL_ROOM_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
         [self onLeaveCallRoomWithIQ:iq];
@@ -447,6 +458,27 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
 
     TLJoinCallRoomIQ *joinCallRoomIQ = [[TLJoinCallRoomIQ alloc] initWithSerializer:IQ_JOIN_CALL_ROOM_SERIALIZER requestId:requestId callRoomId:callRoomId twincodeId:twincodeInboundId p2pSessionIds:p2pSessionIds];
     [self sendBinaryIQ:joinCallRoomIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+}
+
+/// Join the meeting represented by a meeting twincode.
+/// The `memberTwincode` must be owned by the current user and represents the current user in the meeting.
+/// A call room is created when a first user joins the meeting and a list of existing members will be returned.
+/// The response is received by the onJoinCallRoom() observer.
+///
+/// @param requestId the request identifier.
+/// @param meetingTwincodeId the meeting twincode to join.
+/// @param memberTwincode the member twincode.
+/// @param waitTime the delay to wait.
+- (void)joinMeetingWithRequestId:(int64_t)requestId meetingTwincodeId:(nonnull NSUUID *)meetingTwincodeId memberTwincode:(nonnull NSUUID *)memberTwincode waitTime:(int)waitTime {
+    DDLogVerbose(@"%@ joinMeetingWithRequestId: %lld meetingTwincodeId: %@ memberTwincode: %@ waitTime: %d", LOG_TAG, requestId, meetingTwincodeId, memberTwincode, waitTime);
+
+    TLCallRoomPendingRequest *pendingRequest = [[TLCallRoomPendingRequest alloc] initWithCallRoomId:meetingTwincodeId];
+    @synchronized (self) {
+        self.pendingRequests[[NSNumber numberWithLongLong:requestId]] = pendingRequest;
+    }
+
+    TLJoinMeetingIQ *joinMeetingIQ = [[TLJoinMeetingIQ alloc] initWithSerializer:IQ_JOIN_MEETING_SERIALIZER requestId:requestId meetingTwincodeId:meetingTwincodeId memberTwincodeId:memberTwincode maxWaitTime:waitTime];
+    [self sendBinaryIQ:joinMeetingIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
 }
 
 /// Leave the call room.
@@ -759,7 +791,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     }
     
     TLCallRoomPendingRequest *callRoomPendingRequest = (TLCallRoomPendingRequest *)request;
-
+    [self joinResponseWithRequestId:iq.requestId callRoomId:callRoomPendingRequest.callRoomId memberId:onJoinCallRoomIQ.memberId members:onJoinCallRoomIQ.members];
+/*
     NSMutableArray<TLPeerCallMemberInfo *> *members = [[NSMutableArray alloc] initWithCapacity:onJoinCallRoomIQ.members != nil ? onJoinCallRoomIQ.members.count : 0];
     if (onJoinCallRoomIQ.members) {
         for (TLMemberSessionInfo *member in onJoinCallRoomIQ.members) {
@@ -774,6 +807,58 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
         if ([delegate respondsToSelector:@selector(onJoinCallRoomWithRequestId:callRoomId:memberId:members:)]) {
             dispatch_async([self.twinlife twinlifeQueue], ^{
                 [(id<TLPeerCallServiceDelegate>)delegate onJoinCallRoomWithRequestId:onJoinCallRoomIQ.requestId callRoomId:callRoomPendingRequest.callRoomId memberId:onJoinCallRoomIQ.memberId members:members];
+            });
+        }
+    }*/
+}
+
+/// Response received after we have asked to join the call room.
+///
+/// @param iq the InviteCallRoom notification.
+- (void)onJoinMeetingWithIQ:(nonnull TLBinaryPacketIQ *)iq {
+    DDLogVerbose(@"%@ onJoinMeetingWithIQ: %@", LOG_TAG, iq);
+    
+    if (![iq isKindOfClass:[TLOnJoinMeetingIQ class]]) {
+        return;
+    }
+    
+    [self receivedBinaryIQ:iq];
+    
+    TLOnJoinMeetingIQ *onJoinMeetingIQ = (TLOnJoinMeetingIQ *)iq;
+    NSNumber *lRequestId = [NSNumber numberWithLongLong:iq.requestId];
+    TLPendingRequest *request;
+    @synchronized (self) {
+        request = self.pendingRequests[lRequestId];
+        if (request) {
+            [self.pendingRequests removeObjectForKey:lRequestId];
+        }
+    }
+    if (!request) {
+        return;
+    }
+    if (![request isKindOfClass:[TLCallRoomPendingRequest class]]) {
+        return;
+    }
+    
+    [self joinResponseWithRequestId:iq.requestId callRoomId:onJoinMeetingIQ.callRoomId memberId:onJoinMeetingIQ.memberId members:onJoinMeetingIQ.members];
+}
+
+- (void)joinResponseWithRequestId:(int64_t)requestId callRoomId:(nonnull NSUUID *)callRoomId memberId:(nonnull NSString *)memberId members:(nullable NSArray<TLMemberSessionInfo *> *)members {
+
+    NSMutableArray<TLPeerCallMemberInfo *> *roomMembers = [[NSMutableArray alloc] initWithCapacity:members != nil ? members.count : 0];
+    if (members) {
+        for (TLMemberSessionInfo *member in members) {
+            if (member.sessionId) {
+                [roomMembers addObject:[[TLPeerCallMemberInfo alloc] initWithMemberId:member.memberId p2pSessionId:member.sessionId]];
+            } else {
+                [roomMembers addObject:[[TLPeerCallMemberInfo alloc] initWithMemberId:member.memberId]];
+            }
+        }
+    }
+    for (id<TLBaseServiceDelegate> delegate in self.delegates) {
+        if ([delegate respondsToSelector:@selector(onJoinCallRoomWithRequestId:callRoomId:memberId:members:)]) {
+            dispatch_async([self.twinlife twinlifeQueue], ^{
+                [(id<TLPeerCallServiceDelegate>)delegate onJoinCallRoomWithRequestId:requestId callRoomId:callRoomId memberId:memberId members:roomMembers];
             });
         }
     }

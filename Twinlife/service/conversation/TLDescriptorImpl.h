@@ -46,7 +46,7 @@
 
 @interface TLDescriptorAnnotation ()
 
-- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int)value count:(int)count;
+- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int64_t)value count:(int)count;
 
 @end
 

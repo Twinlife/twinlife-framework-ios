@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2024 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -7,6 +7,7 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -285,6 +286,23 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 }
 
+- (void)loadObjectWithObject:(nonnull id<TLRepositoryObject>)object name:(nullable NSString *)name description:(nullable NSString *)description attributes:(nullable NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate {
+    
+    [self.factory loadObjectWithObject:object name:name description:description attributes:attributes modificationDate:modificationDate];
+}
+
+- (void)syncObjectWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block {
+    DDLogVerbose(@"%@ syncObjectWithTwinlifeContext: %@ object:%@", LOG_TAG, twinlifeContext, object);
+
+    [self.factory syncObjectWithTwinlifeContext:twinlifeContext object:object withBlock:block];
+}
+
+- (void)deleteObjectWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block {
+    DDLogVerbose(@"%@ deleteObjectWithTwinlifeContext: %@ object:%@", LOG_TAG, twinlifeContext, object);
+
+    [self.factory deleteObjectWithTwinlifeContext:twinlifeContext object:object withBlock:block];
+}
+
 - (id<TLRepositoryObject>)importWithTransaction:(nonnull TLTransaction *)transaction identifier:(nonnull TLDatabaseIdentifier *)identifier uuid:(nonnull NSUUID *)uuid key:(nullable NSUUID *)key creationDate:(int64_t)creationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes {
     DDLogVerbose(@"%@ importWithTransaction: %@ identifier: %@ uuid: %@ key: %@ creationDate: %lld attributes: %@", LOG_TAG, transaction, identifier, uuid, key, creationDate, attributes);
     
@@ -403,6 +421,21 @@ static const int ddLogLevel = DDLogLevelWarning;
 
     return self.factories;
 }
+
+- (nonnull NSArray<id<TLRepositoryObject>> *)loadRepositoryObjectsWithSupportedSchemaIds:(nonnull NSArray<NSUUID *> *)supportedSchemaIds {
+    DDLogVerbose(@"%@ loadRepositoryObjects", LOG_TAG);
+    
+    NSMutableArray<id<TLRepositoryObject>> *result = [NSMutableArray array];
+    
+    for(TLRepositoryObjectFactoryImpl *factory in self.factories) {
+        if ([supportedSchemaIds containsObject:factory.schemaId]) {
+            [result addObjectsFromArray:[self listObjectsWithFactory:factory filter:nil]];
+        }
+    }
+    
+    return result;
+}
+
 
 - (nullable id<TLRepositoryObject>)loadObjectWithFactory:(nonnull TLRepositoryObjectFactoryImpl *)factory dbId:(long)dbId uuid:(nullable NSUUID *)uuid {
     DDLogVerbose(@"%@ loadObjectWithFactory: %@ uuid: %@", LOG_TAG, factory, uuid);
@@ -601,10 +634,16 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (nullable id<TLRepositoryObject>)importObjectWithFactory:(nonnull TLRepositoryObjectFactoryImpl *)factory uuid:(nonnull NSUUID *)uuid creationDate:(int64_t)creationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes objectKey:(nullable NSUUID *)objectKey {
     DDLogVerbose(@"%@ importObjectWithFactory: %@ uuid: %@ creationDate: %lld attributes: %@ objectKey: %@", LOG_TAG, factory, uuid, creationDate, attributes, objectKey);
 
+    return [self importObjectWithFactory:factory databaseId:nil uuid:uuid creationDate:creationDate attributes:attributes objectKey:objectKey];
+}
+
+- (nullable id<TLRepositoryObject>)importObjectWithFactory:(nonnull TLRepositoryObjectFactoryImpl *)factory databaseId:(nullable NSNumber *)databaseId uuid:(nonnull NSUUID *)uuid creationDate:(int64_t)creationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes objectKey:(nullable NSUUID *)objectKey {
+    DDLogVerbose(@"%@ importObjectWithFactory: %@ databaseId: %@ uuid: %@ creationDate: %lld attributes: %@ objectKey: %@", LOG_TAG, factory, databaseId, uuid, creationDate, attributes, objectKey);
+
     __block id<TLRepositoryObject> result = nil;
     [self inTransaction:^(TLTransaction *transaction) {
         int64_t now = [[NSDate date] timeIntervalSince1970] * 1000;
-        long dbId = [transaction allocateIdWithTable:TLDatabaseTableRepository];
+        long dbId = databaseId ? databaseId.longLongValue : [transaction allocateIdWithTable:TLDatabaseTableRepository];
         TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:dbId factory:factory];
         id<TLRepositoryObject> object = [factory importWithTransaction:transaction identifier:identifier uuid:uuid key:objectKey creationDate:creationDate attributes:attributes];
         if (object) {
@@ -761,6 +800,20 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
         [transaction commit];
     }];
+}
+
+- (TLBaseServiceErrorCode)saveAttributesWithObject:(nonnull id<TLRepositoryObject>)object {
+    DDLogVerbose(@"%@ saveAttributesWithObject: %@", LOG_TAG, object);
+
+    [self inTransaction:^(TLTransaction *transaction) {
+        TLDatabaseIdentifier *identifier = [object identifier];
+        int64_t modificationDate = [[NSDate date] timeIntervalSince1970] * 1000;
+        NSObject *attributes = [TLDatabaseService toObjectWithData:[TLBinaryCompactEncoder serializeWithAttributes:[object attributesWithAll:NO]]];
+        [transaction executeUpdate:@"UPDATE repository SET modificationDate=?,"
+         "attributes=? WHERE id=?", [NSNumber numberWithLongLong:modificationDate], attributes, [identifier identifierNumber]];
+        [transaction commit];
+    }];
+    return TLBaseServiceErrorCodeSuccess;
 }
 
 - (void)deleteObject:(nonnull id<TLRepositoryObject>)object {

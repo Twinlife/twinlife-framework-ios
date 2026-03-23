@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -12,6 +12,7 @@ typedef NS_ENUM(NSUInteger, TLTwincodeURIKind) {
     TLTwincodeURIKindInvitation,
     TLTwincodeURIKindCall,
     TLTwincodeURIKindTransfer,
+    TLTwincodeURIKindMeeting,
     TLTwincodeURIKindAccountMigration,
     TLTwincodeURIKindAuthenticate,
     TLTwincodeURIKindSpaceCard,
@@ -30,12 +31,14 @@ typedef NS_ENUM(NSUInteger, TLTwincodeURIKind) {
 
 +(nonnull NSString *) PARAM_ID;
 +(nonnull NSString *) CALL_ACTION;
++(nonnull NSString *) MEETING_ACTION;
 +(nonnull NSString *) TRANSFER_ACTION;
 +(nonnull NSString *) INVITE_ACTION;
 +(nonnull NSString *) ACCOUNT_MIGRATION_ACTION;
 +(nonnull NSString *) AUTHENTICATE_ACTION;
 +(nonnull NSString *) PROXY_ACTION;
 +(nonnull NSString *) CALL_PATH;
++(nonnull NSString *) MEETING_PATH;
 +(nonnull NSString *) SPACE_PATH;
 
 - (nonnull instancetype)initWithKind:(TLTwincodeURIKind)kind twincodeId:(nullable NSUUID *)twincodeId twincodeOptions:(nullable NSString *)twincodeOptions uri:(nonnull NSString *)uri label:(nonnull NSString *)label publicKey:(nullable NSString *)publicKey;

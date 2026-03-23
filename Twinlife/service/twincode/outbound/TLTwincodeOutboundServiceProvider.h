@@ -74,4 +74,8 @@
 
 - (void)setCertifiedWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincode:(nonnull TLTwincodeOutbound *)peerTwincode trustMethod:(TLTrustMethod)trustMethod;
 
+- (nullable TLTwincodeOutbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:attributes flags:(int)flags;
+
+- (nonnull NSArray<TLTwincodeOutbound *> *)loadTwincodes;
+
 @end

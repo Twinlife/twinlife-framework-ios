@@ -706,6 +706,21 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
     }
 }
 
+- (nullable TLImageInfo *)getImageInfoWithImageId:(nonnull TLImageId *)imageId {
+    return [self.serviceProvider loadImageWithImageId:imageId];
+}
+
+- (nullable NSData *)getLocalImageDataWithImageId:(nonnull TLImageId *)imageId {
+    TLImageInfo *info = [self.serviceProvider loadImageWithImageId:imageId];
+    
+    if (!info) {
+        return nil;
+    }
+    
+    return [NSData dataWithContentsOfFile:[self getCachedImagePathWithImageId:info.publicId kind:TLImageServiceKindNormal]];
+}
+
+
 - (void)createImageWithImage:(nullable UIImage *)image thumbnail:(nonnull UIImage *)thumbnail withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLExportedImageId *_Nullable imageId))block {
     DDLogVerbose(@"%@ createImageWithImage: %@ thumbnail: %@", LOG_TAG, image, thumbnail);
     
@@ -768,6 +783,117 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
         }
         block(TLBaseServiceErrorCodeSuccess, imageId);
     }
+}
+
+- (nullable TLExportedImageId *)restoreLocalImageWithImageId:(nonnull NSUUID *)imageId locale:(BOOL)locale image:(nullable UIImage *)image thumbnail:(nonnull UIImage *)thumbnail {
+    DDLogVerbose(@"%@ restoreLocalImageWithImageId: %@ image:%@ thumbnail: %@", LOG_TAG, imageId.UUIDString, image, thumbnail);
+
+    NSData *imageData = [self getImageDataWithImage:thumbnail];
+    NSData *imageSha = [NSData data];
+
+    TLExportedImageId *exportedImageId = [self.serviceProvider createImageWithImageId:imageId locale:locale thumbnail:imageData imageShas:imageSha remain1Size:0 remain2Size:0];
+
+    if (exportedImageId && image) {
+        int64_t length;
+        NSString *path = [self getRestoredImagePathWithImageId:exportedImageId.publicId locale:locale];
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        NSString *dirPath = [path stringByDeletingLastPathComponent];
+        if (![fileManager fileExistsAtPath:dirPath]) {
+            [fileManager createDirectoryAtPath:dirPath withIntermediateDirectories:YES attributes:nil error:nil];
+        }
+        [self copyImageWithImage:image destinationPath:path maxWidth:TL_LOCAL_IMAGE_WIDTH maxHeight:TL_LOCAL_IMAGE_HEIGHT sha256:&imageSha length:&length];
+    }
+        
+    return exportedImageId;
+}
+
+- (TLBaseServiceErrorCode)commitRestoredImages {
+    DDLogVerbose(@"%@ commitRestoredImages", LOG_TAG);
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSError *error;
+    
+    NSString *srcPath = [TLTwinlife getAppGroupPath:fileManager path:@"RestoredPictures"];
+    NSString *destPath = [TLTwinlife getAppGroupPath:fileManager path:@"Pictures"];
+
+    if ([fileManager fileExistsAtPath:srcPath]) {
+        
+        if ([fileManager fileExistsAtPath:destPath]) {
+            [fileManager removeItemAtPath:destPath error:&error];
+            
+            if (error) {
+                DDLogError(@"%@ image directory %@ exists and couldn't be removed: %@", LOG_TAG, destPath, error.userInfo);
+                return TLBaseServiceErrorCodeLibraryError;
+            }
+        }
+        
+        [fileManager moveItemAtPath:srcPath toPath:destPath error:&error];
+        
+        if (error) {
+            DDLogError(@"%@ couldn't move restored image directory %@ to %@: %@", LOG_TAG, srcPath, destPath, error.userInfo);
+            return TLBaseServiceErrorCodeNoStorageSpace;
+        }
+    }
+    
+    
+    srcPath = [TLTwinlife getAppGroupPath:fileManager path:@"RestoredCache"];
+    
+    if ([fileManager fileExistsAtPath:srcPath]) {
+        NSArray *list = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+        NSString *cacheDirectory = [list objectAtIndex:0];
+
+        
+        NSArray<NSString *> *images = [fileManager contentsOfDirectoryAtPath:srcPath error:&error];
+        
+        if (error) {
+            DDLogError(@"%@ couldn't list files in %@: %@", LOG_TAG, srcPath, error.userInfo);
+            return TLBaseServiceErrorCodeLibraryError;
+        }
+        
+        for (NSString *image in images) {
+            NSString *sourcePath = [srcPath stringByAppendingPathComponent:image];
+            NSString *destinationPath = [cacheDirectory stringByAppendingPathComponent:image];
+
+            if ([fileManager fileExistsAtPath:destinationPath]) {
+                // Images are immutable => it's the same image, ignore it.
+                continue;
+            }
+
+            [fileManager moveItemAtPath:sourcePath toPath:destinationPath error:&error];
+            if (error) {
+                DDLogError(@"%@ couldn't move file %@ to %@: %@", LOG_TAG, sourcePath, destinationPath, error.userInfo);
+                return TLBaseServiceErrorCodeLibraryError;
+            }
+        }
+        
+        [fileManager removeItemAtPath:srcPath error:&error];
+        if (error) {
+            DDLogError(@"%@ couldn't delete temp directory %@: %@", LOG_TAG, srcPath, error.userInfo);
+            return TLBaseServiceErrorCodeLibraryError;
+        }
+    }
+    
+    return TLBaseServiceErrorCodeSuccess;
+}
+
+- (TLBaseServiceErrorCode)deleteRestoredImages {
+    DDLogVerbose(@"%@ deleteRestoredImages", LOG_TAG);
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+
+    NSString *imagesPath = [TLTwinlife getAppGroupPath:fileManager path:@"RestoredPictures"];
+
+    if ([fileManager fileExistsAtPath:imagesPath]) {
+        NSError *error;
+        [fileManager removeItemAtPath:imagesPath error:&error];
+        
+        if (error) {
+            DDLogError(@"%@ couldn't remove restored images %@: %@", LOG_TAG, imagesPath, error.userInfo);
+            return TLBaseServiceErrorCodeLibraryError;
+        }
+    }
+    
+    return TLBaseServiceErrorCodeSuccess;
 }
 
 - (void)copyImageWithImageId:(nonnull TLImageId *)imageId withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLExportedImageId *_Nullable imageId))block {
@@ -864,6 +990,12 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
     DDLogVerbose(@"%@ listCopiedImages", LOG_TAG);
 
     return [self.serviceProvider listCopiedImages];
+}
+
+- (nonnull NSArray<TLImageId *> *)listLocalImages {
+    DDLogVerbose(@"%@ listCopiedImages", LOG_TAG);
+
+    return [self.serviceProvider listLocalImages];
 }
 
 - (nullable TLExportedImageId *)publicWithImageId:(nonnull TLImageId *)imageId {
@@ -1368,6 +1500,22 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *dirPath = [TLTwinlife getAppGroupPath:fileManager path:@"Pictures"];
     return [dirPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.img", [imageId toString]]];
+}
+
+- (nonnull NSString *)getRestoredImagePathWithImageId:(nonnull NSUUID *)imageId locale:(BOOL)locale {
+    DDLogVerbose(@"%@ getRestoredImagePathWithImageId: %@", LOG_TAG, imageId);
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+
+    if (locale){
+        // Note: we must use the same format as on Android: UUID in lower case with .img extension.
+        NSString *dirPath = [TLTwinlife getAppGroupPath:fileManager path:@"RestoredPictures"];
+        return [dirPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.img", [imageId toString]]];
+    } else {
+        NSString *dirPath = [TLTwinlife getAppGroupPath:fileManager path:@"RestoredCache"];
+        NSString *basename = [NSString stringWithFormat:@"%@-normal.png", imageId.UUIDString];
+        
+        return [dirPath stringByAppendingPathComponent:basename];
+    }
 }
 
 - (void)removeCachedImagePathWithImageId:(nonnull NSUUID *)imageId {

@@ -266,7 +266,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         TLTwinlifeStatus status = self.status;
         DDLogVerbose(@"%@ start status=%d", LOG_TAG, status);
         if (status == TLTwinlifeStatusUninitialized) {
-            self.configureStatus = [self.twinlife configure:self.configuration];
+            self.configureStatus = [self.twinlife configure:self.configuration twinlifeContext:self];
             if (self.configureStatus != TLBaseServiceErrorCodeSuccess) {
                 for (id delegate in self.delegates) {
                     if ([delegate respondsToSelector:@selector(onFatalErrorWithErrorCode:databaseError:)]) {
@@ -486,6 +486,10 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (TLAccountMigrationService *)getAccountMigrationService {
     return [self.twinlife getAccountMigrationService];
+}
+
+- (TLBackupService *)getBackupService {
+    return [self.twinlife getBackupService];
 }
 
 - (TLSerializerFactory *)getSerializerFactory {

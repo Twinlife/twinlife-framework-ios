@@ -316,7 +316,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_TWINCODE_SERIALIZER = nil;
     __block TLTwincodeFactory *twincodeFactory = nil;
     [database inTransaction:^(TLTransaction *transaction) {
         int64_t now = [[NSDate date] timeIntervalSince1970] * 1000;
-        TLTwincodeOutbound *twincodeOutbound = [transaction storeTwincodeOutboundWithTwincode:onCreateTwincodeIQ.outboundTwincodeId attributes:request.outboundAttributes flags:TWINCODE_CREATE_FLAGS modificationDate:now refreshPeriod:0 refreshDate:0 refreshTimestamp:0];
+        TLTwincodeOutbound *twincodeOutbound = [transaction storeTwincodeOutboundWithTwincodeId:onCreateTwincodeIQ.outboundTwincodeId attributes:request.outboundAttributes flags:TWINCODE_CREATE_FLAGS modificationDate:now refreshPeriod:0 refreshDate:0 refreshTimestamp:0];
         TLTwincodeInbound *twincodeInbound = [transaction storeTwincodeInboundWithTwincode:onCreateTwincodeIQ.inboundTwincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:onCreateTwincodeIQ.factoryTwincodeId attributes:request.inboundAttributes modificationDate:now];
 
         [self.cryptoService createPrivateKeyWithTransaction:transaction twincodeInbound:twincodeInbound twincodeOutbound:twincodeOutbound];

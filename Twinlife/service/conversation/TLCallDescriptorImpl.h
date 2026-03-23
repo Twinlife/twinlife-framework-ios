@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2021 twinlife SA.
+ *  Copyright (c) 2020-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -33,12 +33,14 @@
 
 + (int)fromTerminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason;
 
-- (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId video:(BOOL)video incomingCall:(BOOL)incomingCall;
+- (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId video:(BOOL)video incomingCall:(BOOL)incomingCall creationDate:(int64_t)creationDate;
 
 - (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo creationDate:(int64_t)creationDate sendDate:(int64_t)sendDate receiveDate:(int64_t)receiveDate readDate:(int64_t)readDate updateDate:(int64_t)updateDate peerDeleteDate:(int64_t)peerDeleteDate deleteDate:(int64_t)deleteDate expireTimeout:(int64_t)expireTimeout flags:(int)flags content:(nonnull NSString*)content duration:(int64_t)duration;
 
-- (void) setAccepted;
+- (void)setAcceptedWithTimestamp:(int64_t)timestamp;
 
-- (void) setTerminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason;
+- (void)setTerminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason;
+
+- (void)setCallWithEndDate:(int64_t)timestamp;
 
 @end

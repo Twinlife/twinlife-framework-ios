@@ -26,6 +26,20 @@
     return self;
 }
 
+- (BOOL)isEqual:(id)object {
+    if (!object || ![object isKindOfClass:self.class]) {
+        return NO;
+    }
+    
+    TLAttributeNameValue *otherAttr = (TLAttributeNameValue *)object;
+    
+    return [self.name isEqual:otherAttr.name] && [self.value isEqual:otherAttr.value];
+}
+
+- (NSUInteger)hash {
+    return self.name.hash ^ self.value.hash;
+}
+
 + (nullable TLAttributeNameValue *)getAttributeWithName:(nonnull NSString *)name list:(nullable NSArray<TLAttributeNameValue *> *)list {
     
     if (list) {
@@ -80,6 +94,8 @@
     }
     return nil;
 }
+
+
 
 @end
 

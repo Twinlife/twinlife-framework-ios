@@ -97,6 +97,7 @@
 @class TLPeerCallService;
 @class TLJobService;
 @class TLAccountMigrationService;
+@class TLBackupService;
 @class TLSerializerFactory;
 
 @interface TLTwinlifeContext : NSObject <TLTwinlifeSuspendObserver>
@@ -155,6 +156,8 @@
 - (nonnull TLJobService *)getJobService;
 
 - (nonnull TLAccountMigrationService *)getAccountMigrationService;
+
+- (nonnull TLBackupService *)getBackupService;
 
 - (nonnull TLSerializerFactory *)getSerializerFactory;
 

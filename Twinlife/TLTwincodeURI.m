@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -15,6 +15,10 @@
 
 + (nonnull NSString *)CALL_ACTION {
     return [NSString stringWithFormat:@"call.%@", SERVER_NAME];
+}
+
++ (nonnull NSString *)MEETING_ACTION {
+    return [NSString stringWithFormat:@"meet.%@", SERVER_NAME];
 }
 
 + (nonnull NSString *)TRANSFER_ACTION {
@@ -38,6 +42,10 @@
 }
 
 + (nonnull NSString *)CALL_PATH {
+    return @"/call/";
+}
+
++ (nonnull NSString *)MEETING_PATH {
     return @"/call/";
 }
 

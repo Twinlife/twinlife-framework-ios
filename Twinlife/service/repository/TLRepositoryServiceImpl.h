@@ -169,5 +169,11 @@ typedef void (^TLDeleteObjectComplete) (TLBaseServiceErrorCode status, NSUUID * 
 /// Find the repository object which is associated with the twincode inbound key.
 - (nullable id<TLRepositoryObject>)findObjectWithKey:(nonnull NSUUID *)key;
 
+- (nullable id<TLRepositoryObject>)findObjectWithObjectId:(nonnull NSUUID *)objectId;
+
+- (void)syncObjectAfterRestoreWithTwinlifecontext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block;
+
+- (void)deleteObjectAfterRestoreWithTwinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext object:(nonnull id<TLRepositoryObject>)object withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, _Nullable id<TLRepositoryObject>))block;
+
 @end
 

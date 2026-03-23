@@ -68,6 +68,8 @@ typedef enum {
 /// attributes on the server later on.
 - (nullable TLGroupMemberConversationImpl *)createGroupMemberWithConversation:(nonnull TLGroupConversationImpl *)groupConversation memberTwincodeId:(nonnull NSUUID *)memberTwincodeId permissions:(int64_t)permissions invitedContactId:(nullable NSUUID *)invitedContactId;
 
+- (nullable id<TLConversation>)restoreGroupConversationWithDatabaseId:(int64_t)databaseId conversationId:(nonnull NSUUID *)conversationId creationDate:(int64_t)creationDate groupId:(int64_t)groupId subjectId:(int64_t)subjectId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId resourceId:(nonnull NSUUID *)resourceId peerResourceId:(nullable NSUUID *)peerResourceId invitedContactId:(nullable NSUUID *)invitedContactId permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions flags:(int)flags;
+
 /// Find the group conversation associated with the group twincode.
 - (nullable TLGroupConversationImpl *)findGroupWithTwincodeId:(nonnull NSUUID *)twincodeId;
 
@@ -116,7 +118,7 @@ typedef enum {
 /// Set the descriptor annotation for the current user to a new value.
 /// The descriptor annotation is either inserted or updated if a previous annotation from the user was set.
 /// Return true if the annotation was inserted or updated and false if it existed and was not modified.
-- (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int)value;
+- (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int64_t)value;
 
 /// Delete the descriptor annotation from current user only.
 /// Return true if an annotation was removed and false if there was not change.
@@ -129,7 +131,7 @@ typedef enum {
 - (BOOL)toggleAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int)value;
 
 /// Get the descriptor annotation indexed by the owner twincode id.
-- (nullable NSMutableDictionary<NSUUID *, TLDescriptorAnnotationPair *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId;
+- (nullable NSDictionary<NSUUID *, NSArray<TLDescriptorAnnotationPair *> *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId;
 
 - (int64_t)lockConversation:(nonnull TLConversationImpl *)conversation lockIdentifier:(int)lockIdentifier now:(int64_t)now;
 

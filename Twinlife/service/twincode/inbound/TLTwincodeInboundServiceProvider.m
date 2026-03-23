@@ -129,7 +129,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     return YES;
 }
 
-- (nonnull id<TLDatabaseObject>)storeObjectWithTransaction:(nonnull TLTransaction *)transaction identifier:(nonnull TLDatabaseIdentifier *)identifier twincodeId:(nonnull NSUUID *)twincodeId attributes:()attributes flags:(int)flags modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp initialize:(nonnull void (^)(id<TLDatabaseObject> _Nullable object))initialize {
+- (nonnull id<TLDatabaseObject>)storeObjectWithTransaction:(nonnull TLTransaction *)transaction identifier:(nonnull TLDatabaseIdentifier *)identifier twincodeId:(nonnull NSUUID *)twincodeId attributes:()attributes flags:(int)flags creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp initialize:(nonnull void (^)(id<TLDatabaseObject> _Nullable object))initialize {
     DDLogVerbose(@"%@ storeObjectWithDatabase: %@ twincodeId: %@", LOG_TAG, identifier, twincodeId);
 
     TLTwincodeInbound *twincodeInbound = [[TLTwincodeInbound alloc] initWithIdentifier:identifier twincodeId:twincodeId attributes:attributes modificationDate:modificationDate];
@@ -200,6 +200,51 @@ static const int ddLogLevel = DDLogLevelWarning;
             [transaction commit];
             result = twincodeInbound;
         }
+    }];
+
+    return result;
+}
+
+- (nonnull NSArray<TLTwincodeInbound *> *)loadTwincodes {
+    DDLogVerbose(@"%@ loadTwincodes", LOG_TAG);
+    
+    __block NSMutableArray<TLTwincodeInbound *> *result = [NSMutableArray array];
+    
+    [self inTransaction:^(TLTransaction *transaction) {
+        FMResultSet *resultSet = [transaction executeQuery:@"SELECT twincodeId FROM twincodeInbound"];
+        if (!resultSet) {
+            return;
+        }
+        while ([resultSet next]) {
+            NSUUID *uuid = [resultSet uuidForColumnIndex:0];
+            
+            if (uuid) {
+                TLTwincodeInbound *twincodeInbound = [self loadTwincodeWithTwincodeId:uuid];
+                if (twincodeInbound) {
+                    [result addObject:twincodeInbound];
+                }
+            }
+        }
+        [resultSet close];
+    }];
+    
+    return result;
+}
+
+
+- (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId modificationDate:(int64_t)modificationDate {
+    DDLogVerbose(@"%@ restoreTwincodeWithDatabaseId: %lld twincodeId:%@ twincodeOutbound: %@ modificationDate: %lld", LOG_TAG, databaseId, twincodeId, twincodeOutbound, modificationDate);
+
+    __block TLTwincodeInbound *result = nil;
+    [self inTransaction:^(TLTransaction *transaction) {
+        long ident = [transaction longForQuery:@"SELECT ti.id FROM twincodeInbound AS ti WHERE ti.twincodeId=?", [twincodeId toString]];
+        if (ident > 0) {
+            DDLogError(@"%@ Twincode %@ already exists in database", LOG_TAG, twincodeId.UUIDString);
+            return;
+        }
+        TLTwincodeInbound *twincodeInbound = [transaction storeTwincodeInboundWithDatabaseId:databaseId twincodeId:twincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeFactoryId attributes:nil flags:0 modificationDate:modificationDate];
+        [transaction commit];
+        result = twincodeInbound;
     }];
 
     return result;

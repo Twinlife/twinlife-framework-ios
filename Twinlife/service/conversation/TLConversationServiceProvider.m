@@ -756,6 +756,19 @@ static const int ddLogLevel = DDLogLevelWarning;
     return result;
 }
 
+- (nullable id<TLConversation>)restoreGroupConversationWithDatabaseId:(int64_t)databaseId conversationId:(nonnull NSUUID *)conversationId creationDate:(int64_t)creationDate groupId:(int64_t)groupId subjectId:(int64_t)subjectId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId resourceId:(nonnull NSUUID *)resourceId peerResourceId:(nullable NSUUID *)peerResourceId invitedContactId:(nullable NSUUID *)invitedContactId permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions flags:(int)flags {
+    DDLogVerbose(@"%@ restoreGroupConversationWithDatabaseId: %lld", LOG_TAG, databaseId);
+
+    [self inTransaction:^(TLTransaction *transaction) {
+        [transaction executeUpdate:@"INSERT INTO conversation (id, groupId, uuid, subject, creationDate,"
+         " peerTwincodeOutbound, resourceId, permissions, joinPermissions,"
+         " flags) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [NSNumber numberWithLongLong:databaseId], [NSNumber numberWithLongLong:groupId], [TLDatabaseService toObjectWithUUID:conversationId], [NSNumber numberWithLongLong:subjectId], [NSNumber numberWithLongLong:creationDate], [TLDatabaseService toObjectWithUUID:peerTwincodeOutboundId], [TLDatabaseService toObjectWithUUID:resourceId], [NSNumber numberWithLongLong:permissions], [NSNumber numberWithLongLong:joinPermissions], [NSNumber numberWithInt:flags]];
+        [transaction commit];
+    }];
+
+    return [self loadConversationWithId:databaseId];
+}
+
 - (void)updateConversation:(nonnull TLConversationImpl *)conversation {
     DDLogVerbose(@"%@ updateConversation: %@", LOG_TAG, conversation);
     
@@ -1241,7 +1254,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         while ([resultSet next]) {
             TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:[resultSet intForColumnIndex:0]];
             if (type != TLDescriptorAnnotationTypeInvalid) {
-                int value = [resultSet intForColumnIndex:1];
+                int64_t value = [resultSet longForColumnIndex:1];
                 int count = [resultSet intForColumnIndex:2];
                 if (!annotations) {
                     annotations = [[NSMutableArray alloc] init];
@@ -2013,7 +2026,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
     NSMutableDictionary<NSNumber *, NSNumber *> *newList = [[NSMutableDictionary alloc] initWithCapacity:annotations.count];
     for (TLDescriptorAnnotation *annotation in annotations) {
-        [newList setObject:[NSNumber numberWithInt:annotation.value] forKey:[NSNumber numberWithInt:annotation.type]];
+        [newList setObject:[NSNumber numberWithLongLong:annotation.value] forKey:[NSNumber numberWithInt:annotation.type]];
     }
     
     __block BOOL modified = NO;
@@ -2042,7 +2055,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         while ([resultSet next]) {
             TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:[resultSet intForColumnIndex:0]];
             if (type != TLDescriptorAnnotationTypeInvalid) {
-                NSNumber *value = [NSNumber numberWithInt:[resultSet intForColumnIndex:1]];
+                NSNumber *value = [NSNumber numberWithLongLong:[resultSet intForColumnIndex:1]];
                 NSNumber *key = [NSNumber numberWithInt:type];
                 NSNumber *newValue = newList[key];
                         
@@ -2051,7 +2064,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                         deleteList = [[NSMutableArray alloc] init];
                     }
                     [deleteList addObject:key];
-                } else if (newValue.intValue != value.intValue) {
+                } else if (newValue.longLongValue != value.longLongValue) {
                     if (!updateList) {
                         updateList = [[NSMutableArray alloc] init];
                     }
@@ -2102,11 +2115,11 @@ static const int ddLogLevel = DDLogLevelWarning;
     return modified;
 }
 
-- (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int)value {
-    DDLogVerbose(@"%@ setAnnotationWithDescriptor: %@ type: %d value: %d", LOG_TAG, descriptor, type, value);
+- (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int64_t)value {
+    DDLogVerbose(@"%@ setAnnotationWithDescriptor: %@ type: %d value: %lld", LOG_TAG, descriptor, type, value);
     
     NSNumber *kind = [NSNumber numberWithInt:[self fromDescriptorAnnotationType:type]];
-    NSNumber *annotationValue = [NSNumber numberWithInt:value];
+    NSNumber *annotationValue = [NSNumber numberWithLongLong:value];
     NSNumber *did = [NSNumber numberWithLongLong:descriptor.descriptorId.id];
     NSNumber *conversationId = [NSNumber numberWithLongLong:descriptor.conversationId];
     __block BOOL modified = NO;
@@ -2177,13 +2190,13 @@ static const int ddLogLevel = DDLogLevelWarning;
     return modified;
 }
 
-- (nullable NSMutableDictionary<NSUUID *, TLDescriptorAnnotationPair *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId {
+- (nullable NSDictionary<NSUUID *, NSArray<TLDescriptorAnnotationPair *> *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId {
     DDLogVerbose(@"%@ listAnnotationsWithDescriptorId: %@", LOG_TAG, descriptorId);
 
-    NSMutableDictionary<NSUUID *, TLDescriptorAnnotationPair *> *annotations = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary<NSUUID *, NSMutableArray<TLDescriptorAnnotationPair *> *> *annotations = [[NSMutableDictionary alloc] init];
     [self inDatabase:^(FMDatabase *database) {
         TLQueryBuilder *query = [[TLQueryBuilder alloc] initWithSQL:@"tw.id, tw.twincodeId, tw.modificationDate,"
-                            " tw.name, tw.avatarId, tw.description, tw.capabilities, tw.attributes, tw.flags, a.kind, a.value"
+                            " tw.name, tw.avatarId, tw.description, tw.capabilities, tw.attributes, tw.flags, tw.creationDate, a.kind, a.value"
                             " FROM descriptor AS d"
                             " INNER JOIN annotation AS a ON d.cid=a.cid AND a.descriptor=d.id"
                             " INNER JOIN conversation AS c on d.cid=c.id"
@@ -2205,14 +2218,24 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
         while ([resultSet next]) {
             TLTwincodeOutbound *twincodeOutbound = [self.database loadTwincodeOutboundWithResultSet:resultSet offset:0];
-            TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:[resultSet intForColumnIndex:9]];
-            int value = [resultSet intForColumnIndex:10];
+            TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:[resultSet intForColumnIndex:10]];
+            int64_t value = [resultSet longLongIntForColumnIndex:11];
             if (type != TLDescriptorAnnotationTypeInvalid && twincodeOutbound) {
-                [annotations setObject:[[TLDescriptorAnnotationPair alloc] initWithTwincodeOutbound:twincodeOutbound annotation:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:1]] forKey:twincodeOutbound.uuid];
+                TLDescriptorAnnotationPair *pair = [[TLDescriptorAnnotationPair alloc] initWithTwincodeOutbound:twincodeOutbound annotation:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:1]];
+                
+                NSMutableArray<TLDescriptorAnnotationPair *> *twincodeAnnotations = annotations[twincodeOutbound.uuid];
+                
+                if (!twincodeAnnotations) {
+                    twincodeAnnotations = [NSMutableArray array];
+                    annotations[twincodeOutbound.uuid] = twincodeAnnotations;
+                }
+                
+                [twincodeAnnotations addObject:pair];
             }
         }
         [resultSet close];
     }];
+    
     return annotations;
 }
 
@@ -2231,7 +2254,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         int v = [resultSet intForColumnIndex:0];
         TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:v];
         if (type != TLDescriptorAnnotationTypeInvalid) {
-            int value = [resultSet intForColumnIndex:1];
+            int64_t value = [resultSet longLongIntForColumnIndex:1];
             int count = [resultSet intForColumnIndex:2];
             if (!annotations) {
                 annotations = [[NSMutableArray alloc] init];
@@ -2538,7 +2561,12 @@ static const int ddLogLevel = DDLogLevelWarning;
             
         case TLDescriptorAnnotationTypePoll:
             return 5;
+
+        case TLDescriptorAnnotationTypeReceived:
+            return 6;
             
+        case TLDescriptorAnnotationTypeRead:
+            return 7;
     }
     return 0;
 }
@@ -2556,6 +2584,10 @@ static const int ddLogLevel = DDLogLevelWarning;
             return TLDescriptorAnnotationTypeLike;
         case 5:
             return TLDescriptorAnnotationTypePoll;
+        case 6:
+            return TLDescriptorAnnotationTypeReceived;
+        case 7:
+            return TLDescriptorAnnotationTypeRead;
     }
     return TLDescriptorAnnotationTypeInvalid;
 }

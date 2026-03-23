@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2023 twinlife SA.
+ *  Copyright (c) 2020-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -292,11 +292,11 @@ static TLSerializer *CALL_DESCRIPTOR_SERIALIZER_1 = nil;
 
 #pragma mark - TLCallDescriptor ()
 
-- (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId video:(BOOL)video incomingCall:(BOOL)incomingCall {
+- (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId video:(BOOL)video incomingCall:(BOOL)incomingCall creationDate:(int64_t)creationDate {
     DDLogVerbose(@"%@ initWithDescriptorId: %@ conversationId: %lld video: %d incomingCall: %d", LOG_TAG, descriptorId, conversationId, video, incomingCall);
     
-    self = [super initWithDescriptorId:descriptorId conversationId:conversationId sendTo:nil replyTo:nil expireTimeout:0];
-    
+    self = [super initWithDescriptorId:descriptorId conversationId:conversationId sendTo:nil replyTo:nil creationDate:creationDate sendDate:0 receiveDate:0 readDate:0 updateDate:0 peerDeleteDate:0 deleteDate:0 expireTimeout:0];
+
     if (self) {
         _isVideo = video;
         _isIncoming = incomingCall;
@@ -377,19 +377,31 @@ static TLSerializer *CALL_DESCRIPTOR_SERIALIZER_1 = nil;
     return self.callTerminateReason;
 }
 
-- (void) setAccepted {
+- (void)setAcceptedWithTimestamp:(int64_t)timestamp {
     
     self.isCallAccepted = YES;
-    self.readTimestamp = [[NSDate date] timeIntervalSince1970] * 1000;
+    self.readTimestamp = timestamp;
 }
 
-- (void) setTerminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason {
+- (void)setTerminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason {
     
     self.isCallTerminated = YES;
     self.callTerminateReason = terminateReason;
 
     if (self.readTimestamp > 0) {
         self.callDuration = [[NSDate date] timeIntervalSince1970] * 1000 - self.readTimestamp;
+    } else {
+        self.callDuration = 0;
+    }
+}
+
+- (void)setCallWithEndDate:(int64_t)timestamp {
+
+    self.isCallTerminated = YES;
+    self.callTerminateReason = TLPeerConnectionServiceTerminateReasonSuccess;
+
+    if (self.readTimestamp > 0) {
+        self.callDuration = timestamp - self.readTimestamp;
     } else {
         self.callDuration = 0;
     }

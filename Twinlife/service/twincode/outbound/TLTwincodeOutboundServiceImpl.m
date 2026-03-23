@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -39,11 +39,13 @@
 #import "TLOnCreateInvitationCodeIQ.h"
 #import "TLGetInvitationCodeIQ.h"
 #import "TLOnGetInvitationCodeIQ.h"
+#import "TLOnGetAllTwincodesIQ.h"
 #import "TLBinaryErrorPacketIQ.h"
 #import "TLBinaryCompactDecoder.h"
 #import "TLBinaryCompactEncoder.h"
 #import "TLInvitationCode.h"
 #import "TLProxyDescriptor.h"
+#import "TLTwincodeInfo.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -51,7 +53,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define TWINCODE_OUTBOUND_SERVICE_VERSION @"2.2.0"
+#define TWINCODE_OUTBOUND_SERVICE_VERSION @"2.2.1"
 
 #define MAX_REFRESH_TWINCODES    20
 
@@ -70,6 +72,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 #define ON_CREATE_INVITATION_CODE_SCHEMA_ID @"93cf2a0c-82cb-43ea-98c6-43563807fadf"
 #define GET_INVITATION_CODE_SCHEMA_ID       @"95335487-91fa-4cdc-939b-e047a068e94d"
 #define ON_GET_INVITATION_CODE_SCHEMA_ID    @"a16cf169-81dd-4a47-8787-5856f409e017"
+#define GET_ALL_TWINCODES_SCHEMA_ID         @"0e83785c-350e-43c4-a683-2751f7fe869b"
+#define ON_GET_ALL_TWINCODES_SCHEMA_ID      @"ca422038-7ae9-4dd3-829d-f8107b817f9a"
 
 static TLBinaryPacketIQSerializer *IQ_GET_TWINCODE_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_GET_TWINCODE_SERIALIZER = nil;
@@ -83,6 +87,8 @@ static TLBinaryPacketIQSerializer *IQ_CREATE_INVITATION_CODE_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_CREATE_INVITATION_CODE_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_GET_INVITATION_CODE_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
+static TLBinaryPacketIQSerializer *IQ_GET_ALL_TWINCODES_SERIALIZER = nil;
+static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
 
 //
 // Interface: TLTwincodeOutboundJob
@@ -205,7 +211,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
     return TLTrustMethodNone;
 }
 
-- (nonnull instancetype)initWithIdentifier:(nonnull TLDatabaseIdentifier *)identifier twincodeId:(nonnull NSUUID *)twincodeId name:(nullable NSString *)name description:(nullable NSString *)description avatarId:(nullable TLImageId *)avatarId capabilities:(nullable NSString *)capabilities content:(nullable NSData *)content modificationDate:(int64_t)modificationDate flags:(int)flags {
+- (nonnull instancetype)initWithIdentifier:(nonnull TLDatabaseIdentifier *)identifier twincodeId:(nonnull NSUUID *)twincodeId name:(nullable NSString *)name description:(nullable NSString *)description avatarId:(nullable TLImageId *)avatarId capabilities:(nullable NSString *)capabilities content:(nullable NSData *)content creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate flags:(int)flags {
     DDLogVerbose(@"%@ initWithIdentifier: %@ twincodeId: %@ capabilities: %@", LOG_TAG, identifier, twincodeId, capabilities);
     
     self = [super initWithUUID:twincodeId modificationDate:modificationDate attributes:nil];
@@ -215,7 +221,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
         _twincodeDescription = description;
         _avatarId = avatarId;
         _capabilities = capabilities;
-        [self updateWithName:name description:description avatarId:avatarId capabilities:capabilities content:content modificationDate:modificationDate flags:flags];
+        [self updateWithName:name description:description avatarId:avatarId capabilities:capabilities content:content creationDate:creationDate modificationDate:modificationDate flags:flags];
     }
     return self;
 }
@@ -232,8 +238,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
     return self;
 }
 
-- (void)updateWithName:(nullable NSString*)name description:(nullable NSString *)description avatarId:(nullable TLImageId *)avatarId capabilities:(nullable NSString *)capabilities content:(nullable NSData *)content modificationDate:(int64_t)modificationDate flags:(int)flags {
-    DDLogVerbose(@"%@ updateWithName: %@ description: %@ avatarId: %@ capabilities: %@ modificationDate: %lld", LOG_TAG, name, description, avatarId, capabilities, modificationDate);
+- (void)updateWithName:(nullable NSString*)name description:(nullable NSString *)description avatarId:(nullable TLImageId *)avatarId capabilities:(nullable NSString *)capabilities content:(nullable NSData *)content creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate flags:(int)flags {
+    DDLogVerbose(@"%@ updateWithName: %@ description: %@ avatarId: %@ capabilities: %@ creationDate:%lld modificationDate: %lld", LOG_TAG, name, description, avatarId, capabilities, creationDate, modificationDate);
 
     NSMutableArray<TLAttributeNameValue *> *attributes = [TLBinaryCompactDecoder deserializeWithData:content];
     @synchronized (self) {
@@ -243,6 +249,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
         self.capabilities = capabilities;
         self.attributes = attributes;
         self.flags = flags;
+        self.creationDate = creationDate;
         self.modificationDate = modificationDate;
     }
 }
@@ -581,6 +588,24 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
 @end
 
 //
+// Implementation: TLGetAllTwincodesPendingRequest
+//
+
+@implementation TLGetAllTwincodesPendingRequest
+
+-(nonnull instancetype)initWithConsumer:(nonnull TLGetAllTwincodesConsumer)consumer {
+    DDLogVerbose(@"%@ initWithConsumer", LOG_TAG);
+
+    self = [super init];
+    if (self) {
+        _consumer = consumer;
+    }
+    return self;
+}
+
+@end
+
+//
 // Implementation: TLTwincodeOutboundServiceConfiguration
 //
 
@@ -608,24 +633,27 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
 
 + (void)initialize {
     
-    IQ_GET_TWINCODE_SERIALIZER = [[TLGetTwincodeIQSerializer alloc] initWithSchema:GET_TWINCODE_SCHEMA_ID schemaVersion:2];
+    IQ_GET_TWINCODE_SERIALIZER = [[TLGetTwincodeIQSerializer alloc] initWithSchema:GET_TWINCODE_SCHEMA_ID schemaVersion:3];
     IQ_ON_GET_TWINCODE_SERIALIZER = [[TLOnGetTwincodeIQSerializer alloc] initWithSchema:ON_GET_TWINCODE_SCHEMA_ID schemaVersion:2];
-
-    IQ_UPDATE_TWINCODE_SERIALIZER = [[TLUpdateTwincodeIQSerializer alloc] initWithSchema:UPDATE_TWINCODE_SCHEMA_ID schemaVersion:2];
+    
+    IQ_UPDATE_TWINCODE_SERIALIZER = [[TLUpdateTwincodeIQSerializer alloc] initWithSchema:UPDATE_TWINCODE_SCHEMA_ID schemaVersion:3];
     IQ_ON_UPDATE_TWINCODE_SERIALIZER = [[TLOnUpdateTwincodeIQSerializer alloc] initWithSchema:ON_UPDATE_TWINCODE_SCHEMA_ID schemaVersion:1];
-
+    
     IQ_REFRESH_TWINCODE_SERIALIZER = [[TLRefreshTwincodeIQSerializer alloc] initWithSchema:REFRESH_TWINCODE_SCHEMA_ID schemaVersion:2];
     IQ_ON_REFRESH_TWINCODE_SERIALIZER = [[TLOnRefreshTwincodeIQSerializer alloc] initWithSchema:ON_REFRESH_TWINCODE_SCHEMA_ID schemaVersion:2];
-
-    IQ_INVOKE_TWINCODE_SERIALIZER = [[TLInvokeTwincodeIQSerializer alloc] initWithSchema:INVOKE_TWINCODE_SCHEMA_ID schemaVersion:2];
-    IQ_ON_INVOKE_TWINCODE_SERIALIZER = [[TLInvocationIQSerializer alloc] initWithSchema:ON_INVOKE_TWINCODE_SCHEMA_ID schemaVersion:1];
-
     
-    IQ_CREATE_INVITATION_CODE_SERIALIZER = [[TLCreateInvitationCodeIQSerializer alloc] initWithSchema:CREATE_INVITATION_CODE_SCHEMA_ID schemaVersion:1];
+    IQ_INVOKE_TWINCODE_SERIALIZER = [[TLInvokeTwincodeIQSerializer alloc] initWithSchema:INVOKE_TWINCODE_SCHEMA_ID schemaVersion:3];
+    IQ_ON_INVOKE_TWINCODE_SERIALIZER = [[TLInvocationIQSerializer alloc] initWithSchema:ON_INVOKE_TWINCODE_SCHEMA_ID schemaVersion:1];
+    
+    
+    IQ_CREATE_INVITATION_CODE_SERIALIZER = [[TLCreateInvitationCodeIQSerializer alloc] initWithSchema:CREATE_INVITATION_CODE_SCHEMA_ID schemaVersion:2];
     IQ_ON_CREATE_INVITATION_CODE_SERIALIZER = [[TLOnCreateInvitationCodeIQSerializer alloc] initWithSchema:ON_CREATE_INVITATION_CODE_SCHEMA_ID schemaVersion:1];
     
-    IQ_GET_INVITATION_CODE_SERIALIZER = [[TLGetInvitationCodeIQSerializer alloc] initWithSchema:GET_INVITATION_CODE_SCHEMA_ID schemaVersion:1];
+    IQ_GET_INVITATION_CODE_SERIALIZER = [[TLGetInvitationCodeIQSerializer alloc] initWithSchema:GET_INVITATION_CODE_SCHEMA_ID schemaVersion:2];
     IQ_ON_GET_INVITATION_CODE_SERIALIZER = [[TLOnGetInvitationCodeIQSerializer alloc] initWithSchema:ON_GET_INVITATION_CODE_SCHEMA_ID schemaVersion:1];
+
+    IQ_GET_ALL_TWINCODES_SERIALIZER = [[TLBinaryPacketIQSerializer alloc] initWithSchema:GET_ALL_TWINCODES_SCHEMA_ID schemaVersion:1];
+    IQ_ON_GET_ALL_TWINCODES_SERIALIZER = [[TLOnGetAllTwincodesIQSerializer alloc] initWithSchema:ON_GET_ALL_TWINCODES_SCHEMA_ID schemaVersion:1];
 }
 
 + (nonnull NSString *)VERSION {
@@ -664,6 +692,10 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
     [twinlife addPacketListener:IQ_ON_GET_INVITATION_CODE_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
         [self onGetInvitationCodeWithIQ:iq];
     }];
+    [twinlife addPacketListener:IQ_ON_GET_ALL_TWINCODES_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
+        [self onGetAllTwincodesWithIQ:iq];
+    }];
+    
     
     return self;
 }
@@ -770,6 +802,23 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
 
     TLGetTwincodeIQ *iq = [[TLGetTwincodeIQ alloc] initWithSerializer:IQ_GET_TWINCODE_SERIALIZER requestId:requestId.longLongValue twincodeId:twincodeOutboundId];
     [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+}
+
+- (void)getAllTwincodesWithBlock:(nonnull void (^)(TLBaseServiceErrorCode status, NSDictionary<NSUUID *, NSArray<TLTwincodeInfo *> *> *serverTwincodes))block {
+    DDLogVerbose(@"%@: getAllTwincodesWithBlock", LOG_TAG);
+
+    if (!self.serviceOn) {
+        block(TLBaseServiceErrorCodeServiceUnavailable, nil);
+        return;
+    }
+
+    NSNumber *requestId = [TLBaseService newRequestId];
+    @synchronized(self) {
+        self.pendingRequests[requestId] = [[TLGetAllTwincodesPendingRequest alloc] initWithConsumer:block];
+    }
+
+    TLBinaryPacketIQ *getAllTwincodesIQ = [[TLBinaryPacketIQ alloc] initWithSerializer:IQ_GET_ALL_TWINCODES_SERIALIZER requestId:requestId.longLongValue];
+    [self sendBinaryIQ:getAllTwincodesIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
 }
 
 - (void)refreshTwincodeWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSMutableArray<TLAttributeNameValue *> *_Nullable previousAttributes))block {
@@ -962,6 +1011,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
             uri = [NSString stringWithFormat:@"%@%@%@", TLTwincodeURI.CALL_ACTION, TLTwincodeURI.CALL_PATH,  label];
             break;
             
+        case TLTwincodeURIKindMeeting:
+            label = [NSUUID fromUUID:twincodeId];
+            uri = [NSString stringWithFormat:@"%@%@%@", TLTwincodeURI.MEETING_ACTION, TLTwincodeURI.MEETING_PATH,  label];
+            break;
+            
         case TLTwincodeURIKindTransfer:
             label = [NSUUID fromUUID:twincodeId];
             uri = [NSString stringWithFormat:@"%@%@%@", TLTwincodeURI.TRANSFER_ACTION, TLTwincodeURI.CALL_PATH,  label];
@@ -1076,6 +1130,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
         kind = TLTwincodeURIKindInvitation;
     } else if ([host isEqualToString:TLTwincodeURI.CALL_ACTION]) {
         kind = TLTwincodeURIKindCall;
+    } else if ([host isEqualToString:TLTwincodeURI.MEETING_ACTION]) {
+        kind = TLTwincodeURIKindMeeting;
     } else if ([host isEqualToString:TLTwincodeURI.TRANSFER_ACTION]) {
         kind = TLTwincodeURIKindTransfer;
     } else if ([host isEqualToString:TLTwincodeURI.ACCOUNT_MIGRATION_ACTION]) {
@@ -1287,6 +1343,35 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
     TLGetInvitationCodeIQ *iq = [[TLGetInvitationCodeIQ alloc] initWithSerializer:IQ_GET_INVITATION_CODE_SERIALIZER requestId:requestId code:code];
     
     [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+}
+
+- (nullable TLTwincodeOutbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes flags:(int)flags {
+    DDLogVerbose(@"%@ restoreTwincodeWithDatabaseId: %lld", LOG_TAG, databaseId);
+
+    return [self.serviceProvider restoreTwincodeWithDatabaseId:databaseId twincodeId:twincodeId creationDate:creationDate modificationDate:modificationDate attributes:attributes flags:flags];
+}
+
+- (nonnull TLTwincodeOutbound *)restoreExistingTwincodeWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound modificationDate:(int64_t)modificationDate attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes deleteAttributeNames:(nonnull NSArray<NSString *> *)deleteAttributeNames {
+    DDLogVerbose(@"%@ restoreExistingTwincodeWithTwincodeOutbound: %@", LOG_TAG, twincodeOutbound);
+
+    NSArray<TLAttributeNameValue *> *restoredAttributes = [twincodeOutbound getAttributes:attributes deleteAttributeNames:deleteAttributeNames];
+    
+    [self.serviceProvider updateTwincodeWithTwincode:twincodeOutbound attributes:restoredAttributes modificationDate:modificationDate isSigned:twincodeOutbound.isSigned];
+    
+    return twincodeOutbound;
+}
+
+
+- (nonnull NSArray<TLTwincodeOutbound *> *)getLocalTwincodes {
+    DDLogVerbose(@"%@ getLocalTwincodes", LOG_TAG);
+    
+    return [self.serviceProvider loadTwincodes];
+}
+
+- (nullable TLTwincodeOutbound *)getLocalTwincodeWithTwincodeId:(nonnull NSUUID *)twincodeId {
+    DDLogVerbose(@"%@ getLocalTwincodeWithTwincodeId: %@", LOG_TAG, twincodeId.UUIDString);
+
+    return [self.serviceProvider loadTwincodeWithTwincodeId:twincodeId];
 }
 
 #pragma mark - TLTwincodeOutboundService ()
@@ -1552,6 +1637,32 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_INVITATION_CODE_SERIALIZER = nil;
     
     request.consumer(twincodeOutbound ? TLBaseServiceErrorCodeSuccess : TLBaseServiceErrorCodeNoStorageSpace, twincodeOutbound, publicKey);
 }
+
+- (void)onGetAllTwincodesWithIQ:(nonnull TLBinaryPacketIQ *)iq {
+    DDLogVerbose(@"%@ onGetInvitationCodeWithIQ: %@", LOG_TAG, iq);
+
+    if (![iq isKindOfClass:[TLOnGetAllTwincodesIQ class]]) {
+        return;
+    }
+
+    [self receivedBinaryIQ:iq];
+
+    TLOnGetAllTwincodesIQ *onGetAllTwincodesIQ = (TLOnGetAllTwincodesIQ *)iq;
+    NSNumber *lRequestId = [NSNumber numberWithLongLong:iq.requestId];
+    TLGetAllTwincodesPendingRequest *request;
+    
+    @synchronized (self) {
+        request = (TLGetAllTwincodesPendingRequest *)self.pendingRequests[lRequestId];
+        if (!request) {
+            return;
+        }
+        [self.pendingRequests removeObjectForKey:lRequestId];
+    }
+
+    request.consumer(TLBaseServiceErrorCodeSuccess, onGetAllTwincodesIQ.twincodeIdsBySchema);
+
+}
+
 
 - (void)onErrorWithErrorPacket:(nonnull TLBinaryErrorPacketIQ *)errorPacketIQ {
     DDLogVerbose(@"%@ onErrorWithErrorPacket: %@", LOG_TAG, errorPacketIQ);

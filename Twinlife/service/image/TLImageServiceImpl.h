@@ -125,5 +125,10 @@ typedef void (^TLImageExportedIdConsumer) (TLBaseServiceErrorCode status, TLExpo
 
 - (void)notifyDeletedWithImageId:(nonnull TLImageId *)imageId publicId:(nonnull NSUUID *)publicId;
 
+- (nullable TLExportedImageId *)restoreLocalImageWithImageId:(nonnull NSUUID *)imageId locale:(BOOL)locale image:(nullable UIImage *)image thumbnail:(nonnull UIImage *)thumbnail;
+
+- (TLBaseServiceErrorCode)commitRestoredImages;
+
+- (TLBaseServiceErrorCode)deleteRestoredImages;
 @end
 

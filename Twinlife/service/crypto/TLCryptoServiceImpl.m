@@ -21,6 +21,8 @@
 #import "TLBinaryCompactEncoder.h"
 #import "TLSignatureInfoIQ.h"
 #import "TLSessionSecretKeyPair.h"
+#import "TLCryptoDataOutput.h"
+#import "TLCryptoDataInput.h"
 #import <WebRTC/TLCryptoBox.h>
 
 #if 0
@@ -309,6 +311,28 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 + (nonnull TLVerifyAuthenticateResult *)initWithSubjectId:(nonnull NSUUID *)subjectId {
 
     return [[TLVerifyAuthenticateResult alloc] initWithErrorCode:TLBaseServiceErrorCodeSuccess subjectId:subjectId];
+}
+
+@end
+
+//
+// Implementation: TLRawKeyInfo
+//
+
+@implementation TLRawKeyInfo
+
+- (nonnull instancetype)initWithCreationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate signingKey:(nonnull NSData *)signingKey encryptionKey:(nonnull NSData *)encryptionKey flags:(int)flags {
+    self = [super init];
+    
+    if (self) {
+        _creationDate = creationDate;
+        _modificationDate = modificationDate;
+        _signingKey = signingKey;
+        _encryptionKey = encryptionKey;
+        _flags = flags;
+    }
+    
+    return self;
 }
 
 @end
@@ -1021,6 +1045,19 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     return result;
 }
 
+- (nullable TLRawKeyInfo *)getRawTwincodeKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound {
+    DDLogVerbose(@"%@: getRawTwincodeKeyWithTwincode: %@", LOG_TAG, twincodeOutbound);
+
+    return [self.serviceProvider loadRawTwincodeKeyWithTwincode:twincodeOutbound];
+}
+
+- (TLBaseServiceErrorCode)restoreKeyInfoWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound rawKeyInfo:(nonnull TLRawKeyInfo *)rawKeyInfo {
+    DDLogVerbose(@"%@ restoreKeyInfoWithTwincodeOutbound: %@ rawKeyInfo:%@", LOG_TAG, twincodeOutbound, rawKeyInfo);
+
+    return [self.serviceProvider restoreKeyInfoWithTwincodeOutbound:twincodeOutbound rawKeyInfo:rawKeyInfo];
+}
+
+
 - (nullable TLSignatureInfoIQ *)getSignatureInfoIQWithTwincode:(nonnull TLTwincodeOutbound*)twincodeOutbound peerTwincode:(nonnull TLTwincodeOutbound *)peerTwincode renew:(BOOL)renew {
     DDLogVerbose(@"%@: getSignatureInfoIQWithTwincode: %@ peerTwincode: %@ renew: %d", LOG_TAG, twincodeOutbound, peerTwincode, renew);
     
@@ -1042,6 +1079,44 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     }
     
     return [[TLSignatureInfoIQ alloc] initWithSerializer:TLSignatureInfoIQ.SERIALIZER requestId:[TLTwinlife newRequestId] twincodeOutboundId:twincodeOutbound.uuid publicKey:publicKey keyIndex:keyInfo.keyIndex secret:secretKey];
+}
+
+- (nullable TLCryptoDataOutput *)createCryptoDataOutputWithFileHandle:(nonnull NSFileHandle *)fileHandle password:(nonnull NSData *)password{
+    DDLogVerbose(@"%@ createCryptoDataOutputWithFileHandle: %@", LOG_TAG, fileHandle);
+    
+    TLCryptoBox *cryptoBox = [TLCryptoBox createWithKind:TLCryptoBoxKindAES_GCM];
+    
+    int status = [cryptoBox bindWithKey:password];
+    
+    if (status != 1) {
+        DDLogError(@"%@ bind failed with error: %d", LOG_TAG, status);
+        return nil;
+    }
+    
+    return [[TLCryptoDataOutput alloc] initWithFileHandle:fileHandle size:4096 cryptoBox:cryptoBox];
+}
+
+- (nullable TLCryptoDataInput *)createCryptoDataInputWithFileHandle:(nonnull NSFileHandle *)fileHandle password:(nonnull NSData *)password{
+    DDLogVerbose(@"%@ createCryptoDataInputWithFileHandle: %@", LOG_TAG, fileHandle);
+    
+    TLCryptoBox *cryptoBox = [TLCryptoBox createWithKind:TLCryptoBoxKindAES_GCM];
+    
+    int status = [cryptoBox bindWithKey:password];
+    
+    if (status != 1) {
+        DDLogError(@"%@ bind failed with error: %d", LOG_TAG, status);
+        return nil;
+    }
+    
+    return [[TLCryptoDataInput alloc] initWithFileHandle:fileHandle cryptoBox:cryptoBox];
+}
+
+- (nullable NSData *)deriveKeyWithPassword:(nonnull NSData *)password salt:(nonnull NSData *)salt {
+    DDLogVerbose(@"%@ deriveKeyWithPassword: %@", LOG_TAG, password);
+
+    TLCryptoKey *cryptoKey = [TLCryptoKey createWithKind:TLCryptoKindECDSA];
+    
+    return [cryptoKey deriveKeyPBKDF2HMACSHA256WithPassword:password salt:salt iterations:10000 keyLength:32];
 }
 
 @end

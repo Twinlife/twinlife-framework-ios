@@ -1,10 +1,11 @@
 /*
- *  Copyright (c) 2017-2024 twinlife SA.
+ *  Copyright (c) 2017-2025 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -159,9 +160,108 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 + (nonnull TLSerializer *)SERIALIZER_1;
 
-- (nonnull instancetype)initWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory authenticationAuthority:(TLAccountServiceAuthenticationAuthority)authenticationAuthority isSignOut:(BOOL)isSignOut deviceUsername:(nullable NSString *)deviceUsername devicePassword:(nullable NSString *)devicePassword features:(nullable NSString *)features environmentId:(nullable NSUUID *)environmentId;
+- (nonnull instancetype)initWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory authenticationAuthority:(TLAccountServiceAuthenticationAuthority)authenticationAuthority isSignOut:(BOOL)isSignOut deviceUsername:(nullable NSString *)deviceUsername devicePassword:(nullable NSString *)devicePassword features:(nullable NSString *)features environmentId:(nullable NSUUID *)environmentId incarnationCount:(int)incarnationCount;
 
 @end
+
+//
+// Interface: TLAccountServiceSecuredConfigurationSerializer_5
+//
+
+@interface TLAccountServiceSecuredConfigurationSerializer_5 : TLSerializer
+
+@end
+
+//
+// Implementation: TLAccountServiceSecuredConfigurationSerializer_5
+//
+
+static NSUUID *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_ID = nil;
+static int ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_VERSION_5 = 5;
+static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_5 = nil;
+
+#undef LOG_TAG
+#define LOG_TAG @"TLAccountServiceSecuredConfigurationSerializer_5"
+
+@implementation TLAccountServiceSecuredConfigurationSerializer_5
+
+- (instancetype)init {
+    DDLogVerbose(@"%@ init", LOG_TAG);
+    
+    self = [super initWithSchemaId:ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_ID schemaVersion:ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_VERSION_5 class:[TLAccountServiceSecuredConfiguration class]];
+    return self;
+}
+
+- (void)serializeWithSerializerFactory:(TLSerializerFactory *)serializerFactory encoder:(id<TLEncoder>)encoder object:(NSObject *)object {
+    DDLogVerbose(@"%@ serializeWithSerializerFactory: %@ encoder: %@ object: %@", LOG_TAG, serializerFactory, encoder, object);
+    
+    [encoder writeUUID:self.schemaId];
+    [encoder writeInt:self.schemaVersion];
+    
+    TLAccountServiceSecuredConfiguration *securedConfiguration = (TLAccountServiceSecuredConfiguration *)object;
+    switch (securedConfiguration.authenticationAuthority) {
+        case TLAccountServiceAuthenticationAuthorityDevice:
+            [encoder writeEnum:0];
+            break;
+            
+        case TLAccountServiceAuthenticationAuthorityTwinlife:
+            [encoder writeEnum:1];
+            break;
+
+        case TLAccountServiceAuthenticationAuthorityUnregistered:
+            [encoder writeEnum:2];
+            break;
+
+        case TLAccountServiceAuthenticationAuthorityDisabled:
+            [encoder writeEnum:3];
+            break;
+    }
+    [encoder writeBoolean:securedConfiguration.isSignOut];
+    [encoder writeOptionalString:securedConfiguration.deviceUsername];
+    [encoder writeOptionalString:securedConfiguration.devicePassword];
+    [encoder writeOptionalString:securedConfiguration.subscribedFeatures];
+    [encoder writeOptionalUUID:securedConfiguration.environmentId];
+    [encoder writeInt:securedConfiguration.incarnationCount];
+}
+
+- (NSObject *)deserializeWithSerializerFactory:(TLSerializerFactory *)serializerFactory decoder:(id<TLDecoder>)decoder {
+    DDLogVerbose(@"%@ deserializeWithSerializerFactory: %@ decoder: %@", LOG_TAG, serializerFactory, decoder);
+    
+    int value = [decoder readEnum];
+    TLAccountServiceAuthenticationAuthority authenticationAuthority;
+    switch (value) {
+        case 0:
+            authenticationAuthority = TLAccountServiceAuthenticationAuthorityDevice;
+            break;
+            
+        case 1:
+            authenticationAuthority = TLAccountServiceAuthenticationAuthorityTwinlife;
+            break;
+            
+        case 2:
+            authenticationAuthority = TLAccountServiceAuthenticationAuthorityUnregistered;
+            break;
+            
+        case 3:
+            authenticationAuthority = TLAccountServiceAuthenticationAuthorityDisabled;
+            break;
+
+        default:
+            authenticationAuthority = TLAccountServiceAuthenticationAuthorityUnregistered;
+            break;
+    }
+    BOOL isSignOut = [decoder readBoolean];
+    NSString *deviceUsername = [decoder readOptionalString];
+    NSString *devicePassword = [decoder readOptionalString];
+    NSString *subscribedFeatures = [decoder readOptionalString];
+    NSUUID *environmentId = [decoder readOptionalUUID];
+    int incarnationCount = [decoder readInt];
+
+    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:environmentId incarnationCount:incarnationCount];
+}
+
+@end
+
 
 //
 // Interface: TLAccountServiceSecuredConfigurationSerializer_4
@@ -175,7 +275,6 @@ static const int ddLogLevel = DDLogLevelWarning;
 // Implementation: TLAccountServiceSecuredConfigurationSerializer_4
 //
 
-static NSUUID *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_ID = nil;
 static int ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_VERSION_4 = 4;
 static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_4 = nil;
 
@@ -254,7 +353,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_4 = nil;
     NSString *subscribedFeatures = [decoder readOptionalString];
     NSUUID *environmentId = [decoder readOptionalUUID];
 
-    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:environmentId];
+    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:environmentId incarnationCount:0];
 }
 
 @end
@@ -361,7 +460,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_3 = nil;
     NSString *subscribedFeatures = [decoder readOptionalString];
     NSUUID *environmentId = [decoder readOptionalUUID];
 
-    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:environmentId];
+    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:environmentId incarnationCount:0];
 }
 
 @end
@@ -466,7 +565,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_2 = nil;
 
     NSString *subscribedFeatures = [decoder readOptionalString];
 
-    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:nil];
+    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:subscribedFeatures environmentId:nil incarnationCount:0];
 }
 
 @end
@@ -532,7 +631,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
     // Skip the rememberPassword
     [decoder readBoolean];
 
-    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:nil environmentId:nil];
+    return [[TLAccountServiceSecuredConfiguration alloc] initWithSerializerFactory:serializerFactory authenticationAuthority:authenticationAuthority isSignOut:isSignOut deviceUsername:deviceUsername devicePassword:devicePassword features:nil environmentId:nil incarnationCount:0];
 }
 
 @end
@@ -549,6 +648,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
 + (void)initialize {
     
     ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"17a04202-d50a-4150-a490-de671e639dc4"];
+    ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_5 = [[TLAccountServiceSecuredConfigurationSerializer_5 alloc] init];
     ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_4 = [[TLAccountServiceSecuredConfigurationSerializer_4 alloc] init];
     ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_3 = [[TLAccountServiceSecuredConfigurationSerializer_3 alloc] init];
     ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_2 = [[TLAccountServiceSecuredConfigurationSerializer_2 alloc] init];
@@ -558,6 +658,11 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
 + (NSUUID *)SCHEMA_ID {
     
     return ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_ID;
+}
+
++ (int)SCHEMA_VERSION_5 {
+    
+    return ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_VERSION_5;
 }
 
 + (int)SCHEMA_VERSION_4 {
@@ -578,6 +683,11 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
 + (int)SCHEMA_VERSION_1 {
     
     return ACCOUNT_SERVICE_SECURED_CONFIGURATION_SCHEMA_VERSION_1;
+}
+
++ (TLSerializer *)SERIALIZER_5 {
+    
+    return ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_5;
 }
 
 + (TLSerializer *)SERIALIZER_4 {
@@ -614,6 +724,9 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
         schemaVersion = [binaryDecoder readInt];
             
         if ([[TLAccountServiceSecuredConfiguration SCHEMA_ID] isEqual:schemaId]) {
+            if ([TLAccountServiceSecuredConfiguration SCHEMA_VERSION_5] == schemaVersion) {
+                return (TLAccountServiceSecuredConfiguration *)[[TLAccountServiceSecuredConfiguration SERIALIZER_5] deserializeWithSerializerFactory:serializerFactory decoder:binaryDecoder];
+            }
             if ([TLAccountServiceSecuredConfiguration SCHEMA_VERSION_4] == schemaVersion) {
                 return (TLAccountServiceSecuredConfiguration *)[[TLAccountServiceSecuredConfiguration SERIALIZER_4] deserializeWithSerializerFactory:serializerFactory decoder:binaryDecoder];
             }
@@ -693,8 +806,8 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
 }
 #endif
 
-- (nonnull instancetype)initWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory authenticationAuthority:(TLAccountServiceAuthenticationAuthority)authenticationAuthority isSignOut:(BOOL)isSignOut deviceUsername:(nullable NSString *)deviceUsername devicePassword:(nullable NSString *)devicePassword features:(nullable NSString *)features environmentId:(nullable NSUUID *)environmentId {
-    DDLogVerbose(@"%@ initWithIsSignOut: %@ deviceUsername: %@ devicePassword: %@ features: %@ environmentId: %@", LOG_TAG, isSignOut ? @"YES" : @"NO", deviceUsername, devicePassword, features, environmentId);
+- (nonnull instancetype)initWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory authenticationAuthority:(TLAccountServiceAuthenticationAuthority)authenticationAuthority isSignOut:(BOOL)isSignOut deviceUsername:(nullable NSString *)deviceUsername devicePassword:(nullable NSString *)devicePassword features:(nullable NSString *)features environmentId:(nullable NSUUID *)environmentId incarnationCount:(int)incarnationCount {
+    DDLogVerbose(@"%@ initWithIsSignOut: %@ deviceUsername: %@ devicePassword: %@ features: %@ environmentId: %@ incarnationCount: %d", LOG_TAG, isSignOut ? @"YES" : @"NO", deviceUsername, devicePassword, features, environmentId, incarnationCount);
     
     self = [super init];
     
@@ -706,6 +819,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
         _devicePassword = devicePassword;
         _subscribedFeatures = features;
         _environmentId = environmentId;
+        _incarnationCount = incarnationCount;
         _modified = NO;
     }
     
@@ -727,6 +841,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
         _subscribedFeatures = nil;
         _modified = NO;
         _environmentId = nil;
+        _incarnationCount = 0;
         
         NSString *username = [NSString stringWithFormat:@"%@%@", @"device/", [[NSUUID UUID] UUIDString]];
 
@@ -750,7 +865,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
         NSMutableData *content = [[NSMutableData alloc] initWithCapacity:SERIALIZER_BUFFER_DEFAULT_SIZE];
         TLBinaryEncoder *binaryEncoder = [[TLBinaryEncoder alloc] initWithData:content];
         @try {
-            [[TLAccountServiceSecuredConfiguration SERIALIZER_4] serializeWithSerializerFactory:serializerFactory encoder:binaryEncoder object:self];
+            [[TLAccountServiceSecuredConfiguration SERIALIZER_5] serializeWithSerializerFactory:serializerFactory encoder:binaryEncoder object:self];
             
             if (![TLKeyChain updateKeyChainWithKey:ACCOUNT_SERVICE_SECURED_CONFIGURATION_KEY tag:ACCOUNT_SERVICE_SECURED_CONFIGURATION_TAG data:content alternateApplication:NO]) {
                     // TBD
@@ -788,6 +903,14 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
     _modified = YES;
 }
 
+- (void)setIncarnationCount:(int)incarnationCount {
+    
+    if (_incarnationCount != incarnationCount) {
+        _incarnationCount = incarnationCount;
+        _modified = YES;
+    }
+}
+
 - (BOOL)isUpdatedWithEnvironmentId:(nullable NSUUID *)environmentId {
     
     return environmentId != nil ? ![environmentId isEqual:self.environmentId] : self.environmentId != nil;
@@ -808,7 +931,7 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
     NSMutableData *content = [[NSMutableData alloc] initWithCapacity:SERIALIZER_BUFFER_DEFAULT_SIZE];
     TLBinaryEncoder *binaryEncoder = [[TLBinaryEncoder alloc] initWithData:content];
     @try {
-        [[TLAccountServiceSecuredConfiguration SERIALIZER_4] serializeWithSerializerFactory:self.serializerFactory encoder:binaryEncoder object:self];
+        [[TLAccountServiceSecuredConfiguration SERIALIZER_5] serializeWithSerializerFactory:self.serializerFactory encoder:binaryEncoder object:self];
         
         if (![TLKeyChain updateKeyChainWithKey:ACCOUNT_SERVICE_SECURED_CONFIGURATION_KEY tag:ACCOUNT_SERVICE_SECURED_CONFIGURATION_TAG data:content alternateApplication:NO]) {
             // TBD

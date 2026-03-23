@@ -10,6 +10,8 @@
 #import "TLBaseService.h"
 #import "TLImageId.h"
 
+@class TLImageInfo;
+
 /// Maximum dimension for the normal image, above that we consider this is a large image.
 #define TL_NORMAL_IMAGE_WIDTH  1280
 #define TL_NORMAL_IMAGE_HEIGHT 1280
@@ -55,6 +57,10 @@ typedef enum {
 /// When the image was not found, the onGet() receives the ITEM_NOT_FOUND error and a null image.
 - (void)getImageWithImageId:(nonnull TLImageId *)imageId kind:(TLImageServiceKind) kind withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, UIImage *_Nullable image))block;
 
+- (nullable TLImageInfo *)getImageInfoWithImageId:(nonnull TLImageId *)imageId;
+
+- (nullable NSData *)getLocalImageDataWithImageId:(nonnull TLImageId *)imageId;
+
 /// Create an image identifier associated with the given image and its thumbnail.
 /// The image can be retrieved through `getImage`.  Once the image is saved and an identifier
 /// allocated, the consumer onGet operation is called with the new image identifier.
@@ -82,6 +88,8 @@ typedef enum {
 /// original image Id that was used for the copy.  It can be used to identify images
 /// that are identical.  Note: this only works for the images we have created and copied ourselves.
 - (nonnull NSMutableDictionary<TLImageId *, TLImageId *> *)listCopiedImages;
+
+- (nonnull NSArray<TLImageId *> *)listLocalImages;
 
 /// Get the public image ID associated with the given image.
 - (nullable TLExportedImageId *)publicWithImageId:(nonnull TLImageId *)imageId;

@@ -21,10 +21,12 @@
     static NSString * _Nonnull const TWINME_KEYCHAIN_SERVICE = KEYCHAIN_SERVICE;
     static NSString * _Nonnull const SCHEDULER_TASK_NAME = @"mobi.skred.scheduler"; // Identifier must be registered in application Info.plist
     static NSString * _Nonnull const INVITATION_PARAM_ID = @"skredcodeId";
+    static NSString * _Nonnull const BACKUP_EXTENSION = @"skrdbckp";
 #else
     //Twinme(+)
     static NSString * _Nonnull const SCHEDULER_TASK_NAME = @"me.twin.scheduler"; // Identifier must be registered in application Info.plist
     static NSString * _Nonnull const INVITATION_PARAM_ID = @"twincodeId";
+    static NSString * _Nonnull const BACKUP_EXTENSION = @"twmbckp";
     static NSString * _Nonnull const TWINME_KEYCHAIN_SERVICE = @"me.twin.twinme";
 
 #ifdef TWINME
@@ -124,6 +126,7 @@
 @class TLImageServiceConfiguration;
 @class TLPeerCallServiceConfiguration;
 @class TLAccountMigrationServiceConfiguration;
+@class TLBackupServiceConfiguration;
 @class TLProxyDescriptor;
 
 @interface TLTwinlifeConfiguration:NSObject
@@ -154,6 +157,7 @@
 @property (nonnull) TLImageServiceConfiguration *imageServiceConfiguration;
 @property (nonnull) TLPeerCallServiceConfiguration *peerCallServiceConfiguration;
 @property (nonnull) TLAccountMigrationServiceConfiguration *accountMigrationServiceConfiguration;
+@property (nonnull) TLBackupServiceConfiguration *backupServiceConfiguration;
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)applicationName applicationVersion:(nonnull NSString *)applicationVersion serializers:(nonnull NSArray<TLSerializer *> *)serializers enableSetup:(BOOL)enableSetup enableCaches:(BOOL)enableCaches factories:(nonnull NSArray<id<TLRepositoryObjectFactory>> *)factories;
 
@@ -178,7 +182,9 @@
 @class TLJobService;
 @class TLAccountMigrationService;
 @class TLCryptoService;
+@class TLBackupService;
 @class TLAssertPoint;
+@class TLTwinlifeContext;
 
 @interface TLTwinlife : NSObject
 
@@ -192,9 +198,11 @@
 
 + (nonnull NSString *)APP_GROUP_NAME;
 
++ (nonnull NSString *)BACKUP_EXTENSION;
+
 + (nonnull NSUserDefaults *)getAppSharedUserDefaults;
 
-- (TLBaseServiceErrorCode)configure:(nonnull TLTwinlifeConfiguration *)twinlifeConfiguration;
+- (TLBaseServiceErrorCode)configure:(nonnull TLTwinlifeConfiguration *)twinlifeConfiguration twinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext;
 
 - (TLTwinlifeStatus)status;
 
@@ -239,6 +247,8 @@
 - (nonnull TLJobService *)getJobService;
 
 - (nonnull TLAccountMigrationService *)getAccountMigrationService;
+
+- (nonnull TLBackupService *)getBackupService;
 
 - (nonnull TLCryptoService *)getCryptoService;
 

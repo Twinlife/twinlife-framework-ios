@@ -634,6 +634,22 @@ typedef void (^TLWaitingCodeBlock) (void);
     [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
 }
 
+- (nonnull NSArray<TLTwincodeInbound *> *)getLocalTwincodes {
+    DDLogVerbose(@"%@ getLocalTwincodes", LOG_TAG);
+    
+    return [self.serviceProvider loadTwincodes];
+}
+
+- (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId modificationDate:(int64_t)modificationDate {
+    DDLogVerbose(@"%@: restoreTwincodeWithDatabaseId: %lld", LOG_TAG, databaseId);
+
+    if (!self.serviceOn) {
+        return nil;
+    }
+
+    return [self.serviceProvider restoreTwincodeWithDatabaseId:databaseId twincodeId:twincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeFactoryId modificationDate:modificationDate];
+}
+
 - (void)waitInvocationsForTwincode:(nonnull NSUUID *)twincodeId withBlock:(nonnull void (^) (void))block {
     DDLogVerbose(@"%@: waitInvocationsForTwincode: %@", LOG_TAG, twincodeId);
 

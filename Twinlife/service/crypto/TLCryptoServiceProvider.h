@@ -15,6 +15,7 @@
 @class TLKeyInfo;
 @class TLKeyPair;
 @class TLSessionSecretKeyPair;
+@class TLRawKeyInfo;
 
 // Create a secret and mark it is as ready to be used.
 // Flags are immediately set with USE_SECRET1
@@ -73,5 +74,9 @@
 
 /// Refresh the session key pair when the nonce sequence block was fully used and we need more nonce sequences.
 - (TLBaseServiceErrorCode)refreshWithSessionKeyPair:(nonnull TLSessionSecretKeyPair *)sessionKeyPair;
+
+- (TLBaseServiceErrorCode)restoreKeyInfoWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound rawKeyInfo:(nonnull TLRawKeyInfo *)rawKeyInfo;
+
+- (nullable TLRawKeyInfo *)loadRawTwincodeKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound;
 
 @end

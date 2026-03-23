@@ -1,16 +1,17 @@
 /*
- *  Copyright (c) 2020-2025 twinlife SA.
+ *  Copyright (c) 2020-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLDatabaseServiceProvider.h"
 #import "TLImageService.h"
 
-@class TLImageService;
+@class TLImageInfo;
 
 typedef enum {
     TLImageStatusTypeLocale,             // Image is locale and not stored on the server (ex: Space settings).
@@ -18,7 +19,8 @@ typedef enum {
     TLImageStatusTypeDeleted,            // Image is created by us and was deleted.
     TLImageStatusTypeRemote,             // Image is remote and available.
     TLImageStatusTypeMissing,            // Image is remote but was not found.
-    TLImageStatusTypeNeedFetch           // Image must be queried from the server.
+    TLImageStatusTypeNeedFetch,          // Image must be queried from the server.
+    TLImageStatusTypeInvalid             // Used by TLImageHandler when an invalid status type is extracted from a backup file.
 } TLImageStatusType;
 
 typedef enum {
@@ -106,6 +108,8 @@ typedef enum {
 - (nullable TLUploadInfo *)nextUpload;
 
 - (nonnull NSMutableDictionary<TLImageId *, TLImageId *> *)listCopiedImages;
+
+- (nonnull NSArray<TLImageId *> *)listLocalImages;
 
 - (nullable TLExportedImageId *)imageWithPublicId:(nonnull NSUUID *)publicId;
 

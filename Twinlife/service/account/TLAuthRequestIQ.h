@@ -32,7 +32,8 @@
 @property (readonly) int deviceLatency;
 @property (readonly) int64_t deviceTimestamp;
 @property (readonly) int64_t serverTimestamp;
+@property (readonly) int incarnationCount;
 
-- (nonnull instancetype)initWithSerializer:(nonnull TLBinaryPacketIQSerializer *)serializer requestId:(int64_t)requestId  accountIdentifier:(nonnull NSString *)accountIdentifier resourceIdentifier:(nonnull NSString *)resourceIdentifier deviceNonce:(nonnull NSData *)deviceNonce deviceProof:(nonnull NSData *)deviceProof deviceState:(int)deviceState deviceLatency:(int)deviceLatency deviceTimestamp:(int64_t)deviceTimestamp serverTimestamp:(int64_t)serverTimestamp;
+- (nonnull instancetype)initWithSerializer:(nonnull TLBinaryPacketIQSerializer *)serializer requestId:(int64_t)requestId  accountIdentifier:(nonnull NSString *)accountIdentifier resourceIdentifier:(nonnull NSString *)resourceIdentifier deviceNonce:(nonnull NSData *)deviceNonce deviceProof:(nonnull NSData *)deviceProof deviceState:(int)deviceState deviceLatency:(int)deviceLatency deviceTimestamp:(int64_t)deviceTimestamp serverTimestamp:(int64_t)serverTimestamp incarnationCount:(int)incarnationCount;
 
 @end

@@ -401,6 +401,32 @@ static const int ddLogLevel = DDLogLevelWarning;
     return result;
 }
 
+- (nonnull NSArray<TLImageId *> *)listLocalImages {
+    DDLogVerbose(@"%@ listLocalImages", LOG_TAG);
+    
+    NSMutableArray<TLImageId *> *result = [[NSMutableArray alloc] init];
+    
+    [self inDatabase:^(FMDatabase *database) {
+        FMResultSet *resultSet = [database executeQuery:@"SELECT id, flags FROM image"];
+        if (!resultSet) {
+            [self.service onDatabaseErrorWithError:[database lastError] line:__LINE__];
+            return;
+        }
+        while ([resultSet next]) {
+            int64_t imageId = [resultSet longLongIntForColumnIndex:0];
+            TLImageStatusType type = [self toImageStatusType:[resultSet intForColumnIndex:1]];
+            BOOL local = type == TLImageStatusTypeLocale || type == TLImageStatusTypeOwner;
+            
+            if (imageId > 0 && local) {
+                [result addObject:[[TLImageId alloc] initWithLocalId:imageId]];
+            }
+        }
+        [resultSet close];
+    }];
+    
+    return result;
+}
+
 - (nullable TLExportedImageId *)imageWithPublicId:(nonnull NSUUID *)publicId {
     DDLogVerbose(@"%@ imageWithPublicId: %@", LOG_TAG, publicId);
 
@@ -464,6 +490,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             return [NSNumber numberWithInt:4];
         case TLImageStatusTypeNeedFetch:
             return [NSNumber numberWithInt:5];
+        case TLImageStatusTypeInvalid:
+            return [NSNumber numberWithInt:6];
     }
     return [NSNumber numberWithInt:2];
 }

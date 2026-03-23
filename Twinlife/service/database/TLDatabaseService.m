@@ -662,9 +662,16 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
     DDLogVerbose(@"%@ storeTwincodeInboundWithTwincode: %@ twincodeOutbound: %@ twincodeFactoryId: %@", LOG_TAG, twincodeId, twincodeOutbound, twincodeFactoryId);
     
     long ident = [self allocateIdWithTable:TLDatabaseTableTwincodeInbound];
+    return [self storeTwincodeInboundWithDatabaseId:ident twincodeId:twincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeFactoryId attributes:attributes flags:0 modificationDate:modificationDate];
+}
+
+- (nullable TLTwincodeInbound *)storeTwincodeInboundWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nullable NSUUID *)twincodeFactoryId attributes:(nullable NSArray<TLAttributeNameValue *> *)attributes flags:(int)flags modificationDate:(int64_t)modificationDate {
+    DDLogVerbose(@"%@ storeTwincodeInboundWithDatabaseId: %lld", LOG_TAG, databaseId);
+    
     id<TLTwincodeObjectFactory> factory = self.databaseService.twincodeInboundFactory;
-    TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:ident factory:factory];
-    return (TLTwincodeInbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:0 modificationDate:modificationDate refreshPeriod:0 refreshDate:0 refreshTimestamp:0 initialize:^(id<TLDatabaseObject> object) {
+    TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:databaseId factory:factory];
+    
+    return (TLTwincodeInbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:flags creationDate:modificationDate modificationDate:modificationDate refreshPeriod:0 refreshDate:0 refreshTimestamp:0 initialize:^(id<TLDatabaseObject> object) {
         TLTwincodeInbound *twincodeInbound = (TLTwincodeInbound *)object;
         
         twincodeInbound.twincodeOutbound = twincodeOutbound;
@@ -672,13 +679,26 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
     }];
 }
 
-- (nullable TLTwincodeOutbound *)storeTwincodeOutboundWithTwincode:(nonnull NSUUID *)twincodeId attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes flags:(int)flags modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp {
+
+- (nullable TLTwincodeOutbound *)storeTwincodeOutboundWithTwincodeId:(nonnull NSUUID *)twincodeId attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes flags:(int)flags modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp {
     DDLogVerbose(@"%@ storeTwincodeOutboundWithTwincode: %@", LOG_TAG, twincodeId);
     
     long ident = [self allocateIdWithTable:TLDatabaseTableTwincodeOutbound];
     id<TLTwincodeObjectFactory> factory = self.databaseService.twincodeOutboundFactory;
     TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:ident factory:factory];
-    return (TLTwincodeOutbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:flags modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:refreshDate refreshTimestamp:refreshTimestamp initialize:^(id<TLDatabaseObject> object) {
+    return (TLTwincodeOutbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:flags creationDate:modificationDate modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:refreshDate refreshTimestamp:refreshTimestamp initialize:^(id<TLDatabaseObject> object) {
+        TLTwincodeOutbound *twincodeOutbound = (TLTwincodeOutbound *)object;
+        [self storeAvatarWithTwincode:twincodeOutbound attributes:attributes];
+    }];
+}
+
+- (nullable TLTwincodeOutbound *)storeTwincodeOutboundWithDatabaseId:(int64_t)databaseId twincode:(nonnull NSUUID *)twincodeId attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes flags:(int)flags creationDate:(int64_t)creationDate modificationDate:(int64_t)modificationDate refreshPeriod:(int64_t)refreshPeriod refreshDate:(int64_t)refreshDate refreshTimestamp:(int64_t)refreshTimestamp {
+    DDLogVerbose(@"%@ storeTwincodeOutboundWithDatabaseId: %lld", LOG_TAG, databaseId);
+    
+    id<TLTwincodeObjectFactory> factory = self.databaseService.twincodeOutboundFactory;
+    TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:databaseId factory:factory];
+    
+    return (TLTwincodeOutbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:flags creationDate:creationDate modificationDate:modificationDate refreshPeriod:refreshPeriod refreshDate:refreshDate refreshTimestamp:refreshTimestamp initialize:^(id<TLDatabaseObject> object) {
         TLTwincodeOutbound *twincodeOutbound = (TLTwincodeOutbound *)object;
         [self storeAvatarWithTwincode:twincodeOutbound attributes:attributes];
     }];
@@ -696,7 +716,7 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
     id<TLTwincodeObjectFactory> factory = self.databaseService.twincodeOutboundFactory;
     TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:ident factory:factory];
     NSMutableArray<TLAttributeNameValue *> *attributes = [[NSMutableArray alloc] init];
-    return (TLTwincodeOutbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:FLAG_NEED_FETCH modificationDate:0 refreshPeriod:TL_REFRESH_PERIOD refreshDate:0 refreshTimestamp:0 initialize:^(id<TLDatabaseObject> object) {
+    return (TLTwincodeOutbound *)[factory storeObjectWithTransaction:self identifier:identifier twincodeId:twincodeId attributes:attributes flags:FLAG_NEED_FETCH creationDate:0 modificationDate:0 refreshPeriod:TL_REFRESH_PERIOD refreshDate:0 refreshTimestamp:0 initialize:^(id<TLDatabaseObject> object) {
         TLTwincodeOutbound *twincodeOutbound = (TLTwincodeOutbound *)object;
         
         // We store this twincode without information: we need to fetch them later from the server.
@@ -1382,7 +1402,7 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
         if (database) {
             FMResultSet *resultSet = [database executeQuery:@"SELECT"
                                       " twout.id, twout.twincodeId, twout.modificationDate, twout.name,"
-                                      " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags"
+                                      " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags, twout.creationDate"
                                       " FROM twincodeOutbound AS twout"
                                       " WHERE twout.twincodeId = ?", [twincodeId toString]];
             if (resultSet) {
@@ -1410,7 +1430,7 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
     TLTwincodeOutbound *twincodeOutbound = nil;
     FMResultSet *resultSet = [self.transaction.database executeQuery:@"SELECT"
                                       " twout.id, twout.twincodeId, twout.modificationDate, twout.name,"
-                                      " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags"
+                                      " twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags, twout.creationDate"
                                       " FROM twincodeOutbound AS twout"
                               " WHERE twout.id = ?", [NSNumber numberWithLong:databaseId]];
     if (resultSet) {

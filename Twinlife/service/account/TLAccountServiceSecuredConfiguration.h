@@ -1,10 +1,11 @@
 /*
- *  Copyright (c) 2017-2024 twinlife SA.
+ *  Copyright (c) 2017-2025 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLAccountService.h"
@@ -29,6 +30,7 @@
 @property (nonatomic, nullable, setter=setSubscribedFeatures:) NSString *subscribedFeatures;
 @property (readonly) BOOL twinlifeRememberPassword;
 @property (readonly) BOOL modified;
+@property (nonatomic, setter=setIncarnationCount:) int incarnationCount;
 
 /// Load the account secure configuration from the secure storage.
 /// When alternateApplication is set, load from an alternate keychain (ie, the Twinme Lite keychain).

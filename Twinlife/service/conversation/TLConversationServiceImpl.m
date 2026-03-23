@@ -2819,8 +2819,8 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
     }
 }
 
-- (TLBaseServiceErrorCode)setAnnotationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId type:(TLDescriptorAnnotationType)type value:(int)value {
-    DDLogVerbose(@"%@ setAnnotationWithDescriptorId: %@ type: %d value: %d", LOG_TAG, descriptorId, type, value);
+- (TLBaseServiceErrorCode)setAnnotationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId type:(TLDescriptorAnnotationType)type value:(int64_t)value {
+    DDLogVerbose(@"%@ setAnnotationWithDescriptorId: %@ type: %d value: %lld", LOG_TAG, descriptorId, type, value);
     
     if (!self.serviceOn) {
         return TLBaseServiceErrorCodeServiceUnavailable;
@@ -2990,7 +2990,7 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
     return TLBaseServiceErrorCodeSuccess;
 }
 
-- (nullable NSMutableDictionary<NSUUID *, TLDescriptorAnnotationPair *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId {
+- (nullable NSDictionary<NSUUID *, NSArray<TLDescriptorAnnotationPair *> *> *)listAnnotationsWithDescriptorId:(nonnull TLDescriptorId *)descriptorId {
     DDLogVerbose(@"%@ listAnnotationsWithDescriptorId: %@", LOG_TAG, descriptorId);
     
     if (!self.serviceOn) {
@@ -3058,6 +3058,16 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
     DDLogVerbose(@"%@ createGroupConversationWithSubject: %@ owner: %d", LOG_TAG, subject, owner);
     
     return [self.groupManager createGroupConversationWithSubject:subject owner:owner];
+}
+
+- (nullable id<TLConversation>)restoreGroupConversationWithDatabaseId:(int64_t)databaseId conversationId:(nonnull NSUUID *)conversationId creationDate:(int64_t)creationDate groupId:(int64_t)groupId subjectId:(int64_t)subjectId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId resourceId:(nonnull NSUUID *)resourceId peerResourceId:(nullable NSUUID *)peerResourceId invitedContactId:(nullable NSUUID *)invitedContactId permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions flags:(int)flags {
+    DDLogVerbose(@"%@ restoreGroupConversationWithDatabaseId:%lld", LOG_TAG, databaseId);
+    
+    if (!self.serviceOn) {
+        return nil;
+    }
+    
+    return [self.serviceProvider restoreGroupConversationWithDatabaseId:databaseId conversationId:conversationId creationDate:creationDate groupId:groupId subjectId:subjectId peerTwincodeOutboundId:peerTwincodeOutboundId resourceId:resourceId peerResourceId:peerResourceId invitedContactId:invitedContactId permissions:permissions joinPermissions:joinPermissions flags:flags];
 }
 
 - (TLBaseServiceErrorCode)inviteGroupWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation group:(nonnull id<TLRepositoryObject>)group name:(NSString *)name {
@@ -3192,7 +3202,7 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
         TLDescriptorId *did = [[TLDescriptorId alloc] initWithId:descriptorId twincodeOutboundId:conversation.twincodeOutboundId sequenceId:sequenceId];
 
         // Create one object descriptor for the conversation.
-        TLCallDescriptor *result = [[TLCallDescriptor alloc] initWithDescriptorId:did conversationId:cid video:video  incomingCall:incomingCall];
+        TLCallDescriptor *result = [[TLCallDescriptor alloc] initWithDescriptorId:did conversationId:cid video:video  incomingCall:incomingCall creationDate:[[NSDate date] timeIntervalSince1970] * 1000];
         return result;
     }];
     if (!callDescriptor) {
@@ -3244,7 +3254,7 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
 
     TLCallDescriptor *callDescriptor = (TLCallDescriptor *)descriptor;
     
-    [callDescriptor setAccepted];
+    [callDescriptor setAcceptedWithTimestamp:[[NSDate date] timeIntervalSince1970] * 1000];
     [self.serviceProvider updateWithDescriptor:callDescriptor];
     
     // Notify that the call descriptor timestamps was updated.
@@ -3291,6 +3301,74 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             });
         }
     }
+}
+
+- (TLBaseServiceErrorCode)startCallWithSubject:(nonnull id<TLRepositoryObject>)subject startDate:(int64_t)startDate endDate:(int64_t)endDate {
+    
+    if (!self.serviceOn) {
+        return TLBaseServiceErrorCodeServiceUnavailable;
+    }
+    
+    TLConversationImpl *conversationImpl = [self.serviceProvider createConversationWithSubject:subject];
+    if (!conversationImpl) {
+        return TLBaseServiceErrorCodeItemNotFound;
+    }
+    
+    int64_t TIME_COMPARE_DELTA = 60 * 1000L;
+    NSArray<TLDescriptor *> *descriptors = [self.serviceProvider listDescriptorWithConversation:conversationImpl types:@[@(TLDescriptorTypeCallDescriptor)] callsMode:TLDisplayCallsModeAll beforeTimestamp:(startDate + TIME_COMPARE_DELTA) maxDescriptors:10];
+
+    TLCallDescriptor *callDescriptor;
+    for (TLDescriptor *descriptor in descriptors) {
+        int64_t timestamp = descriptor.createdTimestamp;
+        
+        // Find the descriptor based on the creation date which should match the startDate.
+        if (timestamp + TIME_COMPARE_DELTA / 2 >= startDate && timestamp - TIME_COMPARE_DELTA / 2 <= startDate) {
+            callDescriptor = (TLCallDescriptor *)descriptor;
+            break;
+        }
+        if (timestamp + TIME_COMPARE_DELTA < startDate) {
+            break;
+        }
+    }
+    
+    if (!callDescriptor) {
+        callDescriptor = (TLCallDescriptor *)[self.serviceProvider createDescriptorWithConversation:conversationImpl createBlock:^(int64_t descriptorId, int64_t cid, int64_t sequenceId) {
+            TLDescriptorId *did = [[TLDescriptorId alloc] initWithId:descriptorId twincodeOutboundId:conversationImpl.twincodeOutboundId sequenceId:sequenceId];
+
+            // Create one object descriptor for the conversation.
+            TLCallDescriptor *result = [[TLCallDescriptor alloc] initWithDescriptorId:did conversationId:cid video:YES incomingCall:YES creationDate:startDate];
+            [result setAcceptedWithTimestamp:startDate];
+            return result;
+        }];
+        if (!callDescriptor) {
+            return TLBaseServiceErrorCodeNoStorageSpace;
+        }
+
+        // Similar to the reception of a message/file, call onPopDescriptor() when we receive a call.
+        for (id delegate in self.delegates) {
+            if ([delegate respondsToSelector:@selector(onPopDescriptorWithRequestId:conversation:descriptor:)]) {
+                id<TLConversationServiceDelegate> lDelegate = delegate;
+                dispatch_async([self.twinlife twinlifeQueue], ^{
+                    [lDelegate onPopDescriptorWithRequestId:[TLBaseService DEFAULT_REQUEST_ID] conversation:conversationImpl descriptor:callDescriptor];
+                });
+            }
+        }
+    }
+    if (endDate > 0 && ![callDescriptor isTerminated]) {
+        [callDescriptor setCallWithEndDate:endDate];
+        [self.serviceProvider updateWithDescriptor:callDescriptor];
+        
+        // Notify that the call descriptor timestamps was updated.
+        for (id delegate in self.delegates) {
+            if ([delegate respondsToSelector:@selector(onUpdateDescriptorWithRequestId:conversation:descriptor:updateType:)]) {
+                id<TLConversationServiceDelegate> lDelegate = delegate;
+                dispatch_async([self.twinlife twinlifeQueue], ^{
+                    [lDelegate onUpdateDescriptorWithRequestId:[TLBaseService DEFAULT_REQUEST_ID] conversation:conversationImpl descriptor:callDescriptor updateType:TLConversationServiceUpdateTypeContent];
+                });
+            }
+        }
+    }
+    return TLBaseServiceErrorCodeSuccess;
 }
 
 #pragma mark - PeerConnectionDelegate
@@ -3718,6 +3796,20 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
     DDLogVerbose(@"%@ listConversationsWithFilter: %@", LOG_TAG, filter);
 
     return [self.serviceProvider listConversationsWithFilter:filter];
+}
+
+- (nonnull NSArray<id<TLConversation>> *)listGroupConversations {
+    DDLogVerbose(@"%@ listGroupConversations", LOG_TAG);
+
+    NSMutableArray<id<TLConversation>> *res = [NSMutableArray array];
+    
+    for (id<TLConversation> conversation in [self.serviceProvider listConversationsWithFilter:nil]) {
+        if (conversation.isGroup) {
+            [res addObject:conversation];
+        }
+    }
+    
+    return res;
 }
 
 - (id <TLConversation>)getConversationWithId:(nonnull TLDatabaseIdentifier *)conversationId {
@@ -5649,7 +5741,21 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
         TLConversationImpl *conversationImpl = connection.conversation;
         NSMutableSet<TLTwincodeOutbound *> *annotatingUsers = [[NSMutableSet alloc] init];
         for (NSUUID *peerTwincodeOutboundId in iq.annotations) {
-            NSArray<TLDescriptorAnnotation *> *list = iq.annotations[peerTwincodeOutboundId];
+            NSMutableArray<TLDescriptorAnnotation *> *list = [NSMutableArray arrayWithArray:iq.annotations[peerTwincodeOutboundId]];
+            
+            // Make sure setAnnotationsWithDescriptor doesn't delete existing READ/RECEIVED annotations.
+            NSDictionary<NSUUID *, NSArray<TLDescriptorAnnotationPair *> *> *existingAnnotations = [self listAnnotationsWithDescriptorId:descriptor.descriptorId];
+            if (existingAnnotations) {
+                NSArray<TLDescriptorAnnotationPair *> *peerExistingAnnotations = existingAnnotations[conversationImpl.peerTwincodeOutboundId];
+                
+                if (peerExistingAnnotations) {
+                    for (TLDescriptorAnnotationPair *pair in peerExistingAnnotations) {
+                        if (pair.annotation.type == TLDescriptorAnnotationTypeReceived || pair.annotation.type == TLDescriptorAnnotationTypeRead) {
+                            [list addObject:pair.annotation];
+                        }
+                    }
+                }
+            }
             
             // A twinroom engine can send us back our annotations but we don't want to insert them again.
             if (![peerTwincodeOutboundId isEqual:conversationImpl.twincodeOutboundId]) {
@@ -5692,16 +5798,20 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
         TLConversationImpl *conversationImpl = connection.conversation;
         
         id<TLConversation> mainConversation = conversationImpl.mainConversation;
+        int64_t adjustedTime = [connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp];
+        
         switch (updateDescriptorTimestampIQ.timestampType) {
             case TLUpdateDescriptorTimestampTypeRead:
-                [descriptor setReadTimestamp:[connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp]];
+                [descriptor setReadTimestamp:adjustedTime];
 
                 [self updateWithDescriptor:descriptor conversation:conversationImpl];
+                [self setTimestampAnnotationWithDescriptor:descriptor conversation:conversationImpl annotationType:TLDescriptorAnnotationTypeRead timestamp:adjustedTime];
+                
                 receivedTimestamp = 0;
                 break;
                 
             case TLUpdateDescriptorTimestampTypeDelete:
-                [descriptor setDeletedTimestamp:[connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp]];
+                [descriptor setDeletedTimestamp:adjustedTime];
                 [self.serviceProvider updateDescriptorTimestamps:descriptor];
                 
                 [self deleteConversationDescriptor:descriptor requestId:[TLBaseService DEFAULT_REQUEST_ID] conversation:mainConversation];
@@ -5709,7 +5819,7 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                 break;
                 
             case TLUpdateDescriptorTimestampTypePeerDelete:
-                [descriptor setPeerDeletedTimestamp:[connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp]];
+                [descriptor setPeerDeletedTimestamp:adjustedTime];
                 [self updateWithDescriptor:descriptor conversation:conversationImpl];
                 receivedTimestamp = 0;
                 break;
@@ -5732,22 +5842,25 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
     if (descriptor) {
         TLConversationImpl *conversation = connection.conversation;
         id<TLConversation> mainConversation = conversation.mainConversation;
+        int64_t adjustedTime = [connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp];
         switch (updateDescriptorTimestampIQ.timestampType) {
             case TLUpdateDescriptorTimestampTypeRead:
-                [descriptor setReadTimestamp:[connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp]];
+                [descriptor setReadTimestamp:adjustedTime];
 
                 [self updateWithDescriptor:descriptor conversation:conversation];
+                [self setTimestampAnnotationWithDescriptor:descriptor conversation:conversation annotationType:TLDescriptorAnnotationTypeRead timestamp:adjustedTime];
+                
                 break;
                 
             case TLUpdateDescriptorTimestampTypeDelete:
-                [descriptor setDeletedTimestamp:[connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp]];
+                [descriptor setDeletedTimestamp:adjustedTime];
                 [self.serviceProvider updateDescriptorTimestamps:descriptor];
                 
                 [self deleteConversationDescriptor:descriptor requestId:[TLBaseService DEFAULT_REQUEST_ID] conversation:mainConversation];
                 break;
                 
             case TLUpdateDescriptorTimestampTypePeerDelete:
-                [descriptor setPeerDeletedTimestamp:[connection adjustedTimeWithTimestamp:updateDescriptorTimestampIQ.timestamp]];
+                [descriptor setPeerDeletedTimestamp:adjustedTime];
                 [self updateWithDescriptor:descriptor conversation:conversation];
                 break;
                 
@@ -6112,12 +6225,15 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             TLPushObjectOperation *pushObjectOperation = (TLPushObjectOperation *)operation;
             TLObjectDescriptor *objectDescriptor = pushObjectOperation.objectDescriptor;
             
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
             // Update the received timestamp only the first time.
             if (objectDescriptor && objectDescriptor.receivedTimestamp <= 0) {
-                [objectDescriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:iq.receivedTimestamp]];
+                [objectDescriptor setReceivedTimestamp:timestamp];
 
                 [self updateWithDescriptor:objectDescriptor conversation:conversationImpl];
+                
             }
+            [self setTimestampAnnotationWithDescriptor:objectDescriptor conversation:conversationImpl annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
         }
     }
     
@@ -6133,11 +6249,13 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             TLPushObjectOperation *pushObjectOperation = (TLPushObjectOperation *)operation;
             TLObjectDescriptor *objectDescriptor = pushObjectOperation.objectDescriptor;
             
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:onPushObjectIQ.receivedTimestamp];
             // Update the received timestamp only the first time.
             if (objectDescriptor && objectDescriptor.receivedTimestamp <= 0) {
-                [objectDescriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:onPushObjectIQ.receivedTimestamp]];
+                [objectDescriptor setReceivedTimestamp:timestamp];
                 [self.serviceProvider updateDescriptorTimestamps:objectDescriptor];
             }
+            [self setTimestampAnnotationWithDescriptor:objectDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
 
             for (id delegate in self.delegates) {
                 if ([delegate respondsToSelector:@selector(onUpdateDescriptorWithRequestId:conversation:descriptor:updateType:)]) {
@@ -6171,6 +6289,12 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                     [pushFileOperation executeWithConnection:connection];
                     return;
                 }
+                
+                if (fileDescriptor.receivedTimestamp <= 0) {
+                    fileDescriptor.receivedTimestamp = -1L;
+                }
+                [self updateWithDescriptor:fileDescriptor conversation:connection.conversation];
+                [self setTimestampAnnotationWithDescriptor:fileDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:-1L];
             }
         }
     }
@@ -6194,6 +6318,12 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                     [self executeOperationWithConversation:connection.conversation];
                     return;
                 }
+                
+                if (fileDescriptor.receivedTimestamp <= 0) {
+                    fileDescriptor.receivedTimestamp = -1L;
+                }
+                [self updateWithDescriptor:fileDescriptor conversation:connection.conversation];
+                [self setTimestampAnnotationWithDescriptor:fileDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:-1L];
             }
         }
     }
@@ -6223,15 +6353,17 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                     return;
                     
                 } else {
-
+                    TLConversationImpl *conversation = connection.conversation;
+                    int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
                     // Update the received timestamp only the first time.
                     if (fileDescriptor.receivedTimestamp <= 0) {
-                        int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
                         [fileDescriptor setUpdatedTimestamp:timestamp];
                         [fileDescriptor setReceivedTimestamp:timestamp];
                     }
 
-                    [self updateWithDescriptor:fileDescriptor conversation:connection.conversation];
+                    [self updateWithDescriptor:fileDescriptor conversation:conversation];
+
+                    [self setTimestampAnnotationWithDescriptor:fileDescriptor conversation:conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
 
                     done = true;
                 }
@@ -6263,13 +6395,15 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                     
                 } else {
                     // Update the received timestamp only the first time.
+                    int64_t timestamp = [connection adjustedTimeWithTimestamp:onPushFileChunkIQ.receivedTimestamp];
                     if (fileDescriptor.receivedTimestamp <= 0) {
-                        int64_t timestamp = [connection adjustedTimeWithTimestamp:onPushFileChunkIQ.receivedTimestamp];
                         [fileDescriptor setUpdatedTimestamp:timestamp];
                         [fileDescriptor setReceivedTimestamp:timestamp];
                     }
                     [self.serviceProvider updateDescriptorTimestamps:fileDescriptor];
 
+                    [self setTimestampAnnotationWithDescriptor:fileDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
+                    
                     for (id delegate in self.delegates) {
                         if ([delegate respondsToSelector:@selector(onUpdateDescriptorWithRequestId:conversation:descriptor:updateType:)]) {
                             id<TLConversationServiceDelegate> lDelegate = delegate;
@@ -6299,12 +6433,18 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
         TLUpdateDescriptorOperation *updateDescriptorOperation = (TLUpdateDescriptorOperation *)operation;
         TLDescriptor *descriptor = updateDescriptorOperation.descriptorImpl;
         
+        int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
+        
         // Update the received timestamp only the first time.
-        if (descriptor && descriptor.receivedTimestamp < descriptor.updatedTimestamp
-            && descriptor.updatedTimestamp > descriptor.createdTimestamp) {
-            [descriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:iq.receivedTimestamp]];
+        if (descriptor) {
+            if (descriptor.receivedTimestamp < descriptor.updatedTimestamp
+                && descriptor.updatedTimestamp > descriptor.createdTimestamp) {
+                [descriptor setReceivedTimestamp:timestamp];
+                
+                [self updateWithDescriptor:descriptor conversation:conversationImpl];
+            }
             
-            [self updateWithDescriptor:descriptor conversation:conversationImpl];
+            [self setTimestampAnnotationWithDescriptor:descriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:[connection adjustedTimeWithTimestamp:iq.receivedTimestamp]];
         }
     }
  
@@ -6322,10 +6462,16 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             TLPushGeolocationOperation *pushGeolocationOperation = (TLPushGeolocationOperation *)operation;
             TLGeolocationDescriptor *geolocationDescriptor = pushGeolocationOperation.geolocationDescriptor;
             
-            // Update the received timestamp only the first time.
-            if (geolocationDescriptor && geolocationDescriptor.receivedTimestamp <= 0) {
-                [geolocationDescriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:iq.receivedTimestamp]];
-                [self updateWithDescriptor:geolocationDescriptor conversation:connection.conversation];
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
+            
+            if (geolocationDescriptor) {
+                // Update the received timestamp only the first time.
+                if (geolocationDescriptor.receivedTimestamp <= 0) {
+                    [geolocationDescriptor setReceivedTimestamp:timestamp];
+                    [self updateWithDescriptor:geolocationDescriptor conversation:connection.conversation];
+                }
+                
+                [self setTimestampAnnotationWithDescriptor:geolocationDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
             }
         }
     }
@@ -6342,10 +6488,17 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             TLPushGeolocationOperation *pushGeolocationOperation = (TLPushGeolocationOperation *)operation;
             TLGeolocationDescriptor *geolocationDescriptor = pushGeolocationOperation.geolocationDescriptor;
             
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:onPushGeolocationIQ.receivedTimestamp];
+            
             // Update the received timestamp only the first time.
-            if (geolocationDescriptor && geolocationDescriptor.receivedTimestamp <= 0) {
-                [geolocationDescriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:onPushGeolocationIQ.receivedTimestamp]];
-                [self updateWithDescriptor:geolocationDescriptor conversation:connection.conversation];
+            if (geolocationDescriptor) {
+                // Update the received timestamp only the first time.
+                if (geolocationDescriptor.receivedTimestamp <= 0) {
+                    [geolocationDescriptor setReceivedTimestamp:timestamp];
+                    [self updateWithDescriptor:geolocationDescriptor conversation:connection.conversation];
+                }
+                
+                [self setTimestampAnnotationWithDescriptor:geolocationDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
             }
         }
     }
@@ -6365,10 +6518,16 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             TLPushTwincodeOperation *pushTwincodeOperation = (TLPushTwincodeOperation *)operation;
             TLTwincodeDescriptor *twincodeDescriptor = pushTwincodeOperation.twincodeDescriptor;
             
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
+            
             // Update the received timestamp only the first time.
-            if (twincodeDescriptor && twincodeDescriptor.receivedTimestamp <= 0) {
-                [twincodeDescriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:iq.receivedTimestamp]];
-                [self updateWithDescriptor:twincodeDescriptor conversation:connection.conversation];
+            if (twincodeDescriptor) {
+                if (twincodeDescriptor.receivedTimestamp <= 0) {
+                    [twincodeDescriptor setReceivedTimestamp:timestamp];
+                    [self updateWithDescriptor:twincodeDescriptor conversation:connection.conversation];
+                }
+                
+                [self setTimestampAnnotationWithDescriptor:twincodeDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
             }
         }
     }
@@ -6386,10 +6545,16 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
             TLPushTwincodeOperation *pushTwincodeOperation = (TLPushTwincodeOperation *)operation;
             TLTwincodeDescriptor *twincodeDescriptor = pushTwincodeOperation.twincodeDescriptor;
             
-            // Update the received timestamp only the first time.
-            if (twincodeDescriptor && twincodeDescriptor.receivedTimestamp <= 0) {
-                [twincodeDescriptor setReceivedTimestamp:[connection adjustedTimeWithTimestamp:onPushTwincodeIQ.receivedTimestamp]];
-                [self updateWithDescriptor:twincodeDescriptor conversation:connection.conversation];
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:onPushTwincodeIQ.receivedTimestamp];
+            
+            if (twincodeDescriptor) {
+                // Update the received timestamp only the first time.
+                if (twincodeDescriptor.receivedTimestamp <= 0) {
+                    [twincodeDescriptor setReceivedTimestamp:timestamp];
+                    [self updateWithDescriptor:twincodeDescriptor conversation:connection.conversation];
+                }
+                
+                [self setTimestampAnnotationWithDescriptor:twincodeDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
             }
         }
     }
@@ -6707,6 +6872,7 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                 [fileDescriptor setReceivedTimestamp:-1];
                 [fileDescriptor setReadTimestamp:-1];
                 [self updateWithDescriptor:fileDescriptor conversation:connection.conversation];
+                [self setTimestampAnnotationWithDescriptor:fileDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:-1L];
             }
             
         } else if ([operation isKindOfClass:[TLPushObjectOperation class]])  {
@@ -6716,6 +6882,7 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
                 [objectDescriptor setReceivedTimestamp:-1];
                 [objectDescriptor setReadTimestamp:-1];
                 [self updateWithDescriptor:objectDescriptor conversation:connection.conversation];
+                [self setTimestampAnnotationWithDescriptor:objectDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:-1L];
             }
         }
     }
@@ -7173,6 +7340,48 @@ TL_CREATE_ASSERT_POINT(LOCK_CONVERSATION_FAILED, 106)
         return nil;
     }
     return [items objectAtIndex:0];
+}
+
+- (void)setTimestampAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor conversation:(nonnull TLConversationImpl *)conversation annotationType:(TLDescriptorAnnotationType)annotationType timestamp:(int64_t)timestamp {
+    
+    if (annotationType != TLDescriptorAnnotationTypeReceived && annotationType != TLDescriptorAnnotationTypeRead) {
+        DDLogError(@"%@ setTimestampAnnotation() only handles RECEIVED and READ annotations, but annotationType is %d", LOG_TAG, annotationType);
+        return;
+    }
+    
+    if (!conversation.isGroup || !conversation.peerTwincodeOutbound) {
+        return;
+    }
+    
+    DDLogVerbose(@"%@ setTimestampAnnotationWithDescriptor: \"%@\" is %@ by %@", LOG_TAG, descriptor.descriptorId, annotationType == TLDescriptorAnnotationTypeReceived ? @"RECEIVED":@"READ", conversation.peerTwincodeOutbound.name);
+    
+    TLTwincodeOutbound *peerTwincodeOutbound = conversation.peerTwincodeOutbound;
+    
+    NSDictionary<NSUUID *, NSArray<TLDescriptorAnnotationPair *> *> *annotationPairs = [self.serviceProvider listAnnotationsWithDescriptorId:descriptor.descriptorId];
+    
+    NSMutableArray<TLDescriptorAnnotation *> *peerAnnotations = [NSMutableArray array];
+    
+    if (annotationPairs[peerTwincodeOutbound.uuid]) {
+        for (TLDescriptorAnnotationPair *pair in annotationPairs[peerTwincodeOutbound.uuid]) {
+            if (pair.annotation.type == annotationType || pair.annotation.type == TLDescriptorAnnotationTypeRead) {
+                // annotationType already created, or annotationType is RECEIVED and READ annotation already exists
+                DDLogVerbose(@"%@ Annotation %@ already exists for descriptor %@ and member %@", LOG_TAG, annotationType == TLDescriptorAnnotationTypeReceived ? @"RECEIVED" : @"READ", descriptor.descriptorId, peerTwincodeOutbound.name);
+                return;
+            }
+                        
+            if (pair.annotation.type == TLDescriptorAnnotationTypeReceived && annotationType == TLDescriptorAnnotationTypeRead) {
+                // READ replaces RECEIVED so we ignore this annotation: setAnnotations will remove it.
+                continue;
+            }
+            
+            // Include all other annotations: we don't want setAnnotations to remove them.
+            [peerAnnotations addObject:pair.annotation];
+        }
+    }
+    
+    [peerAnnotations addObject:[[TLDescriptorAnnotation alloc] initWithType:annotationType value:timestamp count:1]];
+    
+    [self.serviceProvider setAnnotationsWithDescriptor:descriptor peerTwincodeOutboundId:peerTwincodeOutbound.uuid annotations:peerAnnotations annotatingUsers:[NSMutableSet set]];
 }
 
 @end
