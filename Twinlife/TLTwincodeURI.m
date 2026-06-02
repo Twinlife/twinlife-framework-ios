@@ -29,8 +29,12 @@
     return [NSString stringWithFormat:@"invite.%@", SERVER_NAME];
 }
 
-+ (nonnull NSString *)ACCOUNT_MIGRATION_ACTION {
++ (nonnull NSString *)ACCOUNT_MIGRATION_LEGACY_ACTION {
     return [NSString stringWithFormat:@"account.migration.%@", SERVER_NAME];
+}
+
++ (nonnull NSString *)ACCOUNT_MIGRATION_ACTION {
+    return [NSString stringWithFormat:@"migration.%@", SERVER_NAME];
 }
 
 + (nonnull NSString *)AUTHENTICATE_ACTION {

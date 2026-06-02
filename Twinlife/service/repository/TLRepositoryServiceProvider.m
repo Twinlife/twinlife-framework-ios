@@ -643,7 +643,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     __block id<TLRepositoryObject> result = nil;
     [self inTransaction:^(TLTransaction *transaction) {
         int64_t now = [[NSDate date] timeIntervalSince1970] * 1000;
-        long dbId = databaseId ? databaseId.longLongValue : [transaction allocateIdWithTable:TLDatabaseTableRepository];
+        long dbId = databaseId != nil ? databaseId.longLongValue : [transaction allocateIdWithTable:TLDatabaseTableRepository];
         TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:dbId factory:factory];
         id<TLRepositoryObject> object = [factory importWithTransaction:transaction identifier:identifier uuid:uuid key:objectKey creationDate:creationDate attributes:attributes];
         if (object) {

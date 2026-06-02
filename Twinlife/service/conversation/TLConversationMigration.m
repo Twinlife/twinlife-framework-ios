@@ -465,7 +465,7 @@ static const int ddLogLevel = DDLogLevelWarning;
             NSUUID *peerTwincodeOutboundId = nil;
             NSUUID *resourceId = nil;
             NSUUID *peerResourceId = nil;
-            NSUUID *invitedContactId = nil;
+            // NSUUID *invitedContactId = nil;
             int64_t permissions = 0L;
             
             if ([[TLGroupMemberConversationImpl SCHEMA_ID] isEqual:schemaId]) {
@@ -502,7 +502,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 // unused peerMminSequenceId
                 [decoder readLong];
                 peerResourceId = [decoder readOptionalUUID];
-                invitedContactId = [decoder readOptionalUUID];
+                /* invitedContactId = */ [decoder readOptionalUUID];
                 permissions = [decoder readLong];
             }
             NSObject *peerTwincode;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -18,6 +18,22 @@
 #define TLCryptoServiceUseSecret2   0x02
 #define TLCryptoServiceNewSecret1   0x10
 #define TLCryptoServiceNewSecret2   0x20
+
+//
+// Interface: TLPublicKeyData
+//
+
+@interface TLPublicKeyData : NSObject
+
+- (nonnull instancetype)initWithString:(nonnull NSString *)publicKey;
+
+- (nonnull instancetype)initWithData:(nonnull NSData *)data;
+
+- (nullable NSData *)publicKey;
+
+- (BOOL)isEmpty;
+
+@end
 
 //
 // Interface: TLVerifyResult
@@ -101,14 +117,20 @@
 /// Get the public key encoded in Base64url associated with the twincode.
 - (nullable NSString *)getPublicKeyWithTwincode:(nonnull TLTwincodeOutbound*)twincodeOutbound;
 
+- (nullable TLPublicKeyData *)getRawPublicKeyWithTwincode:(nonnull TLTwincodeOutbound*)twincodeOutbound;
+
 /// Sign the twincode attributes by using the twincode private key.
 - (nullable NSData *)signWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound attributes:(nonnull NSMutableArray<TLAttributeNameValue *> *)attributes;
+
+- (nullable NSData *)signContentRawWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound content:(nonnull NSData *)content;
 
 /// Verify the signature of the twincode attributes by using the public key encoded in Base64url
 /// or by using the public key already associated with the twincodeOutbound object.
 - (nonnull TLVerifyResult *)verifyWithPublicKey:(nonnull NSString *)publicKey twincodeId:(nonnull NSUUID *)twincodeId attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes signature:(nonnull NSData *)signature;
 
 - (nonnull TLVerifyResult *)verifyWithTwincode:(nonnull TLTwincodeOutbound *)twincode attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes signature:(nonnull NSData *)signature;
+ 
+- (TLBaseServiceErrorCode)verifyContentWithPublicKey:(nonnull TLPublicKeyData *)publicKey keyId:(nonnull NSUUID *)keyId content:(nonnull NSData *)content signature:(nonnull NSData *)signature;
 
 /// Encrypt by using the encryption keys defined for the `cipherTwincode` for a message to the
 /// `targetTwincode`.  Give in the message the public keys used by the `senderTwincode`

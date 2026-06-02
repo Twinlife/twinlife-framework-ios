@@ -52,6 +52,7 @@
 @class TLDatabaseService;
 @class TLCryptoService;
 @class TLBackupService;
+@class TLSecureRosterService;
 
 typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 
@@ -82,6 +83,7 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 @property (readonly, nonnull) NSArray *twinlifeServices;
 @property (readonly, nonnull) TLDatabaseService *databaseService;
 @property (readonly, nonnull) TLBackupService *backupService;
+@property (readonly, nonnull) TLSecureRosterService *secureRosterService;
 
 @property (readonly, nonnull) TLSerializerFactory *serializerFactory;
 @property (readonly, nonnull) NSMutableDictionary<TLSerializerKey *, TLBinaryPacketListener> *binaryPacketListeners;

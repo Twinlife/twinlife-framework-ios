@@ -1,10 +1,11 @@
 /*
- *  Copyright (c) 2019-2025 twinlife SA.
+ *  Copyright (c) 2019-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -134,7 +135,7 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
     BOOL isValidLocalMap = [decoder readBoolean];
     NSString *localMapPath = [decoder readOptionalString];
 
-    return [[TLGeolocationDescriptor alloc] initWithTwincodeOutboundId:twincodeOutboundId sequenceId:sequenceId sendTo:sendTo replyTo:replyTo longitude:longitude latitude:latitude altitude:altitude mapLongitudeDelta:mapLongitudeDelta mapLatitudeDelta:mapLatitudeDelta isValidLocalMap:isValidLocalMap localMapPath:localMapPath expireTimeout:expireTimeout createdTimestamp:createdTimestamp sentTimestamp:0];
+    return [[TLGeolocationDescriptor alloc] initWithTwincodeOutboundId:twincodeOutboundId sequenceId:sequenceId sendTo:sendTo replyTo:replyTo longitude:longitude latitude:latitude altitude:altitude mapLongitudeDelta:mapLongitudeDelta mapLatitudeDelta:mapLatitudeDelta isValidLocalMap:isValidLocalMap localMapPath:localMapPath expireTimeout:expireTimeout createdTimestamp:createdTimestamp sentTimestamp:0 copyAllowed:NO];
 }
 
 @end
@@ -179,7 +180,7 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
     BOOL isValidLocalMap = [decoder readBoolean];
     NSString *localMapPath = [decoder readOptionalString];
 
-    return [[TLGeolocationDescriptor alloc] initWithDescriptor:descriptor longitude:longitude latitude:latitude altitude:altitude mapLongitudeDelta:mapLongitudeDelta mapLatitudeDelta:mapLatitudeDelta isValidLocalMap:isValidLocalMap localMapPath:localMapPath];
+    return [[TLGeolocationDescriptor alloc] initWithDescriptor:descriptor longitude:longitude latitude:latitude altitude:altitude mapLongitudeDelta:mapLongitudeDelta mapLatitudeDelta:mapLatitudeDelta isValidLocalMap:isValidLocalMap localMapPath:localMapPath copyAllowed:NO];
 }
 
 @end
@@ -267,8 +268,8 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
 
 #pragma mark - TLGeolocationDescriptor ()
 
-- (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta expireTimeout:(int64_t)expireTimeout {
-    DDLogVerbose(@"%@ initWithDescriptorId: %@ conversationId: %lld sendTo: %@ replyTo: %@ longitude: %f latitude: %f altitude: %f mapLongitudeDelta: %f mapLatitudeDelta: %f expireTimeout: %lld", LOG_TAG, descriptorId, conversationId, sendTo, replyTo, longitude, latitude, altitude, mapLongitudeDelta, mapLatitudeDelta, expireTimeout);
+- (nonnull instancetype)initWithDescriptorId:(nonnull TLDescriptorId *)descriptorId conversationId:(int64_t)conversationId sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta expireTimeout:(int64_t)expireTimeout copyAllowed:(BOOL)copyAllowed {
+    DDLogVerbose(@"%@ initWithDescriptorId: %@ conversationId: %lld sendTo: %@ replyTo: %@ longitude: %f latitude: %f altitude: %f mapLongitudeDelta: %f mapLatitudeDelta: %f expireTimeout: %lld copyAllowed: %@", LOG_TAG, descriptorId, conversationId, sendTo, replyTo, longitude, latitude, altitude, mapLongitudeDelta, mapLatitudeDelta, expireTimeout, copyAllowed ? @"YES":@"NO");
     
     self = [super initWithDescriptorId:descriptorId conversationId:conversationId sendTo:sendTo replyTo:replyTo expireTimeout:expireTimeout];
     
@@ -280,12 +281,13 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         _mapLatitudeDelta = mapLatitudeDelta;
         _localMapPath = nil;
         _isValidLocalMap = NO;
+        _copyAllowed = copyAllowed;
     }
     return self;
 }
 
-- (nonnull instancetype)initWithTwincodeOutboundId:(nonnull NSUUID *)twincodeOutboundId sequenceId:(int64_t)sequenceId sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta isValidLocalMap:(BOOL)isValidLocalMap localMapPath:(nullable NSString *)localMapPath expireTimeout:(int64_t)expireTimeout createdTimestamp:(int64_t)createdTimestamp sentTimestamp:(int64_t)sentTimestamp {
-    DDLogVerbose(@"%@ initWithTwincodeOutboundId: %@ sequenceId: %lld sendTo: %@ replyTo: %@ longitude: %f latitude: %f altitude: %f mapLongitudeDelta: %f mapLatitudeDelta: %f expireTimeout: %lld createdTimestamp: %lld sentTimestamp: %lld", LOG_TAG, twincodeOutboundId, sequenceId, sendTo, replyTo, longitude, latitude, altitude, mapLongitudeDelta, mapLatitudeDelta, expireTimeout, createdTimestamp, sentTimestamp);
+- (nonnull instancetype)initWithTwincodeOutboundId:(nonnull NSUUID *)twincodeOutboundId sequenceId:(int64_t)sequenceId sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta isValidLocalMap:(BOOL)isValidLocalMap localMapPath:(nullable NSString *)localMapPath expireTimeout:(int64_t)expireTimeout createdTimestamp:(int64_t)createdTimestamp sentTimestamp:(int64_t)sentTimestamp copyAllowed:(BOOL)copyAllowed {
+    DDLogVerbose(@"%@ initWithTwincodeOutboundId: %@ sequenceId: %lld sendTo: %@ replyTo: %@ longitude: %f latitude: %f altitude: %f mapLongitudeDelta: %f mapLatitudeDelta: %f expireTimeout: %lld createdTimestamp: %lld sentTimestamp: %lld copyAllowed: %@", LOG_TAG, twincodeOutboundId, sequenceId, sendTo, replyTo, longitude, latitude, altitude, mapLongitudeDelta, mapLatitudeDelta, expireTimeout, createdTimestamp, sentTimestamp, copyAllowed ? @"YES":@"NO");
     
     self = [super initWithTwincodeOutboundId:twincodeOutboundId sequenceId:sequenceId sendTo:sendTo replyTo:replyTo expireTimeout:expireTimeout createdTimestamp:createdTimestamp sentTimestamp:sentTimestamp];
     
@@ -297,6 +299,7 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         _mapLatitudeDelta = mapLatitudeDelta;
         _localMapPath = localMapPath;
         _isValidLocalMap = isValidLocalMap;
+        _copyAllowed = copyAllowed;
     }
     return self;
 }
@@ -314,12 +317,13 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         _mapLatitudeDelta = descriptor.mapLatitudeDelta;
         _localMapPath = descriptor.localMapPath;
         _isValidLocalMap = descriptor.isValidLocalMap;
+        _copyAllowed = descriptor.copyAllowed;
     }
     return self;
 }
 
-- (nonnull instancetype)initWithDescriptor:(nonnull TLDescriptor *)descriptor longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta isValidLocalMap:(BOOL)isValidLocalMap localMapPath:(nullable NSString *)localMapPath {
-    DDLogVerbose(@"%@ initWithDescriptor: %@ longitude: %f latitude: %f altitude: %f mapLongitudeDelta: %f mapLatitudeDelta: %f isValidLocalMap: %d localMapPath: %@", LOG_TAG, descriptor, longitude, latitude, altitude, mapLongitudeDelta, mapLatitudeDelta, isValidLocalMap, localMapPath);
+- (nonnull instancetype)initWithDescriptor:(nonnull TLDescriptor *)descriptor longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta isValidLocalMap:(BOOL)isValidLocalMap localMapPath:(nullable NSString *)localMapPath copyAllowed:(BOOL)copyAllowed {
+    DDLogVerbose(@"%@ initWithDescriptor: %@ longitude: %f latitude: %f altitude: %f mapLongitudeDelta: %f mapLatitudeDelta: %f isValidLocalMap: %d localMapPath: %@ copyAllowed: %@", LOG_TAG, descriptor, longitude, latitude, altitude, mapLongitudeDelta, mapLatitudeDelta, isValidLocalMap, localMapPath, copyAllowed ? @"YES":@"NO");
     
     self = [super initWithDescriptor:descriptor];
     
@@ -331,6 +335,7 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         _mapLatitudeDelta = mapLatitudeDelta;
         _localMapPath = localMapPath;
         _isValidLocalMap = isValidLocalMap;
+        _copyAllowed = copyAllowed;
     }
     return self;
 }
@@ -349,6 +354,7 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         _mapLatitudeDelta = [TLDescriptor extractDoubleWithArgs:args position:4 defaultValue:0.0];
         _localMapPath = [TLDescriptor extractStringWithArgs:args position:5 defaultValue:nil];
         _isValidLocalMap = (flags & DESCRIPTOR_FLAG_UPDATED) != 0;
+        _copyAllowed = (flags & DESCRIPTOR_FLAG_COPY_ALLOWED) != 0;
     }
     return self;
 }
@@ -367,6 +373,7 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         _mapLongitudeDelta = descriptor.mapLongitudeDelta;
         _isValidLocalMap = NO;
         _localMapPath = nil;
+        _copyAllowed = descriptor.copyAllowed;
     }
     return self;
 }
@@ -379,7 +386,9 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
 
 - (int)flags {
     
-    return (self.isValidLocalMap ? DESCRIPTOR_FLAG_UPDATED : 0);
+    int flags = (self.isValidLocalMap ? DESCRIPTOR_FLAG_UPDATED : 0);
+    flags |= (self.copyAllowed ? DESCRIPTOR_FLAG_COPY_ALLOWED : 0);
+    return flags;
 }
 
 - (TLPermissionType)permission {
@@ -420,6 +429,15 @@ static TLSerializer *GEOLOCATION_DESCRIPTOR_SERIALIZER_1 = nil;
         self.isValidLocalMap = NO;
     }
     return updated;
+}
+
+- (BOOL)updateWithCopyAllowed:(nullable NSNumber *)copyAllowed {
+    
+    if (copyAllowed == nil || copyAllowed.boolValue == self.copyAllowed) {
+        return NO;
+    }
+    _copyAllowed = copyAllowed.boolValue;
+    return YES;
 }
 
 @end

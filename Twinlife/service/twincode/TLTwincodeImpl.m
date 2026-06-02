@@ -22,6 +22,18 @@ static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
 //
+// Interface: TLImageControlPoint ()
+//
+
+@implementation TLTwincodeAssertPoint
+
+TL_CREATE_ASSERT_POINT(RECOVER_FACTORY_ID, 500)
+TL_CREATE_ASSERT_POINT(RECOVER_TWINCODE_IN, 501)
+TL_CREATE_ASSERT_POINT(UNKNOWN_TWINCODE, 502)
+
+@end
+
+//
 // Implementation: TLTwincodePendingRequest
 //
 

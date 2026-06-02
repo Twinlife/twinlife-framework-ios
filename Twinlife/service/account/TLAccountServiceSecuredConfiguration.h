@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2025 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -39,10 +39,10 @@
 
 + (nullable TLAccountServiceSecuredConfiguration *)loadWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory content:(nonnull NSData *)content;
 
-/// Export the account secured configuration for the migration service using schema version 4 (compatible with new Android starting 2024-07-09).
-+ (nullable NSData *)exportWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory;
+/// Export the account secured configuration for the migration service using schema version 4 (compatible with new Android starting 2024-07-09) or version 5.
++ (nullable NSData *)exportWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory version:(int)version;
 
-#ifdef TWINME_PLUS
+#if defined(TWINME_PLUS) || defined(MYTWINLIFE_PLUS)
 /// Import in the secure storage the account secure configuration from the alternate application (ie, Twinme Lite).
 /// Returns YES if the import succeeded.
 + (BOOL)importApplicationData:(nonnull TLSerializerFactory *)serializerFactory;

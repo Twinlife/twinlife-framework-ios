@@ -220,17 +220,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 }
 
 - (nullable NSData *)readDataUpToLength:(int)length error:(out NSError **)error {
-    if (@available(iOS 13.0, *)) {
-        return [self.fileHandle readDataUpToLength:length error:error];
-    } else {
-        @try {
-            return [self.fileHandle readDataOfLength:length];
-        } @catch (NSException *exception) {
-
-            *error = [NSError errorWithDomain:@"TLCryptoData" code:1 userInfo:exception.userInfo];
-            return nil;
-        }
-    }
+    
+    return [self.fileHandle readDataUpToLength:length error:error];
 }
 
 - (int)intFromData:(nonnull NSData *)data {

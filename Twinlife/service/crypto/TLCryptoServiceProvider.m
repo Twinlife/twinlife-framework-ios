@@ -154,10 +154,10 @@ static const int ddLogLevel = DDLogLevelWarning;
     return [self.database loadTwincodeInboundWithTwincodeId:twincodeInboundId];
 }
 
-- (nullable TLKeyInfo *)loadPeerEncryptionKeyWithTwincodeId:(nonnull NSUUID *)twincodeId {
+- (nullable TLTwincodeKeyInfo *)loadPeerEncryptionKeyWithTwincodeId:(nonnull NSUUID *)twincodeId {
     DDLogVerbose(@"%@ loadPeerEncryptionKeyWithTwincodeId: %@", LOG_TAG, twincodeId);
 
-    __block TLKeyInfo *info = nil;
+    __block TLTwincodeKeyInfo *info = nil;
     [self inDatabase:^(FMDatabase *database) {
         if (!database) {
             return;
@@ -183,17 +183,17 @@ static const int ddLogLevel = DDLogLevelWarning;
         NSData *signingKey = [resultSet dataForColumnIndex:2];
         NSData *encryptionKey = [resultSet dataForColumnIndex:3];
         TLTwincodeOutbound *twincodeOutbound = [self.database loadTwincodeOutboundWithResultSet:resultSet offset:4];
-        info = [[TLKeyInfo alloc] initWithTwincode:twincodeOutbound modificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:0 keyIndex:0 secret:nil];
+        info = [[TLTwincodeKeyInfo alloc] initWithTwincode:twincodeOutbound modificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:0 keyIndex:0 secret:nil];
     }];
 
     return info;
 }
 
-- (nullable TLKeyInfo *)loadKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincode {
+- (nullable TLTwincodeKeyInfo *)loadKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincode {
     DDLogVerbose(@"%@ loadKeyWithTwincode: %@", LOG_TAG, twincode);
 
     NSNumber *keyId = [twincode.identifier identifierNumber];
-    __block TLKeyInfo *info = nil;
+    __block TLTwincodeKeyInfo *info = nil;
     [self inDatabase:^(FMDatabase *database) {
         if (!database) {
             return;
@@ -215,13 +215,13 @@ static const int ddLogLevel = DDLogLevelWarning;
         NSData *signingKey = [resultSet dataForColumnIndex:2];
         NSData *encryptionKey = [resultSet dataForColumnIndex:3];
         int64_t nonceSequence = [resultSet longLongIntForColumnIndex:4];
-        info = [[TLKeyInfo alloc] initWithTwincode:twincode modificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:nonceSequence keyIndex:0 secret:nil];
+        info = [[TLTwincodeKeyInfo alloc] initWithTwincode:twincode modificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:nonceSequence keyIndex:0 secret:nil];
     }];
 
     return info;
 }
 
-- (nullable TLKeyInfo *)loadKeySecretsWithTwincode:(nonnull TLTwincodeOutbound *)twincode peerTwincode:(nonnull TLTwincodeOutbound *)peerTwincode useSequenceCount:(long)useSequenceCount options:(int)options {
+- (nullable TLTwincodeKeyInfo *)loadKeySecretsWithTwincode:(nonnull TLTwincodeOutbound *)twincode peerTwincode:(nonnull TLTwincodeOutbound *)peerTwincode useSequenceCount:(long)useSequenceCount options:(int)options {
     DDLogVerbose(@"%@ loadKeySecretsWithTwincode: %@ peerTwincode: %@ useSequenceCount: %ld options: %d", LOG_TAG, twincode, peerTwincode, useSequenceCount, options);
 
     NSData *secret = ((options & (TLCryptoServiceProviderCreateSecret | TLCryptoServiceProviderCreateNextSecret | TLCryptoServiceProviderCreateFirstSecret)) != 0) ? [NSData secureRandomWithLength:TL_KEY_LENGTH] : nil;
@@ -229,7 +229,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     while (true) {
         NSNumber *keyId = [twincode.identifier identifierNumber];
         NSNumber *peerId = [peerTwincode.identifier identifierNumber];
-        __block TLKeyInfo *info = nil;
+        __block TLTwincodeKeyInfo *info = nil;
         __block BOOL createSecret = NO;
         __block NSNumber *secretId = nil;
         __block int secretFlags = 0;
@@ -325,7 +325,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 useSecret = nil;
             }
 
-            info = [[TLKeyInfo alloc] initWithTwincode:twincode modificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:nonceSequence keyIndex:keyIndex secret:useSecret];
+            info = [[TLTwincodeKeyInfo alloc] initWithTwincode:twincode modificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:nonceSequence keyIndex:keyIndex secret:useSecret];
         }];
         if (!info || (useSequenceCount == 0 && !createSecret)) {
             return info;

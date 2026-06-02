@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2025 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -363,6 +363,23 @@ static const int BACKOFF_DELAYS_COUNT = sizeof(BACKOFF_DELAYS) / sizeof(BACKOFF_
     oldConversation.connection = nil;
 
     return self.connection;
+}
+
+- (BOOL)setVersion21 {
+    
+    @synchronized (self) {
+        if ((self.flags & FLAG_V21) == 0) {
+            self.flags |= FLAG_V21;
+            return YES;
+        } else {
+            return NO;
+        }
+    }
+}
+
+- (BOOL)hasVersion21 {
+    
+    return (self.flags & FLAG_V21) != 0;
 }
 
 - (NSString *)to {

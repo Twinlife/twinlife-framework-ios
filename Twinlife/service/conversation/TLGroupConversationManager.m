@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -15,6 +15,7 @@
 #import "TLGroupConversationManager.h"
 #import "TLGroupInviteOperation.h"
 #import "TLTwincodeOutboundServiceImpl.h"
+#import "TLSecureRosterServiceImpl.h"
 #import "TLTwinlifeImpl.h"
 #import "TLClearDescriptorImpl.h"
 #import "TLConversationServiceProvider.h"
@@ -33,6 +34,7 @@
 #import "TLAttributeNameValue.h"
 #import "TLBinaryCompactDecoder.h"
 #import "TLBinaryCompactEncoder.h"
+#import "TLGroupProtocol.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -101,6 +103,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _twincodeOutboundService = [_twinlife getTwincodeOutboundService];
         _scheduler = conversationService.scheduler;
         _serviceProvider = conversationService.serviceProvider;
+        _secureRosterService = [_twinlife getSecureRosterService];
     }
     return self;
 }
@@ -331,7 +334,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     [self.serviceProvider updateGroupConversation:groupConversation];
     
     // Add the admin member.
-    TLGroupConversationAddMemberStatusType result = [self addMember:groupConversation memberTwincode:adminTwincodeOutbound permissions:adminPermissions invitedContactId:nil returnMembers:nil propagate:false signedOffTwincodeId:nil signature:nil];
+    TLGroupConversationAddMemberStatusType result = [self addMember:groupConversation memberTwincode:adminTwincodeOutbound permissions:adminPermissions invitedContactId:nil returnMembers:nil propagate:NO useSecureRoster:NO signedOffTwincodeId:nil signature:nil];
     if (result == TLGroupConversationAddMemberStatusTypeNewMember) {
         
         for (id delegate in self.conversationService.delegates) {
@@ -401,6 +404,13 @@ static const int ddLogLevel = DDLogLevelWarning;
     // - if the peer twincode is signed, we can do a secure invocation to notify about the leave,
     // - otherwise, we must queue a LEAVE_GROUP operation.
     TLTwincodeOutbound *groupTwincode = group.peerTwincodeOutbound;
+    TLRosterId *rosterId = [TLGroupProtocol getSecureRosterIdWithTwincode:groupTwincode];
+    if (rosterId) {
+        TLGroupLeaveOperation *groupOperation = [[TLGroupLeaveOperation alloc] initWithConversation:member type:TLConversationServiceOperationTypeInvokeRosterRemove groupTwincodeId:rosterId.rosterId memberTwincodeId:memberTwincodeId];
+        [self.serviceProvider storeOperation:groupOperation];
+        [self.scheduler addOperation:groupOperation conversation:member delay:0.0];
+    }
+
     if (conversations && conversations.count > 0 && groupTwincode) {
 
         NSMapTable<TLConversationImpl *, NSObject *> *pendingOperations = [[NSMapTable alloc] init];
@@ -408,6 +418,10 @@ static const int ddLogLevel = DDLogLevelWarning;
             TLTwincodeOutbound *peerTwincode = conversationImpl.peerTwincodeOutbound;
             TLGroupLeaveOperation *groupOperation;
             if (peerTwincode && [peerTwincode isSigned]) {
+                // If the peer knows the secure roster, no need to send the invoke leave invocation.
+                if (rosterId && [conversationImpl hasVersion21]) {
+                    continue;
+                }
                 groupOperation = [[TLGroupLeaveOperation alloc] initWithConversation:conversationImpl type:TLConversationServiceOperationTypeInvokeLeaveGroup groupTwincodeId:groupTwincode.uuid memberTwincodeId:memberTwincodeId];
 
             } else {
@@ -461,12 +475,17 @@ static const int ddLogLevel = DDLogLevelWarning;
         groupConversation.joinPermissions = permissions;
         [self.serviceProvider updateGroupConversation:groupConversation];
     } else {
-        member = [groupConversation getMemberWithTwincodeId:memberTwincodeId];
-        if (!member) {
-            return TLBaseServiceErrorCodeItemNotFound;
+        if ([memberTwincodeId isEqual:[groupConversation twincodeOutboundId]]) {
+            [groupConversation setPermissions:permissions];
+            [self.serviceProvider updateGroupConversation:groupConversation];
+        } else {
+            member = [groupConversation getMemberWithTwincodeId:memberTwincodeId];
+            if (!member) {
+                return TLBaseServiceErrorCodeItemNotFound;
+            }
+            member.permissions = permissions;
+            [self.serviceProvider updateConversation:member];
         }
-        member.permissions = permissions;
-        [self.serviceProvider updateConversation:member];
     }
 
     NSMutableArray<TLConversationImpl *> *conversations = [TLConversationService getConversations:groupConversation sendTo:nil];
@@ -494,6 +513,53 @@ static const int ddLogLevel = DDLogLevelWarning;
             }
         }
         [self.conversationService addOperationsWithMap:pendingOperations];
+    }
+
+    return TLBaseServiceErrorCodeSuccess;
+}
+
+- (TLBaseServiceErrorCode)refreshWithGroup:(nonnull id<TLRepositoryObject>)group members:(nonnull NSArray<TLRosterMember *> *)members memberTwincodes:(nonnull NSDictionary<NSUUID *, TLTwincodeOutbound *> *)memberTwincodes {
+    DDLogVerbose(@"%@ refreshWithGroup: %@ members: %@", LOG_TAG, group, members);
+
+    // Verify that the group exists.
+    id<TLConversation> conversation = [self.serviceProvider loadConversationWithSubject:group];
+    if (!conversation || ![conversation isKindOfClass:[TLGroupConversationImpl class]]) {
+        return TLBaseServiceErrorCodeItemNotFound;
+    }
+
+    TLGroupConversationImpl *groupConversation = (TLGroupConversationImpl *)conversation;
+    NSMutableDictionary<NSUUID*,TLGroupMemberConversationImpl*> *groupMembers = [groupConversation listMembers];
+    for (TLRosterMember *activeMember in members) {
+        TLGroupMemberConversationImpl *memberConversation = groupMembers[activeMember.memberTwincodeId];
+        if (memberConversation == nil) {
+            if ([activeMember.memberTwincodeId isEqual:[groupConversation twincodeOutboundId]]) {
+                if ([groupConversation permissions] != activeMember.permissions) {
+                    [groupConversation joinWithPermissions:activeMember.permissions];
+                    [self.serviceProvider updateGroupConversation:groupConversation];
+                }
+            } else {
+                TLTwincodeOutbound *memberTwincode = memberTwincodes[activeMember.memberTwincodeId];
+                if (memberTwincode) {
+                    [self addMember:groupConversation memberTwincode:memberTwincode permissions:activeMember.permissions invitedContactId:nil returnMembers:nil propagate:NO useSecureRoster:YES signedOffTwincodeId:nil signature:nil];
+                }
+            }
+        } else {
+            [groupMembers removeObjectForKey:activeMember.memberTwincodeId];
+            if ([memberConversation permissions] != activeMember.permissions) {
+                [memberConversation setPermissions:activeMember.permissions];
+                [self.serviceProvider updateConversation:memberConversation];
+            }
+        }
+    }
+
+    // Delete the conversations associated with the member that is removed.
+    for (NSUUID *toDelete in groupMembers) {
+        TLGroupMemberConversationImpl *memberConversation = groupMembers[toDelete];
+        if (memberConversation) {
+            [groupConversation delMemberWithTwincodeId:toDelete];
+
+            [self.conversationService deleteConversation:memberConversation];
+        }
     }
 
     return TLBaseServiceErrorCodeSuccess;
@@ -542,6 +608,29 @@ static const int ddLogLevel = DDLogLevelWarning;
             if (groupConversation) {
                 [self delMember:groupConversation memberTwincodeId:peerTwincodeOutbound.uuid];
             }
+        }
+
+        [self.scheduler finishInvokeOperation:groupOperation conversation:conversation];
+    }];
+    return TLBaseServiceErrorCodeQueued;
+}
+
+- (TLBaseServiceErrorCode)invokeDeleteRosterMemberWithConversation:(nonnull TLConversationImpl *)conversation groupOperation:(nonnull TLGroupLeaveOperation *)groupOperation {
+    DDLogVerbose(@"%@ invokeDeleteRosterMemberWithConversation: %@ groupOperation: %@", LOG_TAG, conversation, groupOperation);
+    
+    NSUUID *rosterId = groupOperation.groupTwincodeId;
+    NSUUID *memberTwincodeId = groupOperation.memberTwincodeId;
+    if (!rosterId || !memberTwincodeId) {
+        return TLBaseServiceErrorCodeExpired;
+    }
+
+    [groupOperation updateWithRequestId:[TLTwinlife newRequestId]];
+    [self.secureRosterService deleteMemberWithRosterId:rosterId memberId:memberTwincodeId complete:^(TLBaseServiceErrorCode errorCode) {
+        // If we are offline or timed out don't acknowledge the operation but clear the
+        // request id so that we can retry it as soon as we are online.
+        if (errorCode == TLBaseServiceErrorCodeTwinlifeOffline) {
+            [groupOperation updateWithRequestId:OPERATION_NO_REQUEST_ID];
+            return;
         }
 
         [self.scheduler finishInvokeOperation:groupOperation conversation:conversation];
@@ -602,7 +691,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 return;
             }
             if (twincodeOutbound) {
-                [self addMember:groupConversation memberTwincode:twincodeOutbound permissions:groupOperation.permissions invitedContactId:nil returnMembers:nil propagate:YES signedOffTwincodeId:groupOperation.signedOffTwincodeId signature:groupOperation.signature];
+                [self addMember:groupConversation memberTwincode:twincodeOutbound permissions:groupOperation.permissions invitedContactId:nil returnMembers:nil propagate:YES useSecureRoster:NO signedOffTwincodeId:groupOperation.signedOffTwincodeId signature:groupOperation.signature];
             }
             [self.scheduler finishInvokeOperation:groupOperation conversation:conversation];
         }];
@@ -615,7 +704,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 return;
             }
             if (twincodeOutbound) {
-                [self addMember:groupConversation memberTwincode:twincodeOutbound permissions:groupOperation.permissions invitedContactId:nil returnMembers:nil propagate:YES signedOffTwincodeId:groupOperation.signedOffTwincodeId signature:groupOperation.signature];
+                [self addMember:groupConversation memberTwincode:twincodeOutbound permissions:groupOperation.permissions invitedContactId:nil returnMembers:nil propagate:YES useSecureRoster:NO signedOffTwincodeId:groupOperation.signedOffTwincodeId signature:groupOperation.signature];
             }
             [self.scheduler finishInvokeOperation:groupOperation conversation:conversation];
         }];
@@ -660,6 +749,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     [self.twincodeOutboundService secureInvokeTwincodeWithTwincode:twincodeOutbound senderTwincode:twincodeOutbound receiverTwincode:memberTwincode options:(TLInvokeTwincodeUrgent | TLInvokeTwincodeCreateSecret) action:TL_ACTION_GROUP_ON_JOIN attributes:attributes withBlock:^(TLBaseServiceErrorCode errorCode, NSUUID *onJoinInvocationId) {
         // If we are offline or timed out don't acknowledge the invocation: it will be retried.
         if (errorCode == TLBaseServiceErrorCodeTwinlifeOffline) {
+            [[self.twinlife getTwincodeInboundService] acknowledgeInvocationWithInvocationId:invocationId errorCode:errorCode];
             return;
         }
 
@@ -725,18 +815,14 @@ static const int ddLogLevel = DDLogLevelWarning;
     // Now, we trust this member because it was signed by an existing member.
     [self.twincodeOutboundService getSignedTwincodeWithTwincodeId:memberTwincodeId publicKey:invocation.publicKey keyIndex:invocation.keyIndex secretKey:invocation.secretKey trustMethod:TLTrustMethodPeer withBlock:^(TLBaseServiceErrorCode errorCode, TLTwincodeOutbound *twincodeOutbound) {
 
-        // If we are offline or timed out don't acknowledge the invocation.
-        if (errorCode == TLBaseServiceErrorCodeTwinlifeOffline) {
-            return;
-        }
-
+        // If we are offline or timed out, acknowledge the invocation it will be retried.
         if (!twincodeOutbound || errorCode != TLBaseServiceErrorCodeSuccess) {
             [[self.twinlife getTwincodeInboundService] acknowledgeInvocationWithInvocationId:invocation.invocationId errorCode:errorCode];
             return;
         }
 
         NSMutableArray<TLOnJoinGroupMemberInfo *> *members = [[NSMutableArray alloc] init];
-        [self addMember:groupConversation memberTwincode:twincodeOutbound permissions:permissions invitedContactId:nil returnMembers:members propagate:NO signedOffTwincodeId:nil signature:nil];
+        [self addMember:groupConversation memberTwincode:twincodeOutbound permissions:permissions invitedContactId:nil returnMembers:members propagate:NO useSecureRoster:NO signedOffTwincodeId:nil signature:nil];
         [self invokeOnJoinGroupWithGroupConversation:groupConversation memberTwincode:twincodeOutbound publicKey:invocation.publicKey members:members invocationId:invocation.invocationId];
     }];
     return TLBaseServiceErrorCodeQueued;
@@ -911,8 +997,69 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 }
 
-- (nullable TLGroupJoinResult *)processJoinGroupWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode descriptorId:(nonnull TLDescriptorId *)descriptorId publicKey:(nullable NSString *)publicKey {
-    DDLogVerbose(@"%@ processJoinGroupWithConversation: %@ groupTwincodeId: %@ memberTwincode: %@ descriptorId: %@ publicKey: %@", LOG_TAG, conversation, groupTwincodeId, memberTwincode, descriptorId, publicKey);
+- (void)processJoinGroupAsyncWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode descriptorId:(nonnull TLDescriptorId *)descriptorId publicKey:(nullable NSString *)publicKey withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLGroupJoinResult *_Nullable joinResult))block {
+    DDLogVerbose(@"%@ processJoinGroupAsyncWithConversation: %@ groupTwincodeId: %@ memberTwincode: %@ descriptorId: %@ publicKey: %@", LOG_TAG, conversation, groupTwincodeId, memberTwincode, descriptorId, publicKey);
+    
+    // Find the group.
+    TLGroupConversationImpl *groupConversation = [self.serviceProvider findGroupWithTwincodeId:groupTwincodeId];
+    if (!groupConversation) {
+        block(TLBaseServiceErrorCodeItemNotFound, nil);
+        return;
+    }
+    
+    // Verify that the invitation is still available.
+    TLDescriptor *descriptor = [self.serviceProvider loadDescriptorWithDescriptorId:descriptorId];
+    if (!descriptor || ![descriptor isKindOfClass:[TLInvitationDescriptor class]]) {
+        block(TLBaseServiceErrorCodeItemNotFound, nil);
+        return;
+    }
+
+    // Verify the invitation is still pending, or, it has the same member and is joined.
+    TLInvitationDescriptor *invitationDescriptor = (TLInvitationDescriptor *)descriptor;
+    TLInvitationDescriptorStatusType newStatus;
+    BOOL invitationChanged = false;
+    if (invitationDescriptor.status == TLInvitationDescriptorStatusTypePending) {
+        newStatus = TLInvitationDescriptorStatusTypeAccepted;
+        invitationDescriptor.memberTwincodeId = memberTwincode.uuid;
+        invitationDescriptor.readTimestamp = [[NSDate date] timeIntervalSince1970] * 1000;
+        invitationChanged = true;
+        
+        // We can receive the same join-group IQ several times and we must accept it if this is the same member.
+    } else if (invitationDescriptor.status == TLInvitationDescriptorStatusTypeJoined
+               && [memberTwincode.uuid isEqual:invitationDescriptor.memberTwincodeId]) {
+        newStatus = TLInvitationDescriptorStatusTypeAccepted;
+    } else {
+        newStatus = TLInvitationDescriptorStatusTypeWithdrawn;
+    }
+    
+    // If the invitation is accepted, add the member in the group.
+    int64_t memberPermissions = groupConversation.joinPermissions;
+    if (newStatus == TLInvitationDescriptorStatusTypeAccepted) {
+        TLTwincodeOutbound *groupTwincode = [groupConversation peerTwincodeOutbound];
+        TLRosterId *rosterId = [TLGroupProtocol getSecureRosterIdWithTwincode:groupTwincode];
+        TLTwincodeOutbound *signingTwincode = groupTwincode && [groupTwincode isOwner] ? groupTwincode : [groupConversation.subject twincodeOutbound];
+
+        if (rosterId && signingTwincode && publicKey) {
+            __weak TLGroupConversationManager *groupConversationManager = self;
+            [self.secureRosterService addMemberWithRosterId:rosterId signingMember:signingTwincode newMemberTwincodeId:memberTwincode.uuid newMemberPermission:memberPermissions newMemberPublicKey:[[TLPublicKeyData alloc] initWithString:publicKey] complete:^(TLBaseServiceErrorCode errorCode) {
+                if (errorCode == TLBaseServiceErrorCodeTwinlifeOffline) {
+                    block(errorCode, nil);
+                    return;
+                }
+
+                TLGroupJoinResult *joinResult = [groupConversationManager processFinishJoinGroupWithConversation:conversation groupTwincodeId:groupTwincodeId groupConversation:groupConversation memberTwincode:memberTwincode invitation:invitationDescriptor newStatus:newStatus invitationChanged:invitationChanged publicKey:publicKey];
+                block(TLBaseServiceErrorCodeSuccess, joinResult);
+            }];
+            return;
+        }
+    }
+
+    TLGroupJoinResult *joinResult = [self processFinishJoinGroupWithConversation:conversation groupTwincodeId:groupTwincodeId groupConversation:groupConversation memberTwincode:memberTwincode invitation:invitationDescriptor newStatus:newStatus invitationChanged:invitationChanged publicKey:publicKey];
+    block(TLBaseServiceErrorCodeSuccess, joinResult);
+}
+
+- (nullable TLGroupJoinResult *)processJoinGroupLegacyWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode descriptorId:(nonnull TLDescriptorId *)descriptorId {
+    DDLogVerbose(@"%@ processJoinGroupWithConversation: %@ groupTwincodeId: %@ memberTwincode: %@ descriptorId: %@", LOG_TAG, conversation, groupTwincodeId, memberTwincode, descriptorId);
     
     // Find the group.
     TLGroupConversationImpl *groupConversation = [self.serviceProvider findGroupWithTwincodeId:groupTwincodeId];
@@ -953,7 +1100,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         // If we have an invitation, keep the contactId of the conversation to which the invitation was sent.
         NSUUID *invitedContactId = conversation.contactId;
         members = [[NSMutableArray alloc] init];
-        result = [self addMember:groupConversation memberTwincode:memberTwincode permissions:memberPermissions invitedContactId:invitedContactId returnMembers:members propagate:false signedOffTwincodeId:nil signature:nil];
+        result = [self addMember:groupConversation memberTwincode:memberTwincode permissions:memberPermissions invitedContactId:invitedContactId returnMembers:members propagate:YES useSecureRoster:NO signedOffTwincodeId:nil signature:nil];
         if (result != TLGroupConversationAddMemberStatusTypeError) {
             newStatus = TLInvitationDescriptorStatusTypeJoined;
         } else {
@@ -993,12 +1140,68 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
     }
 
+    NSString *signature = [self signMemberWithTwincode:groupConversation.subject.twincodeOutbound groupTwincodeId:groupTwincodeId memberTwincodeId:memberTwincode.uuid publicKey:nil permissions:memberPermissions];
+    return [[TLGroupJoinResult alloc] initWithStatus:newStatus inviterMemberTwincode:groupConversation.subject.twincodeOutbound inviterMemberPermissions:groupConversation.permissions memberPermissions:memberPermissions members:members signature:signature];
+}
+
+- (nonnull TLGroupJoinResult *)processFinishJoinGroupWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId groupConversation:(nonnull TLGroupConversationImpl *)groupConversation memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode invitation:(nonnull TLInvitationDescriptor *)invitation newStatus:(TLInvitationDescriptorStatusType)newStatus invitationChanged:(BOOL)invitationChanged publicKey:(nonnull NSString *)publicKey {
+    DDLogVerbose(@"%@ processFinishJoinGroupWithConversation: %@ groupTwincodeId: %@ memberTwincode: %@ invitation: %@ publicKey: %@", LOG_TAG, conversation, groupTwincodeId, memberTwincode, invitation, publicKey);
+
+    // If the invitation is accepted, add the member in the group.
+    int64_t memberPermissions = groupConversation.joinPermissions;
+    TLGroupConversationAddMemberStatusType result;
+    NSMutableArray<TLOnJoinGroupMemberInfo*> *members = nil;
+    if (newStatus == TLInvitationDescriptorStatusTypeAccepted) {
+        
+        // If we have an invitation, keep the contactId of the conversation to which the invitation was sent.
+        NSUUID *invitedContactId = conversation.contactId;
+        members = [[NSMutableArray alloc] init];
+        result = [self addMember:groupConversation memberTwincode:memberTwincode permissions:memberPermissions invitedContactId:invitedContactId returnMembers:members propagate:NO useSecureRoster:[conversation hasVersion21] signedOffTwincodeId:nil signature:nil];
+        if (result != TLGroupConversationAddMemberStatusTypeError) {
+            newStatus = TLInvitationDescriptorStatusTypeJoined;
+        } else {
+            memberPermissions = 0;
+            newStatus = TLInvitationDescriptorStatusTypeWithdrawn;
+            invitationChanged = true;
+        }
+    } else {
+        memberPermissions = 0;
+        result = TLGroupConversationAddMemberStatusTypeNoChange;
+    }
+    
+    if (invitationChanged) {
+        invitation.status = newStatus;
+        [self.serviceProvider updateWithDescriptor:invitation];
+        
+        // Notify upper layers that the invitation was changed.
+        for (id delegate in self.conversationService.delegates) {
+            if ([delegate respondsToSelector:@selector(onUpdateDescriptorWithRequestId:conversation:descriptor:updateType:)]) {
+                id<TLConversationServiceDelegate> lDelegate = delegate;
+                dispatch_async([self.twinlife twinlifeQueue], ^{
+                    [lDelegate onUpdateDescriptorWithRequestId:[TLBaseService DEFAULT_REQUEST_ID] conversation:conversation descriptor:invitation updateType:TLConversationServiceUpdateTypeTimestamps];
+                });
+            }
+        }
+    }
+    
+    // The group is known and a new member joined the group, notify the upper layers.
+    if (result == TLGroupConversationAddMemberStatusTypeNewMember) {
+        for (id delegate in self.conversationService.delegates) {
+            if ([delegate respondsToSelector:@selector(onJoinGroupRequestWithRequestId:group:invitation:memberId:)]) {
+                id<TLConversationServiceDelegate> lDelegate = delegate;
+                dispatch_async([self.twinlife twinlifeQueue], ^{
+                    [lDelegate onJoinGroupRequestWithRequestId:[TLBaseService DEFAULT_REQUEST_ID] group:groupConversation invitation:invitation memberId:memberTwincode.uuid];
+                });
+            }
+        }
+    }
+
     NSString *signature = [self signMemberWithTwincode:groupConversation.subject.twincodeOutbound groupTwincodeId:groupTwincodeId memberTwincodeId:memberTwincode.uuid publicKey:publicKey permissions:memberPermissions];
     return [[TLGroupJoinResult alloc] initWithStatus:newStatus inviterMemberTwincode:groupConversation.subject.twincodeOutbound inviterMemberPermissions:groupConversation.permissions memberPermissions:memberPermissions members:members signature:signature];
 }
 
-- (nullable TLGroupJoinResult *)processJoinGroupWithGroupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode memberPermissions:(int64_t)memberPermissions {
-    DDLogVerbose(@"%@ processJoinGroupWithGroupTwincodeId: %@ memberTwincode: %@ memberPermissions: %lld", LOG_TAG, groupTwincodeId, memberTwincode, memberPermissions);
+- (nullable TLGroupJoinResult *)processJoinGroupLegacyWithGroupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode memberPermissions:(int64_t)memberPermissions {
+    DDLogVerbose(@"%@ processJoinGroupLegacyWithGroupTwincodeId: %@ memberTwincode: %@ memberPermissions: %lld", LOG_TAG, groupTwincodeId, memberTwincode, memberPermissions);
     
     // Find the group.
     TLGroupConversationImpl *groupConversation = [self.serviceProvider findGroupWithTwincodeId:groupTwincodeId];
@@ -1007,7 +1210,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 
     NSMutableArray<TLOnJoinGroupMemberInfo*> *members = nil;
-    TLGroupConversationAddMemberStatusType result = [self addMember:groupConversation memberTwincode:memberTwincode permissions:memberPermissions invitedContactId:nil returnMembers:members propagate:false signedOffTwincodeId:nil signature:nil];
+    TLGroupConversationAddMemberStatusType result = [self addMember:groupConversation memberTwincode:memberTwincode permissions:memberPermissions invitedContactId:nil returnMembers:members propagate:NO useSecureRoster:NO signedOffTwincodeId:nil signature:nil];
     if (result == TLGroupConversationAddMemberStatusTypeError) {
         return nil;
     }
@@ -1114,7 +1317,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     // inviterTwincode can be null for the legacy onJoinGroup().
     if (inviterTwincode) {
         // If we have an invitation, keep the contactId of the conversation to which the invitation was sent.
-        [self addMember:groupConversation memberTwincode:inviterTwincode permissions:inviterPermissions invitedContactId:conversation.contactId returnMembers:nil propagate:false signedOffTwincodeId:nil signature:nil];
+        [self addMember:groupConversation memberTwincode:inviterTwincode permissions:inviterPermissions invitedContactId:conversation.contactId returnMembers:nil propagate:NO useSecureRoster:NO signedOffTwincodeId:nil signature:nil];
 
         TLTwincodeOutbound *previousPeerTwincode = conversation.peerTwincodeOutbound;
         if (previousPeerTwincode && [inviterTwincode isSigned] && memberTwincode) {
@@ -1271,7 +1474,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     return [self.cryptoService signContentWithTwincode:twincodeOutbound content:data];
 }
 
-- (TLGroupConversationAddMemberStatusType)addMember:(nonnull TLGroupConversationImpl *)groupConversation memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode permissions:(int64_t)permissions invitedContactId:(nullable NSUUID *)invitedContactId returnMembers:(nullable NSMutableArray<TLOnJoinGroupMemberInfo*> *)returnMembers propagate:(BOOL)propagate signedOffTwincodeId:(nullable NSUUID *)signedOffTwincodeId signature:(nullable NSString *)signature {
+- (TLGroupConversationAddMemberStatusType)addMember:(nonnull TLGroupConversationImpl *)groupConversation memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode permissions:(int64_t)permissions invitedContactId:(nullable NSUUID *)invitedContactId returnMembers:(nullable NSMutableArray<TLOnJoinGroupMemberInfo*> *)returnMembers propagate:(BOOL)propagate useSecureRoster:(BOOL)useSecureRoster signedOffTwincodeId:(nullable NSUUID *)signedOffTwincodeId signature:(nullable NSString *)signature {
 
     TLTwincodeOutbound *twincodeOutbound = groupConversation.subject.twincodeOutbound;
     if (groupConversation.state == TLGroupConversationStateLeaving || !twincodeOutbound) {
@@ -1311,8 +1514,14 @@ static const int ddLogLevel = DDLogLevelWarning;
             TLTwincodeOutbound *peerTwincode = member.peerTwincodeOutbound;
             if (peerTwincode && ![peerTwincode.uuid isEqual:memberTwincodeId] && ![member isLeaving]) {
                 NSString *publicKey = [self.cryptoService getPublicKeyWithTwincode:peerTwincode];
-                    
-                [returnMembers addObject:[[TLOnJoinGroupMemberInfo alloc] initWithTwincodeId:peerTwincode.uuid publicKey:publicKey permissions:member.permissions]];
+
+                // - If this member has no public key, it is not part of the secure roster and we must report
+                //   it to the new member.
+                // - If the new member does not use the secure roster, we must tell it every member.
+                // - If a member does not know about secure roster, we must also propagate them manually.
+                if (!publicKey || !useSecureRoster || !member.hasVersion21) {
+                    [returnMembers addObject:[[TLOnJoinGroupMemberInfo alloc] initWithTwincodeId:peerTwincode.uuid publicKey:publicKey permissions:member.permissions]];
+                }
             }
         }
     }

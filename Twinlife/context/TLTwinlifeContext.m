@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2025 twinlife SA.
+ *  Copyright (c) 2013-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -362,7 +362,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         status = [self status];
 
         // We must wait until the twinlife library is started or in error.
-        if (status != TLTwinlifeStatusStarted && status != TLTwinlifeStatusError) {
+        if (status != TLTwinlifeStatusStarted && status != TLTwinlifeStatusRestoring && status != TLTwinlifeStatusError) {
             return;
         }
         configureStatus = self.configureStatus;
@@ -378,7 +378,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         return;
     }
 
-    NSAssert(status == TLTwinlifeStatusStarted, @"twinlife.status must be started");
+    NSAssert(status == TLTwinlifeStatusStarted || status == TLTwinlifeStatusRestoring, @"twinlife.status must be started");
 
     if ([delegate respondsToSelector:@selector(onTwinlifeReady)]) {
         dispatch_async([self.twinlife twinlifeQueue], ^{
@@ -490,6 +490,11 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (TLBackupService *)getBackupService {
     return [self.twinlife getBackupService];
+}
+
+- (TLSecureRosterService *)getSecureRosterService {
+
+    return [self.twinlife getSecureRosterService];
 }
 
 - (TLSerializerFactory *)getSerializerFactory {

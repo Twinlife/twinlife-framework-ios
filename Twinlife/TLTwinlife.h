@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2025 twinlife SA.
+ *  Copyright (c) 2013-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -127,6 +127,7 @@
 @class TLPeerCallServiceConfiguration;
 @class TLAccountMigrationServiceConfiguration;
 @class TLBackupServiceConfiguration;
+@class TLSecureRosterServiceConfiguration;
 @class TLProxyDescriptor;
 
 @interface TLTwinlifeConfiguration:NSObject
@@ -158,6 +159,7 @@
 @property (nonnull) TLPeerCallServiceConfiguration *peerCallServiceConfiguration;
 @property (nonnull) TLAccountMigrationServiceConfiguration *accountMigrationServiceConfiguration;
 @property (nonnull) TLBackupServiceConfiguration *backupServiceConfiguration;
+@property (nonnull) TLSecureRosterServiceConfiguration *secureRosterServiceConfiguration;
 
 - (nonnull instancetype)initWithName:(nonnull NSString *)applicationName applicationVersion:(nonnull NSString *)applicationVersion serializers:(nonnull NSArray<TLSerializer *> *)serializers enableSetup:(BOOL)enableSetup enableCaches:(BOOL)enableCaches factories:(nonnull NSArray<id<TLRepositoryObjectFactory>> *)factories;
 
@@ -183,6 +185,7 @@
 @class TLAccountMigrationService;
 @class TLCryptoService;
 @class TLBackupService;
+@class TLSecureRosterService;
 @class TLAssertPoint;
 @class TLTwinlifeContext;
 
@@ -200,6 +203,9 @@
 
 + (nonnull NSString *)BACKUP_EXTENSION;
 
+// Tag created and used to trigger the migration of groups to use secure roster on 2026-04-21 (DB version 26).
++ (nonnull NSString *)GROUP_SECURE_ROSTER_MIGRATION;
+
 + (nonnull NSUserDefaults *)getAppSharedUserDefaults;
 
 - (TLBaseServiceErrorCode)configure:(nonnull TLTwinlifeConfiguration *)twinlifeConfiguration twinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext;
@@ -209,6 +215,12 @@
 - (BOOL)isConfigured;
 
 - (BOOL)isDatabaseUpgraded;
+
+/// Check if some migration is needed for the service.
+- (BOOL)needMigrationWithTag:(nonnull NSString *)tag;
+
+/// When the migration work is finished, remove the marker file that indicates a migration is necessary.
+- (void)finishMigrationWithTag:(nonnull NSString *)tag;
 
 - (void)stopWithCompletionHandler:(nullable void (^)(TLBaseServiceErrorCode status))completionHandler;
 
@@ -251,6 +263,8 @@
 - (nonnull TLBackupService *)getBackupService;
 
 - (nonnull TLCryptoService *)getCryptoService;
+
+- (nonnull TLSecureRosterService *)getSecureRosterService;
 
 - (nonnull NSDictionary<NSString *, TLServiceStats *> *)getServiceStats;
 

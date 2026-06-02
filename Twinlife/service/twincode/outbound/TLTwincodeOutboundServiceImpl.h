@@ -61,9 +61,6 @@
 
 - (void)needFetch;
 
-/// Whether the twincode was created by this application.
-- (BOOL)isOwner;
-
 @end
 
 typedef void (^TLTwincodeConsumer) (TLBaseServiceErrorCode status, TLTwincodeOutbound * _Nullable twincodeOutbound);

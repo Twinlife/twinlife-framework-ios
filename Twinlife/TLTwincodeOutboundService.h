@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -26,7 +26,7 @@
 // Interface: TLTwincodeOutbound
 //
 
-@interface TLTwincodeOutbound : TLTwincode <TLDatabaseObject>
+@interface TLTwincodeOutbound : TLTwincode <TLDatabaseObject, NSCopying>
 
 - (nullable NSString *)name;
 
@@ -53,6 +53,9 @@
 
 /// Whether the twincode was certified as part of the contact certification process.
 - (BOOL)isCertified;
+
+/// Whether the twincode was created by this application.
+- (BOOL)isOwner;
 
 /// Whether the twincode public key is trusted and how.
 - (TLTrustMethod)trustMethod;

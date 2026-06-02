@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2017-2024 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLDatabaseServiceProvider.h"
@@ -34,7 +35,7 @@
 
 - (nonnull NSMutableDictionary<NSUUID *, TLNotificationServiceNotificationStat *> *)getNotificationStats;
 
-- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nonnull NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser;
+- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nonnull NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser annotation:(nullable TLDescriptorAnnotation *)annotation;
 
 - (void)acknowledgeWithNotification:(nonnull TLNotification *)notification;
 

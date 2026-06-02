@@ -110,16 +110,8 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
 
 - (TLBaseServiceErrorCode)operationNotSupportedWithConnection:(nonnull TLConversationConnection*)connection descriptor:(nonnull TLDescriptor *)descriptor {
     DDLogVerbose(@"%@ operationNotSupportedWithConnection: %@", LOG_TAG, descriptor);
-
-    if (descriptor) {
-        descriptor.sentTimestamp = -1;
-        descriptor.receivedTimestamp = -1;
-        descriptor.readTimestamp = -1;
-        [self.conversationService updateWithDescriptor:descriptor conversation:self.conversation];
-    }
-    [self.conversationService onErrorWithRequestId:[TLBaseService DEFAULT_REQUEST_ID] errorCode:TLBaseServiceErrorCodeFeatureNotSupportedByPeer errorParameter:[self.conversation.uuid UUIDString]];
-
-    return TLBaseServiceErrorCodeFeatureNotSupportedByPeer;
+    
+    return [self.conversationService operationNotSupportedWithConnection:self descriptor:descriptor];
 }
 
 - (TLBaseServiceErrorCode)deleteFileDescriptorWithConnection:(nonnull TLConversationConnection*)connection fileDescriptor:(nonnull TLFileDescriptor *)fileDescriptor operation:(nonnull TLConversationServiceOperation *)operation {

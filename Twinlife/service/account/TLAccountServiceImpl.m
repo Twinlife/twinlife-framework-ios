@@ -297,11 +297,11 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
 
 @implementation TLRestoreChallengePendingRequest
 
-- (nonnull instancetype)initWithAccountPassword:(nonnull NSString *)accountPassword restoreChallengeIQ:(nonnull TLRestoreChallengeIQ *)restoreChallengeIQ consumer:(nonnull ConsumerBlock)consumer {
+- (nonnull instancetype)initWithAccountSecuredConfiguration:(nonnull TLAccountServiceSecuredConfiguration *)accountSecuredConfiguration restoreChallengeIQ:(nonnull TLRestoreChallengeIQ *)restoreChallengeIQ consumer:(nonnull ConsumerBlock)consumer {
     self = [super initWithRequestKind:RESTORE_CHALLENGE_REQUEST consumer:consumer];
     
     if (self) {
-        _accountPassword = accountPassword;
+        _accountSecuredConfiguration = accountSecuredConfiguration;
         _restoreChallengeIQ = restoreChallengeIQ;
     }
     
@@ -319,6 +319,7 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
         _restoreChallengeIQ = restoreChallengePendingRequest.restoreChallengeIQ;
         _onRestoreChallengeIQ = onRestoreChallengeIQ;
         _serverKey = serverKey;
+        _accountSecuredConfiguration = restoreChallengePendingRequest.accountSecuredConfiguration;
     }
     
     return self;
@@ -569,7 +570,7 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
 
     TLAccountServiceSecuredConfiguration *securedConfiguration;
     @synchronized (self) {
-        securedConfiguration = self.securedConfiguration;
+        securedConfiguration = self.activeSecuredConfiguration;
     }
 
     // Load the secured configuration as a temporary configuration.
@@ -705,7 +706,9 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     NSString *features = configuration.features;
     NSUUID *environmentId = configuration.environmentId;
 
-    if (![self.securedConfiguration isUpdatedWithEnvironmentId:environmentId] && ![self.securedConfiguration isUpdatedWithSubscribedFeatures:features]) {
+    TLAccountServiceSecuredConfiguration *accountSecuredConfiguration = self.activeSecuredConfiguration;
+    
+    if (![accountSecuredConfiguration isUpdatedWithEnvironmentId:environmentId] && ![accountSecuredConfiguration isUpdatedWithSubscribedFeatures:features]) {
 
         return;
     }
@@ -713,17 +716,21 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     // When the allowed features or the environment is defined, update the list.
     @synchronized (self) {
         if (environmentId) {
-            self.securedConfiguration.environmentId = environmentId;
+            accountSecuredConfiguration.environmentId = environmentId;
         }
-        self.securedConfiguration.subscribedFeatures = features;
+        accountSecuredConfiguration.subscribedFeatures = features;
         [self.allowedFeatures removeAllObjects];
         if (features) {
             NSArray<NSString *> *featureList = [features componentsSeparatedByString: @","];
             [self.allowedFeatures addObjectsFromArray:featureList];
         }
 
-        // Save so that we can restore a default subscribedFeatures list when we don't have the network.
-        [self.securedConfiguration synchronize];
+        if (!self.twinlife.backupService.isRestoreInProgress) {
+            // Save so that we can restore a default subscribedFeatures list when we don't have the network,
+            // but only if we're not restoring a backup: we don't want to modify the config until
+            // restore is successful and confirmed by the user.
+            [self.securedConfiguration synchronize];
+        }
     }
 }
 
@@ -736,7 +743,7 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
         return TLAccountServiceAuthenticationAuthorityDisabled;
     }
     
-    return self.securedConfiguration.authenticationAuthority;
+    return self.activeSecuredConfiguration.authenticationAuthority;
 }
 
 - (BOOL)isReconnectable {
@@ -746,9 +753,9 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
         return NO;
     }
     
-    switch (self.securedConfiguration.authenticationAuthority) {
+    switch (self.activeSecuredConfiguration.authenticationAuthority) {
         case TLAccountServiceAuthenticationAuthorityDevice:
-            return !self.securedConfiguration.isSignOut;
+            return !self.activeSecuredConfiguration.isSignOut;
 
         case TLAccountServiceAuthenticationAuthorityUnregistered:
             return YES;
@@ -773,10 +780,12 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
         return;
     }
     
-    @synchronized(self) {
-        self.securedConfiguration.authenticationAuthority = TLAccountServiceAuthenticationAuthorityUnregistered;
-        [self.securedConfiguration synchronize];
-        self.authUser = nil;
+    if (!self.twinlife.backupService.isRestoreInProgress) {
+        @synchronized(self) {
+            self.securedConfiguration.authenticationAuthority = TLAccountServiceAuthenticationAuthorityUnregistered;
+            [self.securedConfiguration synchronize];
+            self.authUser = nil;
+        }
     }
     
     [self.twinlife onSignOut];
@@ -793,10 +802,11 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     NSString *username;
     NSString *password;
     @synchronized (self) {
-        username = [self.securedConfiguration deviceUsername];
-        password = [self.securedConfiguration devicePassword];
+        TLAccountServiceSecuredConfiguration *securedConfiguration = self.activeSecuredConfiguration;
+        username = [securedConfiguration deviceUsername];
+        password = [securedConfiguration devicePassword];
         
-        if ([self.securedConfiguration authenticationAuthority] != TLAccountServiceAuthenticationAuthorityUnregistered || !username || !password) {
+        if ([securedConfiguration authenticationAuthority] != TLAccountServiceAuthenticationAuthorityUnregistered || !username || !password) {
             
             [self onErrorWithRequestId:requestId errorCode:TLBaseServiceErrorCodeNotAuthorizedOperation errorParameter:nil];
             return;
@@ -822,6 +832,11 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     DDLogVerbose(@"%@ deleteAccountWithRequestId: %lld", LOG_TAG, requestId);
     
     if (!self.serviceOn) {
+        return;
+    }
+    
+    if (self.twinlife.backupService.isRestoreInProgress) {
+        DDLogVerbose(@"%@ Restore in progress, ignoring delete account request", LOG_TAG);
         return;
     }
 
@@ -914,7 +929,7 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     
     [self sendBinaryIQ:restoreChallengeIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
     
-    TLRestoreChallengePendingRequest *pendingRequest = [[TLRestoreChallengePendingRequest alloc] initWithAccountPassword:accountConfiguration.devicePassword restoreChallengeIQ:restoreChallengeIQ consumer:^(TLBaseServiceErrorCode errorCode, id _Nullable result) {
+    TLRestoreChallengePendingRequest *pendingRequest = [[TLRestoreChallengePendingRequest alloc] initWithAccountSecuredConfiguration:accountConfiguration restoreChallengeIQ:restoreChallengeIQ consumer:^(TLBaseServiceErrorCode errorCode, id _Nullable result) {
             block(errorCode);
     }];
     @synchronized (self.pendingRequests) {
@@ -952,7 +967,7 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     NSString *resource = self.twinlife.resource;
     int64_t requestId = [TLTwinlife newRequestId];
     
-    NSString *password = restoreChallenge.accountPassword;
+    NSString *password = restoreChallenge.accountSecuredConfiguration.devicePassword;
     
     if (!password) {
         DDLogError(@"%@ No restoreAccountPassword", LOG_TAG);
@@ -1036,7 +1051,12 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
         restoreRequest.consumer(TLBaseServiceErrorCodeServerError, nil);
         return;
     }
-
+    
+    self.restoreSecuredConfiguration = restoreRequest.accountSecuredConfiguration;
+    
+    self.authUser = [self.twinlife toBareJIDWithUsername:restoreChallengeIQ.accountIdentifier];
+    [self.twinlife onSignIn];
+    
     restoreRequest.consumer(TLBaseServiceErrorCodeSuccess, nil);
 }
 
@@ -1160,7 +1180,7 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
             return;
         }
         
-        if (result && ![result isKindOfClass:TLOnGenerateBackupKeyIQ.class]) {
+        if (!result || ![result isKindOfClass:TLOnGenerateBackupKeyIQ.class]) {
             DDLogError(@"%@ Expected iq (TLOnGenerateBackupKeyIQ *) but got: %@", LOG_TAG, result);
             block(TLBaseServiceErrorCodeLibraryError, nil, nil, -1);
             return;
@@ -1203,9 +1223,9 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
 }
 
 
-- (void)setRestoreAccountConfigurationWithAccountConfiguration:(nullable TLAccountServiceSecuredConfiguration *)accountConfiguration {
-    DDLogVerbose(@"%@ setRestoreAccountConfigurationWithAccountConfiguration: %@", LOG_TAG, accountConfiguration);
-    self.restoreSecuredConfiguration = accountConfiguration;
+- (void)removeRestoreAccountConfiguration {
+    DDLogVerbose(@"%@ removeRestoreAccountConfiguration", LOG_TAG);
+    self.restoreSecuredConfiguration = nil;
 }
 
 - (nullable TLAccountServiceSecuredConfiguration *)activeSecuredConfiguration {
@@ -1299,7 +1319,6 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
         pendingRequest.consumer(onDeleteBackupIQ.errorCode, nil);
     }
 }
-
 
 #pragma mark - TLAccountService IQ
 
@@ -1707,7 +1726,6 @@ static NSSet<NSNumber *> *AUTH_REQUEST_KINDS = nil;
     }
     
     if (!pendingRequest) {
-        DDLogError(@"%@ No request for requestId=%@", LOG_TAG, requestId);
         return nil;
     }
     

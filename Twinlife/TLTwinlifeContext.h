@@ -98,6 +98,7 @@
 @class TLJobService;
 @class TLAccountMigrationService;
 @class TLBackupService;
+@class TLSecureRosterService;
 @class TLSerializerFactory;
 
 @interface TLTwinlifeContext : NSObject <TLTwinlifeSuspendObserver>
@@ -158,6 +159,8 @@
 - (nonnull TLAccountMigrationService *)getAccountMigrationService;
 
 - (nonnull TLBackupService *)getBackupService;
+
+- (nonnull TLSecureRosterService *)getSecureRosterService;
 
 - (nonnull TLSerializerFactory *)getSerializerFactory;
 

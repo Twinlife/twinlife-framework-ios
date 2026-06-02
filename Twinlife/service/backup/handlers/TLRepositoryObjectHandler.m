@@ -172,7 +172,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     
     NSNumber *counter = self.stats[schemaId];
     
-    if (!counter) {
+    if (counter == nil) {
         counter = @1;
     } else {
         counter = [NSNumber numberWithInt:(counter.intValue + 1)];
@@ -249,7 +249,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     
     NSNumber *counter = self.stats[schemaId];
     
-    if (!counter) {
+    if (counter == nil) {
         counter = @1;
     } else {
         counter = [NSNumber numberWithInt:(counter.intValue + 1)];

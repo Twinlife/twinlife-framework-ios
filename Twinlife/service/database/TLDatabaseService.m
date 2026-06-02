@@ -1196,6 +1196,13 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
         }
     }
 
+    if (oldVersion <= 25) {
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        NSString *path = [TLTwinlife getAppGroupPath:fileManager path:[TLTwinlife GROUP_SECURE_ROSTER_MIGRATION]];
+
+        [[NSFileManager defaultManager] createFileAtPath:path contents:nil attributes:nil];
+    }
+
     // Migrate each service in a specific order and commit transaction after each service migration.
     // If we are interrupted in the middle, the service must be prepared to re-do or do nothing at
     // a next application restart.

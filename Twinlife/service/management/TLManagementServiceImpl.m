@@ -473,10 +473,8 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
     // try to use the PushKit to wakeup the device for new messages: we must not use PushKit until
     // we can use a valid APNS token.
     // For iOS < 13, the remote APNS token is nil and must not be used (see Notification Service app extension).
-    if (@available(iOS 13.0, *)) {
-        if (!self.pushNotificationRemoteToken) {
-            self.pushNotificationRemoteToken = TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_APNS_WAIT;
-        }
+    if (!self.pushNotificationRemoteToken) {
+        self.pushNotificationRemoteToken = TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_APNS_WAIT;
     }
 }
 
@@ -515,9 +513,7 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
     // For iOS 13, force a 'wait' token so that the server will not try to use the PushKit to wakeup
     // the device for new messages: we must not use PushKit until we can use a valid APNS token.
     // For iOS < 13, the remote APNS token is nil and must not be used (see Notification Service app extension).
-    if (@available(iOS 13.0, *)) {
-        self.pushNotificationRemoteToken = TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_APNS_WAIT;
-    }
+    self.pushNotificationRemoteToken = TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_APNS_WAIT;
     
     [self sendEvents:YES];
     

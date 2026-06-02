@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2015-2025 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -53,6 +54,8 @@
 #import "TLCallDescriptorImpl.h"
 #import "TLUpdateDescriptorTimestampOperation.h"
 #import "TLUpdateDescriptorOperation.h"
+#import "TLPollDescriptorImpl.h"
+#import "TLPushPollOperation.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -726,11 +729,6 @@ static const int ddLogLevel = DDLogLevelWarning;
                 result = (TLGroupMemberConversationImpl *)object;
             }
         } else {
-            // Too many members or pending invitation in the group, refuse the invitation.
-            if ([groupConversation activeMemberCount] > CONVERSATION_MAX_GROUP_MEMBERS) {
-                return;
-            }
-            
             TLTwincodeOutbound *memberTwincodeOutbound = [transaction loadOrStoreTwincodeOutboundId:memberTwincodeId];
             if (!memberTwincodeOutbound) {
                 return;
@@ -1243,24 +1241,39 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
   
         TLDescriptorId *descriptorId = descriptor.descriptorId;
-        resultSet = [database executeQuery:@"SELECT kind, value, COUNT(*) FROM annotation WHERE"
-                     " cid=? AND descriptor=? GROUP BY kind, value", [NSNumber numberWithLongLong:descriptor.conversationId], [NSNumber numberWithLongLong:descriptorId.id]];
+        resultSet = [database executeQuery:@"SELECT a.kind, a.value, t.twincodeId FROM annotation AS a"
+                     " LEFT JOIN twincodeOutbound AS t ON a.peerTwincodeOutbound=t.id"
+                     " WHERE cid=? AND descriptor=?",
+                     [NSNumber numberWithLongLong:descriptor.conversationId],
+                     [NSNumber numberWithLongLong:descriptorId.id]];
         if (!resultSet) {
             [self.service onDatabaseErrorWithError:[database lastError] line:__LINE__];
             return;
         }
 
-        NSMutableArray<TLDescriptorAnnotation *> *annotations = nil;
+        NSMutableDictionary<NSUUID *, NSMutableArray<TLDescriptorAnnotation *> *> *annotations = descriptor.annotations;
         while ([resultSet next]) {
             TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:[resultSet intForColumnIndex:0]];
             if (type != TLDescriptorAnnotationTypeInvalid) {
                 int64_t value = [resultSet longForColumnIndex:1];
-                int count = [resultSet intForColumnIndex:2];
-                if (!annotations) {
-                    annotations = [[NSMutableArray alloc] init];
-                    descriptor.annotations = annotations;
+                NSUUID *twincodeOutboundId = [resultSet uuidForColumnIndex:2];
+                
+                if (!twincodeOutboundId) {
+                    TLConversationImpl *conversation = [self loadConversationWithId:descriptor.conversationId];
+                    if (!conversation) {
+                        DDLogError(@"%@ Can't find conversation for descriptor %@", LOG_TAG, descriptor.descriptorId);
+                        continue;
+                    }
+                    twincodeOutboundId = conversation.twincodeOutboundId;
                 }
-                [annotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:count]];
+                
+                NSMutableArray<TLDescriptorAnnotation *> *peerAnnotations = annotations[twincodeOutboundId];
+                
+                if (!annotations) {
+                    peerAnnotations = [[NSMutableArray alloc] init];
+                    annotations[twincodeOutboundId] = peerAnnotations;
+                }
+                [peerAnnotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value]];
             }
         }
         [resultSet close];
@@ -1352,12 +1365,17 @@ static const int ddLogLevel = DDLogLevelWarning;
 
         // Get the descriptor annotations in a second query.
         if (descriptors.count > 0) {
-            TLQueryBuilder *annotationsQuery = [[TLQueryBuilder alloc] initWithSQL:@"descriptor, kind, value, COUNT(*) FROM annotation"];
+            TLQueryBuilder *annotationsQuery;
             if (conversation) {
+                annotationsQuery = [[TLQueryBuilder alloc] initWithSQL:@"a.descriptor, a.kind, a.value, t.twincodeId FROM annotation AS a LEFT JOIN twincodeOutbound AS t ON a.peerTwincodeOutbound=t.id"];
                 [annotationsQuery filterIdentifier:conversation.identifier field:@"cid"];
+            } else {
+                annotationsQuery = [[TLQueryBuilder alloc] initWithSQL:@"a.descriptor, a.kind, a.value, t.twincodeId FROM annotation AS a "
+                                    "INNER JOIN conversation AS c ON a.cid = c.id "
+                                    "INNER JOIN repository AS r ON c.subject = r.id "
+                                    "INNER JOIN twincodeOutbound AS t ON a.peerTwincodeOutbound=t.id OR r.twincodeOutbound = t.id"];
             }
             [annotationsQuery filterInList:[descriptorMap allKeys] field:@"descriptor"];
-            [annotationsQuery appendString:@"GROUP BY descriptor, kind, value"];
             
             // Step 2: run the query and dispatch the annotation to the corresponding descriptor.
             resultSet = [database executeQuery:[annotationsQuery sql] withArgumentsInArray:[annotationsQuery sqlParams]];
@@ -1372,14 +1390,23 @@ static const int ddLogLevel = DDLogLevelWarning;
                 TLDescriptor *descriptor = descriptorMap[[NSNumber numberWithLongLong:descriptorId]];
                 if (descriptor && type != TLDescriptorAnnotationTypeInvalid) {
                     int value = [resultSet intForColumnIndex:2];
-                    int count = [resultSet intForColumnIndex:3];
+                    NSUUID *twincodeOutboundId = [resultSet uuidForColumnIndex:3];
                     
-                    NSMutableArray<TLDescriptorAnnotation *> *annotations = descriptor.annotations;
-                    if (!annotations) {
-                        annotations = [[NSMutableArray alloc] init];
-                        descriptor.annotations = annotations;
+                    if (!twincodeOutboundId) {
+                        if (conversation) {
+                            twincodeOutboundId = conversation.twincodeOutboundId;
+                        } else {
+                            DDLogWarn(@"%@ No twincodeOutboundId for annotation %d=%d, descriptor: %@", LOG_TAG, type, value, descriptor);
+                            continue;
+                        }
                     }
-                    [annotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:count]];
+
+                    NSMutableArray<TLDescriptorAnnotation *> *annotations = descriptor.annotations[twincodeOutboundId];
+                    if (!annotations) {
+                        annotations = [NSMutableArray array];
+                        descriptor.annotations[twincodeOutboundId] = annotations;
+                    }
+                    [annotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value]];
                 }
             }
             [resultSet close];
@@ -1487,6 +1514,9 @@ static const int ddLogLevel = DDLogLevelWarning;
 
          case 13: // Clear descriptor
             return [[TLClearDescriptor alloc] initWithDescriptorId:descriptorId conversationId:cid sendTo:sendTo replyTo:replyTo creationDate:creationDate sendDate:sendDate receiveDate:receiveDate readDate:readDate updateDate:updateDate peerDeleteDate:peerDeleteDate deleteDate:deleteDate expireTimeout:expireTimeout clearDate:value];
+ 
+        case 14: // Poll descriptor
+           return [[TLPollDescriptor alloc] initWithDescriptorId:descriptorId conversationId:cid creationDate:creationDate sendDate:sendDate receiveDate:receiveDate readDate:readDate updateDate:updateDate peerDeleteDate:peerDeleteDate deleteDate:deleteDate expireTimeout:expireTimeout flags:flags content:content];
 
          default:
              return nil;
@@ -1620,15 +1650,6 @@ static const int ddLogLevel = DDLogLevelWarning;
     __block TLInvitationDescriptor *result = nil;
     [self inTransaction:^(TLTransaction *transaction) {
         NSNumber *groupId = [group.identifier identifierNumber];
-
-        long count = [transaction longForQuery:@"SELECT COUNT(*) FROM invitation AS i"
-                      " INNER JOIN descriptor AS d ON i.id=d.id"
-                      " WHERE i.groupId=? AND d.value=0", groupId];
-
-        // Too many members or pending invitation in the group, refuse the invitation.
-        if (count + [group activeMemberCount] > CONVERSATION_MAX_GROUP_MEMBERS) {
-            return;
-        }
 
         int64_t did = [transaction allocateIdWithTable:TLDatabaseTableDescriptor];
         int64_t sequenceId = [transaction allocateIdWithTable:TLDatabaseSequence];
@@ -2013,7 +2034,7 @@ static const int ddLogLevel = DDLogLevelWarning;
             if (type != TLDescriptorAnnotationTypeInvalid) {
                 int value = [resultSet intForColumnIndex:1];
                         
-                [annotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:0]];
+                [annotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value]];
             }
         }
         [resultSet close];
@@ -2021,13 +2042,15 @@ static const int ddLogLevel = DDLogLevelWarning;
     return annotations;
 }
 
-- (BOOL)setAnnotationsWithDescriptor:(nonnull TLDescriptor *)descriptor peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId annotations:(nonnull NSArray<TLDescriptorAnnotation *> *)annotations  annotatingUsers:(nonnull NSMutableSet<TLTwincodeOutbound *> *)annotatingUsers {
+- (BOOL)setAnnotationsWithDescriptor:(nonnull TLDescriptor *)descriptor peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId annotations:(nonnull NSArray<TLDescriptorAnnotation *> *)annotations  updatedAnnotations:(nonnull NSMutableDictionary<TLTwincodeOutbound *, NSSet<TLDescriptorAnnotation *> *> *)updatedAnnotations {
     DDLogVerbose(@"%@ setAnnotationsWithDescriptor: %@ peerTwincodeOutboundId: %@ annotations: %@", LOG_TAG, descriptor, peerTwincodeOutboundId, annotations);
 
-    NSMutableDictionary<NSNumber *, NSNumber *> *newList = [[NSMutableDictionary alloc] initWithCapacity:annotations.count];
+    NSMutableDictionary<NSNumber *, TLDescriptorAnnotation *> *peerAnnotationsByType = [[NSMutableDictionary alloc] initWithCapacity:annotations.count];
     for (TLDescriptorAnnotation *annotation in annotations) {
-        [newList setObject:[NSNumber numberWithLongLong:annotation.value] forKey:[NSNumber numberWithInt:annotation.type]];
+        peerAnnotationsByType[[NSNumber numberWithInt:annotation.type]] = annotation;
     }
+    
+    NSMutableSet<TLDescriptorAnnotation *> *peerAnnotations = [NSMutableSet set];
     
     __block BOOL modified = NO;
     [self inTransaction:^(TLTransaction *transaction) {
@@ -2057,20 +2080,24 @@ static const int ddLogLevel = DDLogLevelWarning;
             if (type != TLDescriptorAnnotationTypeInvalid) {
                 NSNumber *value = [NSNumber numberWithLongLong:[resultSet intForColumnIndex:1]];
                 NSNumber *key = [NSNumber numberWithInt:type];
-                NSNumber *newValue = newList[key];
+                TLDescriptorAnnotation *peerAnnotation = peerAnnotationsByType[key];
                         
-                if (newValue == nil) {
-                    if (!deleteList) {
-                        deleteList = [[NSMutableArray alloc] init];
+                if (peerAnnotation == nil) {
+                    if ([TLConversationServiceProvider isAnnotationFromPeerWithType:type] ||
+                        (type == TLDescriptorAnnotationTypeReceived && peerAnnotationsByType[[NSNumber numberWithInt:TLDescriptorAnnotationTypeRead]])) {
+                        // The peer has deleted the annotation, or we're overriding a RECEIVED timestamp with a READ one.
+                        if (!deleteList) {
+                            deleteList = [[NSMutableArray alloc] init];
+                        }
+                        [deleteList addObject:key];
                     }
-                    [deleteList addObject:key];
-                } else if (newValue.longLongValue != value.longLongValue) {
+                } else if (peerAnnotation.value != value.longLongValue) {
                     if (!updateList) {
                         updateList = [[NSMutableArray alloc] init];
                     }
                     [updateList addObject:key];
                 } else {
-                    [newList removeObjectForKey:key];
+                    [peerAnnotationsByType removeObjectForKey:key];
                 }
             }
         }
@@ -2079,7 +2106,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         // Step 2: delete the annotations which are removed.
         if (deleteList) {
             for (NSNumber *key in deleteList) {
-                [transaction executeUpdate:@"DELETE FROM annotation WHERE cid=? AND descriptor=? AND peerTwincodeOutbound=? AND kind=?", conversationId, did, peerTwincodeId, [NSNumber numberWithInt:[self fromDescriptorAnnotationType:key.intValue]]];
+                [transaction executeUpdate:@"DELETE FROM annotation WHERE cid=? AND descriptor=? AND peerTwincodeOutbound=? AND kind=?", conversationId, did, peerTwincodeId, [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:key.intValue]]];
                         
                 modified |= [transaction changes] > 0;
             }
@@ -2089,25 +2116,31 @@ static const int ddLogLevel = DDLogLevelWarning;
         if (updateList) {
             NSNumber *creationDate = [NSNumber numberWithLongLong:[[NSDate date] timeIntervalSince1970] * 1000];
             for (NSNumber *key in updateList) {
-                NSNumber *newValue = newList[key];
-                [newList removeObjectForKey:key];
-                [transaction executeUpdate:@"UPDATE annotation SET value=?, creationDate=?, notificationId=NULL WHERE cid=? AND descriptor=? AND peerTwincodeOutbound=? AND kind=? AND value != ?", newValue, creationDate, conversationId, did, peerTwincodeId, [NSNumber numberWithInt:[self fromDescriptorAnnotationType:key.intValue]], newValue];
+                TLDescriptorAnnotation *annotation = peerAnnotationsByType[key];
+                [peerAnnotationsByType removeObjectForKey:key];
+                
+                NSNumber *annotationValue = [NSNumber numberWithLongLong:annotation.value];
+                
+                [transaction executeUpdate:@"UPDATE annotation SET value=?, creationDate=?, notificationId=NULL WHERE cid=? AND descriptor=? AND peerTwincodeOutbound=? AND kind=? AND value != ?", annotationValue, creationDate, conversationId, did, peerTwincodeId, [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:key.intValue]], annotationValue];
                 modified = YES;
+                [peerAnnotations addObject:annotation];
             }
-            [annotatingUsers addObject:twincodeOutbound];
         }
             
         // Step 4: add the new ones.
-        if (newList.count > 0) {
+        if (peerAnnotationsByType.count > 0) {
             NSNumber *creationDate = [NSNumber numberWithLongLong:[[NSDate date] timeIntervalSince1970] * 1000];
-            for (NSNumber *key in newList) {
-                NSNumber *value = newList[key];
-                [transaction executeUpdate:@"INSERT OR IGNORE INTO annotation (cid, descriptor, peerTwincodeOutbound, kind, value, creationDate) VALUES(?, ?, ?, ?, ?, ?)", conversationId, did, peerTwincodeId, [NSNumber numberWithInt:[self fromDescriptorAnnotationType:key.intValue]], value, creationDate];
+            for (NSNumber *key in peerAnnotationsByType) {
+                TLDescriptorAnnotation *annotation = peerAnnotationsByType[key];
+                NSNumber *annotationValue = [NSNumber numberWithLongLong:annotation.value];
+                
+                [transaction executeUpdate:@"INSERT OR IGNORE INTO annotation (cid, descriptor, peerTwincodeOutbound, kind, value, creationDate) VALUES(?, ?, ?, ?, ?, ?)", conversationId, did, peerTwincodeId, [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:key.intValue]], annotationValue, creationDate];
                 modified = YES;
+                [peerAnnotations addObject:annotation];
             }
-            [annotatingUsers addObject:twincodeOutbound];
         }
         if (modified) {
+            updatedAnnotations[twincodeOutbound] = [NSSet setWithSet:peerAnnotations];
             [self reloadAnnotationsWithTransaction:transaction descriptor:descriptor];
         }
         [transaction commit];
@@ -2116,19 +2149,32 @@ static const int ddLogLevel = DDLogLevelWarning;
 }
 
 - (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int64_t)value {
+    return [self setAnnotationWithDescriptor:descriptor peerTwincodeOutbound:nil type:type value:value];
+}
+
+- (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor peerTwincodeOutbound:(nullable TLTwincodeOutbound *)peerTwincodeOutbound type:(TLDescriptorAnnotationType)type value:(int64_t)value {
     DDLogVerbose(@"%@ setAnnotationWithDescriptor: %@ type: %d value: %lld", LOG_TAG, descriptor, type, value);
     
-    NSNumber *kind = [NSNumber numberWithInt:[self fromDescriptorAnnotationType:type]];
+    NSNumber *kind = [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:type]];
     NSNumber *annotationValue = [NSNumber numberWithLongLong:value];
     NSNumber *did = [NSNumber numberWithLongLong:descriptor.descriptorId.id];
     NSNumber *conversationId = [NSNumber numberWithLongLong:descriptor.conversationId];
     __block BOOL modified = NO;
     [self inTransaction:^(TLTransaction *transaction) {
-        [transaction executeUpdate:@"UPDATE annotation SET value=? WHERE cid=? AND descriptor=? AND peerTwincodeOutbound IS NULL AND kind=? AND value != ?", annotationValue, conversationId, did, kind, annotationValue];
+        if (!peerTwincodeOutbound) {
+            [transaction executeUpdate:@"UPDATE annotation SET value=? WHERE cid=? AND descriptor=? AND kind=? AND value != ? AND peerTwincodeOutbound IS NULL", annotationValue, conversationId, did, kind, annotationValue];
+        } else {
+            [transaction executeUpdate:@"UPDATE annotation SET value=? WHERE cid=? AND descriptor=? AND kind=? AND value != ? AND peerTwincodeOutbound = ?", annotationValue, conversationId, did, kind, annotationValue, [NSNumber numberWithLongLong:peerTwincodeOutbound.databaseId.identifier]];
+        }
+        
         modified = [transaction changes] > 0;
 
         if (!modified) {
-            [transaction executeUpdate:@"INSERT OR IGNORE INTO annotation (cid, descriptor, kind, value) VALUES(?, ?, ?, ?)", conversationId, did, kind, annotationValue];
+            if (!peerTwincodeOutbound) {
+                [transaction executeUpdate:@"INSERT OR IGNORE INTO annotation (cid, descriptor, kind, value) VALUES(?, ?, ?, ?)", conversationId, did, kind, annotationValue];
+            } else {
+                [transaction executeUpdate:@"INSERT OR IGNORE INTO annotation (cid, descriptor, kind, value, peerTwincodeOutbound) VALUES(?, ?, ?, ?, ?)", conversationId, did, kind, annotationValue, [NSNumber numberWithLongLong:peerTwincodeOutbound.databaseId.identifier]];
+            }
             modified = [transaction changes] > 0;
         }
         [transaction commit];
@@ -2143,7 +2189,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (BOOL)deleteAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type {
     DDLogVerbose(@"%@ deleteAnnotationWithDescriptor: %@ type: %d", LOG_TAG, descriptor, type);
     
-    NSNumber *kind = [NSNumber numberWithInt:[self fromDescriptorAnnotationType:type]];
+    NSNumber *kind = [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:type]];
     NSNumber *did = [NSNumber numberWithLongLong:descriptor.descriptorId.id];
     NSNumber *conversationId = [NSNumber numberWithLongLong:descriptor.conversationId];
     __block BOOL modified = NO;
@@ -2162,7 +2208,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (BOOL)toggleAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int)value {
     DDLogVerbose(@"%@ toggleAnnotationWithDescriptor: %@ type: %d value: %d", LOG_TAG, descriptor, type, value);
     
-    NSNumber *kind = [NSNumber numberWithInt:[self fromDescriptorAnnotationType:type]];
+    NSNumber *kind = [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:type]];
     NSNumber *annotationValue = [NSNumber numberWithInt:value];
     NSNumber *did = [NSNumber numberWithLongLong:descriptor.descriptorId.id];
     NSNumber *conversationId = [NSNumber numberWithLongLong:descriptor.conversationId];
@@ -2221,7 +2267,7 @@ static const int ddLogLevel = DDLogLevelWarning;
             TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:[resultSet intForColumnIndex:10]];
             int64_t value = [resultSet longLongIntForColumnIndex:11];
             if (type != TLDescriptorAnnotationTypeInvalid && twincodeOutbound) {
-                TLDescriptorAnnotationPair *pair = [[TLDescriptorAnnotationPair alloc] initWithTwincodeOutbound:twincodeOutbound annotation:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:1]];
+                TLDescriptorAnnotationPair *pair = [[TLDescriptorAnnotationPair alloc] initWithTwincodeOutbound:twincodeOutbound annotation:[[TLDescriptorAnnotation alloc] initWithType:type value:value]];
                 
                 NSMutableArray<TLDescriptorAnnotationPair *> *twincodeAnnotations = annotations[twincodeOutbound.uuid];
                 
@@ -2244,26 +2290,47 @@ static const int ddLogLevel = DDLogLevelWarning;
     
     NSNumber *conversationId = [NSNumber numberWithLongLong:descriptor.conversationId];
     NSNumber *did = [NSNumber numberWithLongLong:descriptor.descriptorId.id];
-    NSMutableArray<TLDescriptorAnnotation *> *annotations = nil;
-    FMResultSet *resultSet = [transaction executeQuery:@"SELECT kind, value, COUNT(*) FROM annotation WHERE cid=? AND descriptor=? GROUP BY kind, value", conversationId, did];
+    NSMutableDictionary<NSUUID *, NSMutableArray<TLDescriptorAnnotation *> *> *annotations = descriptor.annotations;
+    [annotations removeAllObjects];
+    FMResultSet *resultSet = [transaction executeQuery:@"SELECT a.kind, a.value, t.twincodeId"
+                              " FROM annotation AS a LEFT JOIN twincodeOutbound AS t ON a.peerTwincodeOutbound = t.id"
+                              " WHERE cid=? AND descriptor=?", conversationId, did];
     if (!resultSet) {
         [self.service onDatabaseErrorWithError:[transaction lastError] line:__LINE__];
         return;
     }
+    
+    TLConversationImpl *conversation = nil;
+    
     while ([resultSet next]) {
         int v = [resultSet intForColumnIndex:0];
         TLDescriptorAnnotationType type = [TLConversationServiceProvider toDescriptorAnnotationType:v];
         if (type != TLDescriptorAnnotationTypeInvalid) {
             int64_t value = [resultSet longLongIntForColumnIndex:1];
-            int count = [resultSet intForColumnIndex:2];
-            if (!annotations) {
-                annotations = [[NSMutableArray alloc] init];
+            NSUUID *twincodeOutboundId = [resultSet uuidForColumnIndex:2];
+            
+            if (!twincodeOutboundId) {
+                if (!conversation) {
+                    conversation = [self loadConversationWithId:descriptor.conversationId];
+                }
+                
+                if (!conversation) {
+                    // Descriptor has no conversation, should not happen.
+                    continue;
+                }
+                twincodeOutboundId = conversation.twincodeOutboundId;
             }
-            [annotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value count:count]];
+            
+            NSMutableArray<TLDescriptorAnnotation *> *peerAnnotations = annotations[twincodeOutboundId];
+            
+            if (!peerAnnotations) {
+                peerAnnotations = [[NSMutableArray alloc] init];
+                annotations[twincodeOutboundId] = peerAnnotations;
+            }
+            [peerAnnotations addObject:[[TLDescriptorAnnotation alloc] initWithType:type value:value]];
         }
     }
     [resultSet close];
-    descriptor.annotations = annotations;
 }
 
 #pragma mark - Operations
@@ -2395,7 +2462,15 @@ static const int ddLogLevel = DDLogLevelWarning;
                     case 18: // Added 2025-05-21
                         operation = [[TLUpdateDescriptorOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
                         break;
-                        
+              
+                    case 19: // Added 2026-03-30
+                        operation = [[TLPushPollOperation alloc] initWithId:operationId conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+
+                    case 20: // Added 2026-04-09
+                        operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeRosterRemove conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
+                        break;
+                    
                     case 3:  // Transient operation should never be saved!
                     case 13: // Push command
                     default:
@@ -2536,12 +2611,15 @@ static const int ddLogLevel = DDLogLevelWarning;
             
         case TLDescriptorTypeClearDescriptor:
             return 13;
+        
+        case TLDescriptorTypePollDescriptor:
+            return 14;
     }
     
     return 0;
 }
 
-- (int)fromDescriptorAnnotationType:(TLDescriptorAnnotationType)type {
++ (int)fromDescriptorAnnotationType:(TLDescriptorAnnotationType)type {
     
     switch (type) {
         case TLDescriptorAnnotationTypeInvalid:
@@ -2567,6 +2645,9 @@ static const int ddLogLevel = DDLogLevelWarning;
             
         case TLDescriptorAnnotationTypeRead:
             return 7;
+            
+        case TLDescriptorAnnotationTypeError:
+            return 8;
     }
     return 0;
 }
@@ -2588,6 +2669,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             return TLDescriptorAnnotationTypeReceived;
         case 7:
             return TLDescriptorAnnotationTypeRead;
+        case 8:
+            return TLDescriptorAnnotationTypeError;
     }
     return TLDescriptorAnnotationTypeInvalid;
 }
@@ -2634,8 +2717,17 @@ static const int ddLogLevel = DDLogLevelWarning;
             return 17;
         case TLConversationServiceOperationTypeUpdateObject: // Added 2025-05-21
             return 18;
+        case TLConversationServiceOperationTypePushPoll:
+            return 19;
+        case TLConversationServiceOperationTypeInvokeRosterRemove: // Added 2026-04-09
+            return 20;
     }
     return 0;
 }
+
++ (BOOL)isAnnotationFromPeerWithType:(TLDescriptorAnnotationType)type {
+    return type == TLDescriptorAnnotationTypeLike || type == TLDescriptorAnnotationTypePoll;
+}
+
 
 @end

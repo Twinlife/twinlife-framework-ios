@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -31,7 +31,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define CRYPTO_SERVICE_VERSION          @"1.0.0"
+#define CRYPTO_SERVICE_VERSION          @"1.1.0"
 #define SIGNATURE_VERSION_ECDSA         1
 #define SIGNATURE_VERSION_ED25519       2
 #define ENCRYPT_VERSION_ECDSA           1
@@ -51,11 +51,10 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 
 @implementation TLKeyInfo
 
-- (nonnull instancetype)initWithTwincode:(nonnull TLTwincodeOutbound *)twincode modificationDate:(int64_t)modificationDate flags:(int)flags signingKey:(nullable NSData *)signingKey encryptionKey:(nullable NSData *)encryptionKey nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nullable NSData *)secret {
+- (nonnull instancetype)initWithModificationDate:(int64_t)modificationDate flags:(int)flags signingKey:(nullable NSData *)signingKey encryptionKey:(nullable NSData *)encryptionKey nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nullable NSData *)secret {
 
     self = [super init];
     if (self) {
-        _twincodeOutbound = twincode;
         _signKind = [TLKeyInfo toCryptoKindWithFlags:flags encrypt:NO];
         _encryptionKind = [TLKeyInfo toCryptoKindWithFlags:flags encrypt:YES];
         _keyIndex = keyIndex;
@@ -108,6 +107,23 @@ static NSArray<NSString *> *PREDEFINED_LIST;
         return nil;
     }
     return [[NSString alloc] initWithData:key encoding:NSUTF8StringEncoding];
+}
+
+@end
+
+//
+// Implementation: TLTwincodeKeyInfo
+//
+
+@implementation TLTwincodeKeyInfo
+
+- (nonnull instancetype)initWithTwincode:(nonnull TLTwincodeOutbound *)twincode modificationDate:(int64_t)modificationDate flags:(int)flags signingKey:(nullable NSData *)signingKey encryptionKey:(nullable NSData *)encryptionKey nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nullable NSData *)secret {
+    
+    self = [super initWithModificationDate:modificationDate flags:flags signingKey:signingKey encryptionKey:encryptionKey nonceSequence:nonceSequence keyIndex:keyIndex secret:secret];
+    if (self) {
+        _twincodeOutbound = twincode;
+    }
+    return self;
 }
 
 @end
@@ -338,6 +354,73 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 @end
 
 //
+// Interface: TLPublicKeyData
+//
+
+@interface TLPublicKeyData ()
+
+@property (readonly, nonatomic, nullable) NSData *publicSigningKey;
+@property (readonly, nonatomic, nullable) NSString *publicBase64Key;
+
+@end
+
+
+//
+// Implementation: TLPublicKeyData
+//
+
+@implementation TLPublicKeyData : NSObject
+
+- (nonnull instancetype)initWithString:(nonnull NSString *)publicKey {
+    
+    self = [super init];
+    if (self) {
+        _publicBase64Key = publicKey;
+    }
+    return self;
+}
+
+- (nonnull instancetype)initWithData:(nonnull NSData *)data {
+    
+    self = [super init];
+    if (self) {
+        _publicSigningKey = data;
+    }
+    return self;
+}
+
+- (nullable NSData *)publicKey {
+    
+    if (self.publicSigningKey) {
+        return self.publicSigningKey;
+    }
+
+    NSString *string = self.publicBase64Key;
+
+    // iOS does not have a Base64 URL decoding, change - into + and _ into / if they are used.
+    if ([string containsString:@"-"]) {
+        string = [string stringByReplacingOccurrencesOfString:@"-" withString:@"+"];
+    }
+    if ([string containsString:@"_"]) {
+        string = [string stringByReplacingOccurrencesOfString:@"_" withString:@"/"];
+    }
+
+    string = [[NSString alloc] initWithFormat:@"%@=", string];
+    NSData *data = [[NSData alloc] initWithBase64EncodedString:string options:0];
+    if (data.length != 32) {
+        return nil;
+    }
+    return data;
+}
+
+- (BOOL)isEmpty {
+    
+    return (self.publicSigningKey != nil && self.publicSigningKey.length == 0) || (self.publicBase64Key.length == 0);
+}
+
+@end
+
+//
 // Interface: TLCryptoService
 //
 
@@ -434,6 +517,25 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 
     NSData *rawKey = [keyInfo.signingKey publicKey:YES];
     return [[NSString alloc] initWithData:rawKey encoding:NSUTF8StringEncoding];
+}
+
+- (nullable TLPublicKeyData *)getRawPublicKeyWithTwincode:(nonnull TLTwincodeOutbound*)twincodeOutbound {
+    DDLogVerbose(@"%@: getRawPublicKeyWithTwincode: %@", LOG_TAG, twincodeOutbound);
+
+    if (!self.serviceOn) {
+        return nil;
+    }
+
+    TLKeyInfo *keyInfo = [self.serviceProvider loadKeyWithTwincode:twincodeOutbound];
+    if (!keyInfo) {
+        return nil;
+    }
+
+    if (!keyInfo.signingKey) {
+        return nil;
+    }
+
+    return [[TLPublicKeyData alloc] initWithData:[keyInfo.signingKey publicKey:NO]];
 }
 
 - (nullable NSData *)signWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound attributes:(nonnull NSMutableArray<TLAttributeNameValue *> *)attributes {
@@ -719,7 +821,39 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     if (!keyInfo || !keyInfo.signingKey) {
         return nil;
     }
-    
+
+    // Sign what is serialized with the private key.
+    NSData *signature = [self signContentWithKeyInfo:keyInfo keyId:twincodeOutbound.uuid content:content isBase64:YES];
+    if (!signature) {
+        return nil;
+    }
+
+    return [[NSString alloc] initWithBytes:[signature bytes] length:signature.length encoding:NSUTF8StringEncoding];
+}
+
+- (nullable NSData *)signContentRawWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound content:(nonnull NSData *)content {
+    DDLogVerbose(@"%@: signContentWithTwincode: %@ content: %@", LOG_TAG, twincodeOutbound, content);
+
+    if (!self.serviceOn) {
+        return nil;
+    }
+
+    TLKeyInfo *keyInfo = [self.serviceProvider loadKeyWithTwincode:twincodeOutbound];
+    if (!keyInfo || !keyInfo.signingKey) {
+        return nil;
+    }
+
+    // Sign what is serialized with the private key.
+    return [self signContentWithKeyInfo:keyInfo keyId:twincodeOutbound.uuid content:content isBase64:NO];
+}
+
+- (nullable NSData *)signContentWithKeyInfo:(nonnull TLKeyInfo *)keyInfo keyId:(nonnull NSUUID *)keyId content:(nonnull NSData *)content isBase64:(BOOL)isBase64 {
+    DDLogVerbose(@"%@: signContentWithKeyInfo: %@ keyId: %@ content: %@", LOG_TAG, keyInfo, keyId, content);
+
+    if (!self.serviceOn) {
+        return nil;
+    }
+
     NSMutableData *data = [[NSMutableData alloc] initWithCapacity:SERIALIZER_BUFFER_DEFAULT_SIZE];
     TLBinaryEncoder *binaryEncoder = [[TLBinaryCompactEncoder alloc] initWithData:data];
 
@@ -738,18 +872,13 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     }
 
     [binaryEncoder writeInt:version];
-    [binaryEncoder writeUUID:twincodeOutbound.uuid];
+    [binaryEncoder writeUUID:keyId];
     [binaryEncoder writeData:content];
     
     DDLogError(@"%@: data to sign: %@", LOG_TAG, data);
 
     // Sign what is serialized with the private key.
-    NSData *signature = [keyInfo.signingKey signWithData:data isBase64:YES];
-    if (!signature) {
-        return nil;
-    }
-
-    return [[NSString alloc] initWithBytes:[signature bytes] length:signature.length encoding:NSUTF8StringEncoding];
+    return [keyInfo.signingKey signWithData:data isBase64:isBase64];
 }
 
 - (TLBaseServiceErrorCode)verifyContentWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound content:(nonnull NSData *)content signature:(nonnull NSString *)signature {
@@ -763,7 +892,29 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     if (!keyInfo || !keyInfo.signingKey) {
         return TLBaseServiceErrorCodeNoPublicKey;
     }
-    
+
+    return [self verifyContentWithKeyInfo:keyInfo keyId:twincodeOutbound.uuid content:content signature:[signature dataUsingEncoding:NSUTF8StringEncoding] isBase64:YES];
+}
+
+- (TLBaseServiceErrorCode)verifyContentWithPublicKey:(nonnull TLPublicKeyData *)publicKey keyId:(nonnull NSUUID *)keyId content:(nonnull NSData *)content signature:(nonnull NSData *)signature {
+    DDLogVerbose(@"%@: verifyContentWithPublicKey: %@ content: %@ signature: %@", LOG_TAG, publicKey, content, signature);
+
+    if (!self.serviceOn) {
+        return TLBaseServiceErrorCodeServiceUnavailable;
+    }
+
+    TLKeyInfo *keyInfo = [[TLKeyInfo alloc] initWithModificationDate:0 flags:TLCryptoKindED25519 signingKey:[publicKey publicKey] encryptionKey:nil nonceSequence:0 keyIndex:0 secret:nil];
+
+    return [self verifyContentWithKeyInfo:keyInfo keyId:keyId content:content signature:signature isBase64:NO];
+}
+
+- (TLBaseServiceErrorCode)verifyContentWithKeyInfo:(nonnull TLKeyInfo *)keyInfo keyId:(nonnull NSUUID *)keyId content:(nonnull NSData *)content signature:(nonnull NSData *)signature isBase64:(BOOL)isBase64 {
+    DDLogVerbose(@"%@: verifyContentWithKeyInfo: %@ keyId: %@ content: %@ signature: %@ isBase64: %d", LOG_TAG, keyInfo, keyId, content, signature, isBase64);
+
+    if (!self.serviceOn) {
+        return TLBaseServiceErrorCodeServiceUnavailable;
+    }
+
     NSMutableData *data = [[NSMutableData alloc] initWithCapacity:SERIALIZER_BUFFER_DEFAULT_SIZE];
     TLBinaryEncoder *binaryEncoder = [[TLBinaryCompactEncoder alloc] initWithData:data];
 
@@ -782,11 +933,11 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     }
 
     [binaryEncoder writeInt:version];
-    [binaryEncoder writeUUID:twincodeOutbound.uuid];
+    [binaryEncoder writeUUID:keyId];
     [binaryEncoder writeData:content];
 
     // Sign what is serialized with the private key.
-    int result = [keyInfo.signingKey verifyWithData:data signature:[signature dataUsingEncoding:NSUTF8StringEncoding] isBase64:YES];
+    int result = [keyInfo.signingKey verifyWithData:data signature:signature isBase64:isBase64];
     return result == 1 ? TLBaseServiceErrorCodeSuccess : TLBaseServiceErrorCodeBadSignature;
 }
 
@@ -911,7 +1062,7 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     int encryptionKey = [decoder readEnum];
     NSString *pubEncryptionKey;
     NSUUID *cipherTwincodeId;
-    TLKeyInfo *cipherKeyInfo;
+    TLTwincodeKeyInfo *cipherKeyInfo;
     TLTrustMethod trustMethod;
     switch (encryptionKey) {
         case 1:

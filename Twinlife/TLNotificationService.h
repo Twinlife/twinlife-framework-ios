@@ -39,7 +39,8 @@ typedef enum {
     TLNotificationTypeNewGroupJoined,
     TLNotificationTypeNewContactInvitation,
     TLNotificationTypeDeletedGroup,
-    TLNotificationTypeUpdatedAnnotation
+    TLNotificationTypeUpdatedAnnotation,
+    TLNotificationTypeNewPollMessage
 } TLNotificationType;
 
 //
@@ -114,7 +115,7 @@ typedef enum {
 - (nonnull NSMutableArray<TLNotification *> *)getPendingNotificationsWithSubject:(nonnull id<TLRepositoryObject>)subject;
 
 /// Create a new notification with the given type for the subject.  If the notificationId is null, a unique id is allocated.
-- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nullable NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser;
+- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nullable NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser annotation:(nullable TLDescriptorAnnotation *)annotation;
 
 /// Acknowledge the notification.
 - (void)acknowledgeWithNotification:(nonnull TLNotification *)notification;

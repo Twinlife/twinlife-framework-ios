@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2019-2025 twinlife SA.
+ *  Copyright (c) 2019-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 #import <CocoaLumberjack.h>
 
@@ -81,7 +82,12 @@ static int PUSH_GEOLOCATION_OPERATION_SCHEMA_VERSION = 1;
     int64_t requestId = [TLTwinlife newRequestId];
     [self updateWithRequestId:requestId];
 
-    if ([connection isSupportedWithMajorVersion:CONVERSATION_SERVICE_MAJOR_VERSION_2 minorVersion:CONVERSATION_SERVICE_MINOR_VERSION_12]) {
+    if ([connection isSupportedWithMajorVersion:CONVERSATION_SERVICE_MAJOR_VERSION_2 minorVersion:CONVERSATION_SERVICE_MINOR_VERSION_21]) {
+        TLPushGeolocationIQ *pushGeolocationIQ = [[TLPushGeolocationIQ alloc] initWithSerializer:[TLPushGeolocationIQ SERIALIZER_3] requestId:requestId geolocationDescriptor:geolocationDescriptor];
+        [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqSetPushGeolocation iq:pushGeolocationIQ];
+        return TLBaseServiceErrorCodeQueued;
+
+    } else if ([connection isSupportedWithMajorVersion:CONVERSATION_SERVICE_MAJOR_VERSION_2 minorVersion:CONVERSATION_SERVICE_MINOR_VERSION_12]) {
         TLPushGeolocationIQ *pushGeolocationIQ = [[TLPushGeolocationIQ alloc] initWithSerializer:[TLPushGeolocationIQ SERIALIZER_2] requestId:requestId geolocationDescriptor:geolocationDescriptor];
         [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqSetPushGeolocation iq:pushGeolocationIQ];
         return TLBaseServiceErrorCodeQueued;

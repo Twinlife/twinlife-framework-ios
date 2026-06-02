@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -48,7 +48,9 @@ typedef enum {
     TLBaseServiceIdTwincodeOutboundService,
     TLBaseServiceIdImageService,
     TLBaseServiceIdPeerCallService,
-    TLBaseServiceIdCryptoService
+    TLBaseServiceIdCryptoService,
+    TLBaseServiceIdBackupService,
+    TLBaseServiceIdSecureRosterService,
 } TLBaseServiceId;
 
 typedef enum {
@@ -122,6 +124,9 @@ typedef enum {
     /// Twinlife is stopped.
     TLTwinlifeStatusStopped,
 
+    /// A backup is being restored
+    TLTwinlifeStatusRestoring,
+    
     /// Twinlife configuration failed.
     TLTwinlifeStatusError
 } TLTwinlifeStatus;
@@ -137,7 +142,10 @@ typedef enum {
     TLConnectionStatusConnecting,
 
     // Connected to the server.
-    TLConnectionStatusConnected
+    TLConnectionStatusConnected,
+    
+    // We are in the process to disconnect from the server (a very short live state).
+    TLConnectionStatusDisconnecting
 } TLConnectionStatus;
 
 typedef enum {

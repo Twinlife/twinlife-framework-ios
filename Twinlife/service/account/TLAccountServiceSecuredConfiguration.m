@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2025 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -755,8 +755,8 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
     return [TLAccountServiceSecuredConfiguration loadWithSerializerFactory:serializerFactory content:content];
 }
 
-+ (nullable NSData *)exportWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory {
-    DDLogVerbose(@"%@ exportWithSerializerFactory", LOG_TAG);
++ (nullable NSData *)exportWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory version:(int)version {
+    DDLogVerbose(@"%@ exportWithSerializerFactory version: %d", LOG_TAG, version);
     
     TLAccountServiceSecuredConfiguration *securedConfiguration = [TLAccountServiceSecuredConfiguration loadWithSerializerFactory:serializerFactory alternateApplication:NO];
     if (!securedConfiguration) {
@@ -765,11 +765,18 @@ static TLSerializer *ACCOUNT_SERVICE_SECURED_CONFIGURATION_SERIALIZER_1 = nil;
 
     NSMutableData *content = [[NSMutableData alloc] initWithCapacity:SERIALIZER_BUFFER_DEFAULT_SIZE];
     TLBinaryEncoder *binaryEncoder = [[TLBinaryEncoder alloc] initWithData:content];
-    [[TLAccountServiceSecuredConfiguration SERIALIZER_4] serializeWithSerializerFactory:serializerFactory encoder:binaryEncoder object:securedConfiguration];
+    if (version == 5) {
+        [[TLAccountServiceSecuredConfiguration SERIALIZER_5] serializeWithSerializerFactory:serializerFactory encoder:binaryEncoder object:securedConfiguration];
+
+    } else if (version == 4) {
+        [[TLAccountServiceSecuredConfiguration SERIALIZER_4] serializeWithSerializerFactory:serializerFactory encoder:binaryEncoder object:securedConfiguration];
+    } else {
+        return nil;
+    }
     return content;
 }
 
-#ifdef TWINME_PLUS
+#if defined(TWINME_PLUS) || defined(MYTWINLIFE_PLUS)
 + (BOOL)importApplicationData:(TLSerializerFactory *)serializerFactory {
     DDLogVerbose(@"%@ importApplicationData", LOG_TAG);
 

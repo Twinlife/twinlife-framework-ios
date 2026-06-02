@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2017-2025 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -236,7 +237,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                     " a.peerTwincodeOutbound, a.kind, a.value"
                     " FROM notification AS n INNER JOIN repository AS r ON n.subject=r.id"
                     " LEFT JOIN descriptor AS d ON n.descriptor=d.id"
-                    " LEFT JOIN annotation AS a ON n.type=17 AND a.descriptor=d.id AND a.notificationId=n.id AND a.kind=4"];
+                    " LEFT JOIN annotation AS a ON n.type=17 AND a.descriptor=d.id AND a.notificationId=n.id"];
     [query filterUUID:notificationId field:@"n.uuid"];
 
     __block TLNotification *notification = nil;
@@ -265,7 +266,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                     " a.peerTwincodeOutbound, a.kind, a.value"
                     " FROM notification AS n INNER JOIN repository AS r ON n.subject=r.id"
                     " LEFT JOIN descriptor AS d ON n.descriptor=d.id"
-                    " LEFT JOIN annotation AS a ON n.type=17 AND a.descriptor=d.id AND a.notificationId=n.id AND a.kind=4"];
+                    " LEFT JOIN annotation AS a ON n.type=17 AND a.descriptor=d.id AND a.notificationId=n.id"];
     [query filterBefore:filter.before field:@"n.creationDate"];
     [query filterOwner:filter.owner field:@"r.owner"];
     [query filterName:filter.name field:@"r.name"];
@@ -282,7 +283,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                     " a.peerTwincodeOutbound, a.kind, a.value"
                     " FROM notification AS n INNER JOIN repository AS r ON n.subject=r.id"
                     " LEFT JOIN descriptor AS d ON n.descriptor=d.id"
-                    " LEFT JOIN annotation AS a ON n.type=17 AND a.descriptor=d.id AND a.notificationId=n.id AND a.kind=4"];
+                    " LEFT JOIN annotation AS a ON n.type=17 AND a.descriptor=d.id AND a.notificationId=n.id"];
     [query filterOwner:subject field:@"n.subject"];
     [query filterLong:0 field:@"n.flags"];
     [query order:@"n.creationDate DESC"];
@@ -360,16 +361,16 @@ static const int ddLogLevel = DDLogLevelWarning;
     return result;
 }
 
-- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nonnull NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser {
-    DDLogVerbose(@"%@ createNotificationWithType: %d notificationId: %@ subject: %@ descriptorId: %@ annotatingUser: %@", LOG_TAG, type, notificationId, subject, descriptorId, annotatingUser);
+- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nonnull NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser annotation:(nullable TLDescriptorAnnotation *)annotation {
+    DDLogVerbose(@"%@ createNotificationWithType: %d notificationId: %@ subject: %@ descriptorId: %@ annotatingUser: %@ annotation: %@", LOG_TAG, type, notificationId, subject, descriptorId, annotatingUser, annotation);
 
     __block TLNotification *result = nil;
     [self inTransaction:^(TLTransaction *transaction) {
         int annotationValue = 0;
         TLDescriptorAnnotationType annotationType = TLDescriptorAnnotationTypeInvalid;
-        if (annotatingUser && descriptorId) {
-            annotationValue = (int) [transaction longForQuery:@"SELECT value FROM annotation WHERE descriptor=? AND peerTwincodeOutbound=? AND kind=4", [NSNumber numberWithLong:descriptorId.id], [annotatingUser.identifier identifierNumber]];
-            annotationType = TLDescriptorAnnotationTypeLike;
+        if (annotatingUser && descriptorId && annotation) {
+            annotationValue = (int) [transaction longForQuery:@"SELECT value FROM annotation WHERE descriptor=? AND peerTwincodeOutbound=? AND kind=?", [NSNumber numberWithLong:descriptorId.id], [annotatingUser.identifier identifierNumber], [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:annotation.type]]];
+            annotationType = annotation.type;
         }
         long ident = [transaction allocateIdWithTable:TLDatabaseTableNotification];
         TLDatabaseIdentifier *identifier = [[TLDatabaseIdentifier alloc] initWithIdentifier:ident factory:self];
@@ -382,8 +383,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             " VALUES(?, ?, ?, ?, ?, ?, ?)", [identifier identifierNumber], uuid, subjectId, [NSNumber numberWithLongLong:now], [NSNumber numberWithLong:descriptorId.id], [NSNumber numberWithInt:[TLNotificationServiceProvider fromNotificationType:type]], [NSNumber numberWithInt:0]];
 
         // Associate the LIKE annotation with the notification so that we can retrieve it.
-        if (annotatingUser && descriptorId) {
-            [transaction executeUpdate:@"UPDATE annotation SET notificationId=? WHERE descriptor=? AND peerTwincodeOutbound=? AND kind=4", [identifier identifierNumber], [NSNumber numberWithLong:descriptorId.id], [annotatingUser.identifier identifierNumber]];
+        if (annotatingUser && descriptorId && annotation) {
+            [transaction executeUpdate:@"UPDATE annotation SET notificationId=? WHERE descriptor=? AND peerTwincodeOutbound=? AND kind=?", [identifier identifierNumber], [NSNumber numberWithLong:descriptorId.id], [annotatingUser.identifier identifierNumber], [NSNumber numberWithInt:[TLConversationServiceProvider fromDescriptorAnnotationType:annotation.type]]];
         }
         [transaction commit];
         result = [[TLNotification alloc] initWithIdentifier:identifier notificationType:type uuid:notificationId subject:subject creationDate:now descriptorId:descriptorId flags:0 userTwincode:annotatingUser annotationType:annotationType annotationValue:annotationValue];
@@ -450,6 +451,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             return TLNotificationTypeNewContactInvitation;
         case 17:
             return TLNotificationTypeUpdatedAnnotation;
+        case 18:
+            return TLNotificationTypeNewPollMessage;
         default:
             return TLNotificationTypeUnknown;
     }
@@ -493,6 +496,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             return 16;
         case TLNotificationTypeUpdatedAnnotation:
             return 17;
+        case TLNotificationTypeNewPollMessage:
+            return 18;
         default:
             return -1;
     }

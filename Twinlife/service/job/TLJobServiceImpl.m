@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2025 twinlife SA.
+ *  Copyright (c) 2019-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -253,11 +253,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _fetchCompletionHandler = fetchCompletionHandler;
         if (application) {
             _backgroundTaskIdentifier = [application beginBackgroundTaskWithExpirationHandler: ^{
-                if (@available(iOS 13.0, *)) {
-                    DDLogError(@"%@ background task expiration %ld called, remaining: %f", LOG_TAG, self.backgroundTaskIdentifier, [self.application backgroundTimeRemaining]);
-                } else {
-                    DDLogError(@"%@ background task expiration %ld called", LOG_TAG, self.backgroundTaskIdentifier);
-                }
+                DDLogError(@"%@ background task expiration %ld called, remaining: %f", LOG_TAG, self.backgroundTaskIdentifier, [self.application backgroundTimeRemaining]);
                 [self.jobService emergencySuspendWithJob:self];
             }];
             DDLogInfo(@"%@ begin background task %ld", LOG_TAG, _backgroundTaskIdentifier);
@@ -362,14 +358,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         });
 
         // The wakeupTimer is only used on iOS 12, on iOS 13 we use the background task.
-        if (@available(iOS 13.0, *)) {
-            _wakeupTimer = nil;
-        } else {
-            _wakeupTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.twinlife.twinlifeQueue);
-            dispatch_source_set_event_handler(_wakeupTimer, ^{
-                [self wakeupTimerHandler];
-            });
-        }
+        _wakeupTimer = nil;
     }
 
     return self;
@@ -381,11 +370,9 @@ static const int ddLogLevel = DDLogLevelWarning;
     NSAssert(NSThread.isMainThread, @"Not on main thread");
 
     // Register the scheduler task (it must be called only once!!!).
-    if (@available(iOS 13.0, *)) {
-        [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:SCHEDULER_TASK_NAME usingQueue:dispatch_get_main_queue() launchHandler:^(BGTask *task) {
-            [self handleSchedulerTask:(BGAppRefreshTask *)task];
-        }];
-    }
+    [[BGTaskScheduler sharedScheduler] registerForTaskWithIdentifier:SCHEDULER_TASK_NAME usingQueue:dispatch_get_main_queue() launchHandler:^(BGTask *task) {
+        [self handleSchedulerTask:(BGAppRefreshTask *)task];
+    }];
 }
 
 - (TLApplicationState)applicationState {
@@ -794,12 +781,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     DDLogInfo(@"%@ suspend", LOG_TAG);
 
     // On iOS 12.0, the backgroundTimeRemaining must be executed only from the main UI thread.
-    NSTimeInterval remain;
-    if (@available(iOS 13.0, *)) {
-        remain = self.application ? [self.application backgroundTimeRemaining] : 0.0;
-    } else {
-        remain = 0.0;
-    }
+    NSTimeInterval remain = self.application ? [self.application backgroundTimeRemaining] : 0.0;
     @synchronized (self) {
         // It is possible being called a second time by beginBackgroundTaskWithExpirationHandler.
         // We can ignore this call if we are disconnecting.
@@ -900,45 +882,19 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
     if (suspendJob) {
         // On iOS 13, also use the background refresh task.
-        if (@available(iOS 13.0, *)) {
-            if (delay > 0) {
-                NSError *error = NULL;
-                BGAppRefreshTaskRequest *request = [[BGAppRefreshTaskRequest alloc] initWithIdentifier:SCHEDULER_TASK_NAME];
-                request.earliestBeginDate = [[NSDate alloc] initWithTimeIntervalSinceNow:delay];
-                [[BGTaskScheduler sharedScheduler] submitTaskRequest:request error:&error];
-                DDLogError(@"%@ onTwinlifeSuspended task scheduled in %f or at %@ error: %@", LOG_TAG, delay, request.earliestBeginDate, error);
+        if (delay > 0) {
+            NSError *error = NULL;
+            BGAppRefreshTaskRequest *request = [[BGAppRefreshTaskRequest alloc] initWithIdentifier:SCHEDULER_TASK_NAME];
+            request.earliestBeginDate = [[NSDate alloc] initWithTimeIntervalSinceNow:delay];
+            [[BGTaskScheduler sharedScheduler] submitTaskRequest:request error:&error];
+            DDLogError(@"%@ onTwinlifeSuspended task scheduled in %f or at %@ error: %@", LOG_TAG, delay, request.earliestBeginDate, error);
 
-            } else {
-                [[BGTaskScheduler sharedScheduler] cancelTaskRequestWithIdentifier:SCHEDULER_TASK_NAME];
-            }
-
-            // Terminate the job, after calling this and returning the iOS will suspend the application.
-            [suspendJob terminate];
-
-        } else if (self.application && delay > 0) {
-
-            // Schedule a wakeup timer.  There is no guarantee it will wakeup and in many cases
-            // it is executed first (ie, before any other callback).  Set a tolerance of 2mn since
-            // we don't really care about the delay (it gives more opportunity to the system to optimize, see doc).
-            dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC));
-            dispatch_source_set_timer(self.wakeupTimer, tt, DISPATCH_TIME_FOREVER, 120 * NSEC_PER_SEC);
-            if (!self.wakeupTimerActive) {
-                DDLogError(@"%@ onTwinlifeSuspended set wakeup in %f", LOG_TAG, delay);
-                dispatch_resume(self.wakeupTimer);
-                self.wakeupTimerActive = YES;
-            }
-
-            dispatch_async(dispatch_get_main_queue(), ^{
-                DDLogError(@"%@ setMinimumBackgroundFetchInterval: %f", LOG_TAG, delay);
-                [self.application setMinimumBackgroundFetchInterval:delay];
-
-                // Terminate the job, after calling this and returning the iOS will suspend the application.
-                [suspendJob terminate];
-            });
         } else {
-            
-            [suspendJob terminate];
+            [[BGTaskScheduler sharedScheduler] cancelTaskRequestWithIdentifier:SCHEDULER_TASK_NAME];
         }
+
+        // Terminate the job, after calling this and returning the iOS will suspend the application.
+        [suspendJob terminate];
     } else if (state != TLApplicationStateSuspending) {
        DDLogError(@"%@ re-connect after temporary suspend", LOG_TAG);
        [self.twinlife connect];
@@ -1114,8 +1070,10 @@ static const int ddLogLevel = DDLogLevelWarning;
     DDLogVerbose(@"%@ scheduleTimerHandler", LOG_TAG);
 
     @synchronized (self) {
-        // Don't execute a job if we are suspending.
-        BOOL isSuspending = self.state == TLApplicationStateSuspending;
+        // Don't execute a job if we are suspending or suspended
+        // Both states can happen and if we execute the job, the database and websocket connection
+        // could be closed: we must not execute them.
+        BOOL isSuspending = self.state == TLApplicationStateSuspending || self.state == TLApplicationStateSuspended;
         TLJobId *nextJobId = nil;
 
         NSDate *now = [[NSDate alloc] initWithTimeIntervalSinceNow:0.0];
@@ -1266,7 +1224,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
         // Avoid scheduling a job while we are suspending because it may execute while we are in middle of suspension.
         // Setup to run it after suspension, it will be executed when we resume.
-        if (self.state == TLApplicationStateSuspending && delay <= DISCONNECT_DELAY + SUSPEND_DELAY + RESUME_DELAY) {
+        if ((self.state == TLApplicationStateSuspending || self.state == TLApplicationStateSuspended) && delay <= DISCONNECT_DELAY + SUSPEND_DELAY + RESUME_DELAY) {
             delay = DISCONNECT_DELAY + SUSPEND_DELAY + RESUME_DELAY;
             leeway = 0;
         } else if (delay < 0) {

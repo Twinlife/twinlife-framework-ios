@@ -159,23 +159,23 @@
             int64_t value = [decoder readLong];
             switch (kind) {
                 case 1:
-                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeForward value:value count:0]];
+                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeForward value:value]];
                     break;
 
                 case 2:
-                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeForwarded value:value count:0]];
+                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeForwarded value:value]];
                     break;
 
                 case 3:
-                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeSave value:value count:0]];
+                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeSave value:value]];
                     break;
 
                 case 4:
-                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeLike value:value count:0]];
+                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypeLike value:value]];
                     break;
 
                 case 5:
-                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypePoll value:value count:0]];
+                    [list addObject:[[TLDescriptorAnnotation alloc] initWithType:TLDescriptorAnnotationTypePoll value:value]];
                     break;
 
                 default:

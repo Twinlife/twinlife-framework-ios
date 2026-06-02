@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2019-2025 twinlife SA.
+ *  Copyright (c) 2019-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <stdlib.h>
@@ -316,17 +317,18 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
     }
 }
 
-- (void)expireOperationWithDescriptorId:(int64_t)descriptorId {
-    DDLogVerbose(@"%@ expireOperationWithDescriptorId: %lld", LOG_TAG, descriptorId);
+- (void)expireOperationWithOperation:(TLConversationServiceOperation *)operation {
+    DDLogVerbose(@"%@ expireOperationWithOperation: %@", LOG_TAG, operation);
 
-    TLDescriptor * descriptor = [self.serviceProvider loadDescriptorWithId:descriptorId];
-
+    TLDescriptor * descriptor = [self.serviceProvider loadDescriptorWithId:operation.descriptor];
+    TLConversationImpl *conversation = [self.conversationService getConversationWithId:operation.conversationId];
     if (descriptor && descriptor.sentTimestamp == 0) {
         // Mark the descriptor to show that the send operation failed.
         descriptor.sentTimestamp = -1;
         descriptor.receivedTimestamp = -1;
         descriptor.readTimestamp = -1;
         [self.serviceProvider updateDescriptorTimestamps:descriptor];
+        [self.serviceProvider setAnnotationWithDescriptor:descriptor peerTwincodeOutbound:conversation.peerTwincodeOutbound type:TLDescriptorAnnotationTypeError value:[TLConversationService fromErrorCode:TLBaseServiceErrorCodeExpired]];
     }
 }
 
@@ -335,40 +337,15 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
 
     for (TLConversationServiceOperation *operation in operations) {
         switch (operation.type) {
-            case TLConversationServiceOperationTypePushFile: {
-                TLPushFileOperation *fileOperation = (TLPushFileOperation *)operation;
+            case TLConversationServiceOperationTypePushObject:
+            case TLConversationServiceOperationTypePushFile:
+            case TLConversationServiceOperationTypePushTwincode:
+            case TLConversationServiceOperationTypePushGeolocation:
+            case TLConversationServiceOperationTypeInviteGroup:
+            case TLConversationServiceOperationTypeWithdrawInviteGroup:
+            case TLConversationServiceOperationTypePushPoll: {
                 
-                [self expireOperationWithDescriptorId:fileOperation.descriptor];
-                break;
-            }
-            case TLConversationServiceOperationTypePushObject: {
-                TLPushObjectOperation *objectOperation = (TLPushObjectOperation *)operation;
-                
-                [self expireOperationWithDescriptorId:objectOperation.descriptor];
-                break;
-            }
-            case TLConversationServiceOperationTypePushTwincode: {
-                TLPushTwincodeOperation *twincodeOperation = (TLPushTwincodeOperation *)operation;
-                
-                [self expireOperationWithDescriptorId:twincodeOperation.descriptor];
-                break;
-            }
-            case TLConversationServiceOperationTypePushGeolocation: {
-                TLPushGeolocationOperation *geolocationOperation = (TLPushGeolocationOperation *)operation;
-                
-                [self expireOperationWithDescriptorId:geolocationOperation.descriptor];
-                break;
-            }
-            case TLConversationServiceOperationTypeInviteGroup: {
-                TLGroupOperation *groupOperation = (TLGroupOperation *)operation;
-                
-                [self expireOperationWithDescriptorId:groupOperation.descriptor];
-                break;
-            }
-            case TLConversationServiceOperationTypeWithdrawInviteGroup: {
-                TLGroupOperation *groupOperation = (TLGroupOperation *)operation;
-                
-                [self expireOperationWithDescriptorId:groupOperation.descriptor];
+                [self expireOperationWithOperation:operation];
                 break;
             }
 
@@ -384,6 +361,7 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
             case TLConversationServiceOperationTypeInvokeJoinGroup:
             case TLConversationServiceOperationTypeInvokeLeaveGroup:
             case TLConversationServiceOperationTypeInvokeAddMember:
+            case TLConversationServiceOperationTypeInvokeRosterRemove:
             case TLConversationServiceOperationTypeUpdateObject:
                 // No descriptor to update.
                 break;

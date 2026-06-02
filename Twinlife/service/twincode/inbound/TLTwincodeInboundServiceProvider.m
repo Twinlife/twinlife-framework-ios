@@ -14,9 +14,10 @@
 #import <FMDatabaseAdditions.h>
 #import <FMDatabaseQueue.h>
 
-#import "TLTwincodeOutboundService.h"
+#import "TLTwincodeOutboundServiceImpl.h"
 #import "TLTwincodeInboundServiceImpl.h"
 #import "TLTwincodeInboundServiceProvider.h"
+#import "TLTwincodeInfo.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -169,6 +170,24 @@ static const int ddLogLevel = DDLogLevelWarning;
     return [self.database loadTwincodeInboundWithTwincodeId:twincodeInboundId];
 }
 
+- (nullable TLTwincodeInbound *)loadTwincodeWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound {
+    DDLogVerbose(@"%@ loadTwincodeWithTwincodeOutbound: %@", LOG_TAG, twincodeOutbound);
+
+    __block TLTwincodeInbound *twincodeInbound = nil;
+    [self inDatabase:^(FMDatabase *database) {
+        if (database) {
+            FMResultSet *resultSet = [database executeQuery:@"SELECT ti.id, ti.twincodeId, ti.factoryId, ti.twincodeOutbound, ti.modificationDate, ti.capabilities, ti.attributes FROM twincodeInbound AS ti WHERE ti.twincodeOutbound = ?", [twincodeOutbound.databaseId identifierNumber]];
+            if (resultSet) {
+                if ([resultSet next]) {
+                    twincodeInbound = [self.database loadTwincodeInboundWithResultSet:resultSet offset:0];
+                }
+                [resultSet close];
+            }
+        }
+    }];
+    return twincodeInbound;
+}
+
 - (void)updateTwincodeWithTwincode:(nonnull TLTwincodeInbound *)twincodeInbound attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate {
     DDLogVerbose(@"%@ updateTwincodeWithTwincode: %@ modificationDate: %lld", LOG_TAG, twincodeInbound, modificationDate);
     
@@ -211,7 +230,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     __block NSMutableArray<TLTwincodeInbound *> *result = [NSMutableArray array];
     
     [self inTransaction:^(TLTransaction *transaction) {
-        FMResultSet *resultSet = [transaction executeQuery:@"SELECT twincodeId FROM twincodeInbound"];
+        FMResultSet *resultSet = [transaction executeQuery:@"SELECT twi.twincodeId FROM twincodeInbound AS twi INNER JOIN twincodeOutbound AS two ON twi.twincodeOutbound = two.id"];
         if (!resultSet) {
             return;
         }
@@ -245,6 +264,84 @@ static const int ddLogLevel = DDLogLevelWarning;
         TLTwincodeInbound *twincodeInbound = [transaction storeTwincodeInboundWithDatabaseId:databaseId twincodeId:twincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeFactoryId attributes:nil flags:0 modificationDate:modificationDate];
         [transaction commit];
         result = twincodeInbound;
+    }];
+
+    return result;
+}
+
+- (nullable NSArray<TLTwincodeInfo *> *)syncWithTwincodes:(nonnull NSDictionary<NSUUID *, NSArray<TLTwincodeInfo *> *> *)serverTwincodes {
+
+    __block NSMutableArray<TLTwincodeInfo *> *result = nil;
+    [self inTransaction:^(TLTransaction *transaction) {
+
+        NSMutableDictionary<NSUUID *, TLTwincodeInfo *> *twincodes = [[NSMutableDictionary alloc] init];
+        for (NSUUID *schemaId in serverTwincodes) {
+            NSArray<TLTwincodeInfo *> *list = serverTwincodes[schemaId];
+            for (TLTwincodeInfo *twincodeInfo in list) {
+                [twincodes setObject:twincodeInfo forKey:twincodeInfo.twincodeInboundId];
+            }
+        }
+
+        // Step 2: load the twincode inbound and their associated twincode outbound in a single SQL query.
+        // If the twincode inbound factory is not known, update it from what we got from the server.
+        FMResultSet *resultSet = [transaction executeQuery:@"SELECT twout.id, twout.twincodeId, twout.modificationDate,"
+                                  " twout.name, twout.avatarId, twout.description, twout.capabilities, twout.attributes, twout.flags,"
+                                  " ti.id, ti.twincodeId, ti.factoryId, ti.twincodeOutbound, ti.modificationDate,"
+                                  " ti.capabilities, ti.attributes"
+                                  " FROM twincodeInbound AS ti"
+                                  " INNER JOIN twincodeOutbound AS twout ON ti.twincodeOutbound = twout.id"];
+        if (!resultSet) {
+            return;
+        }
+        NSMutableArray<TLTwincodeInbound *> *toUpdate = nil;
+        while ([resultSet next]) {
+            // Note: this load is necessary to put the TLTwincodeOutbound in the cache.
+            [self.database loadTwincodeOutboundWithResultSet:resultSet offset:0];
+            TLTwincodeInbound *twincodeInbound = [self.database loadTwincodeInboundWithResultSet:resultSet offset:9];
+            if (twincodeInbound) {
+                TLTwincodeInfo *twincodeInfo = twincodes[twincodeInbound.uuid];
+                if (twincodeInfo) {
+                    [twincodes removeObjectForKey:twincodeInbound.uuid];
+                    if (!twincodeInbound.factoryId) {
+                        twincodeInbound.factoryId = twincodeInfo.twincodeFactoryId;
+                        if (!toUpdate) {
+                            toUpdate = [[NSMutableArray alloc] init];
+                        }
+                        [toUpdate addObject:twincodeInbound];
+                        [self.service.twinlife assertionWithAssertPoint:[TLTwincodeAssertPoint RECOVER_FACTORY_ID], [TLAssertValue initWithTwincodeInbound:twincodeInbound], nil];
+                    }
+                }
+            }
+        }
+        [resultSet close];
+
+        // Step 3: update the twincode inbound whose factory was incorrect.
+        if (toUpdate) {
+            for (TLTwincodeInbound *twincodeInbound in toUpdate) {
+                [transaction executeUpdate:@"UPDATE twincodeInbound SET factoryId=? WHERE id=?", [TLDatabaseService toObjectWithUUID:twincodeInbound.factoryId], [twincodeInbound.identifier identifierNumber]];
+            }
+        }
+
+        // Step 4: insert the twincode inbound which are not known only if we have the associated twincode outbound.
+        // If the twincode outbound is not known, there is no associated object and the twincode is not known.
+        // It must be removed from the server.
+        int64_t now = [[NSDate date] timeIntervalSince1970] * 1000;
+        for (NSUUID *twincodeId in twincodes) {
+            TLTwincodeInfo *twincodeInfo = twincodes[twincodeId];
+            TLTwincodeOutbound *twincodeOutbound = [self.database loadTwincodeOutboundWithTwincodeId:twincodeInfo.twincodeOutboundId];
+
+            if (twincodeOutbound) {
+                TLTwincodeInbound *twincodeInbound = [transaction storeTwincodeInboundWithTwincode:twincodeInfo.twincodeInboundId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeInfo.twincodeFactoryId attributes:nil modificationDate:now];
+                [self.service.twinlife assertionWithAssertPoint:[TLTwincodeAssertPoint RECOVER_TWINCODE_IN], [TLAssertValue initWithTwincodeInbound:twincodeInbound], nil];
+            } else {
+                if (result == nil) {
+                    result = [[NSMutableArray alloc] init];
+                }
+                [result addObject:twincodeInfo];
+                [self.service.twinlife assertionWithAssertPoint:[TLTwincodeAssertPoint UNKNOWN_TWINCODE], [TLAssertValue initWithTwincodeId:twincodeInfo.twincodeOutboundId], [TLAssertValue initWithTwincodeId:twincodeInfo.twincodeInboundId], [TLAssertValue initWithTwincodeId:twincodeInfo.twincodeFactoryId], nil];
+            }
+        }
+        [transaction commit];
     }];
 
     return result;

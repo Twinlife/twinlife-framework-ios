@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2024 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -48,7 +48,7 @@
 /// Export the secure configuration for the migration service using schema version 2 with the correct schema Id compatible with Android.
 + (nullable NSData *)exportWithSerializerFactory:(nonnull TLSerializerFactory *)serializerFactory;
 
-#ifdef TWINME_PLUS
+#if defined(TWINME_PLUS) || defined(MYTWINLIFE_PLUS)
 + (BOOL)importApplicationData;
 #endif
 

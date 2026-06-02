@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -27,7 +27,6 @@
 
 @interface TLKeyInfo : NSObject
 
-@property (readonly, nonnull) TLTwincodeOutbound *twincodeOutbound;
 @property (readonly) TLCryptoKind signKind;
 @property (readonly) TLCryptoKind encryptionKind;
 @property (readonly, nullable) TLCryptoKey *encryptionKey;
@@ -36,13 +35,25 @@
 @property (readonly) int keyIndex;
 @property int64_t nonceSequence;
 
-- (nonnull instancetype)initWithTwincode:(nonnull TLTwincodeOutbound *)twincode modificationDate:(int64_t)modificationDate flags:(int)flags signingKey:(nullable NSData *)signingKey encryptionKey:(nullable NSData *)encryptionKey nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nullable NSData *)secret;
+- (nonnull instancetype)initWithModificationDate:(int64_t)modificationDate flags:(int)flags signingKey:(nullable NSData *)signingKey encryptionKey:(nullable NSData *)encryptionKey nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nullable NSData *)secret;
 
 + (TLCryptoKind)toCryptoKindWithFlags:(int)flags encrypt:(BOOL)encrypt;
 
 - (nullable NSString *)publicBase64EncryptionKey;
 
 - (nullable NSString *)publicBase64SigningKey;
+
+@end
+
+//
+// Interface: TLTwincodeKeyInfo
+//
+
+@interface TLTwincodeKeyInfo : TLKeyInfo
+
+@property (readonly, nonnull) TLTwincodeOutbound *twincodeOutbound;
+
+- (nonnull instancetype)initWithTwincode:(nonnull TLTwincodeOutbound *)twincode modificationDate:(int64_t)modificationDate flags:(int)flags signingKey:(nullable NSData *)signingKey encryptionKey:(nullable NSData *)encryptionKey nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nullable NSData *)secret;
 
 @end
 

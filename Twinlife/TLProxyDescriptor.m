@@ -152,7 +152,7 @@
         NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
         formatter.numberStyle = NSNumberFormatterDecimalStyle;
         NSNumber *num = [formatter numberFromString:[hostPort substringFromIndex:pos.location + 1]];
-        if (!num || num.intValue <= 0 || num.intValue >= 65536) {
+        if (num == nil || num.intValue <= 0 || num.intValue >= 65536) {
             return nil;
         }
         port = num.intValue;
@@ -162,7 +162,7 @@
         NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
         formatter.numberStyle = NSNumberFormatterDecimalStyle;
         NSNumber *num = [formatter numberFromString:parts[2]];
-        if (!num || num.intValue <= 0 || num.intValue >= 65536) {
+        if (num == nil || num.intValue <= 0 || num.intValue >= 65536) {
             return nil;
         }
         stunPort = num.intValue;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -26,6 +26,11 @@ static const int ddLogLevel = DDLogLevelWarning;
 /**
  * P2P connection management for the account migration service between two peers.
  *
+ * Protocol version 2.2.0 - backup support
+ *  Date: 2026/05/28
+ *    AccountSecuredConfiguration has a new schema version 5 that we must use if the peer supports 2.2.0
+ *    but we must send the schema version 4 for others.
+ *
  * Protocol version 2.1.0 - iOS support
  *  Date: 2024/07/09
  *    AccountSecuredConfiguration has a new schema version 4 that we must use if the peer supports 2.1.0
@@ -44,7 +49,7 @@ static const int ddLogLevel = DDLogLevelWarning;
  *    Android migration Twinme, Twinme+
  */
 #define VERSION_PREFIX @"AccountMigration."
-#define VERSION @"2.1.0"
+#define VERSION @"2.2.0"
 #define MIN_PROTOCOL_VERSION 2
 #define MIN_MINOR_VERSION 1
 
@@ -578,6 +583,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 
     TLVersion *version = [[TLVersion alloc] initWithVersion:[peerVersion substringFromIndex:index.location + 1]];
+    self.peerVersion = version;
     if (version.major < MIN_PROTOCOL_VERSION) {
         DDLogError(@"%@ Protocol version %@ is not supported", LOG_TAG, peerVersion);
         return NO;

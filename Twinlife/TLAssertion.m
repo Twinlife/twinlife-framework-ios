@@ -91,6 +91,11 @@ static const int ddLogLevel = DDLogLevelWarning;
     return [[TLAssertValue alloc] initWithParameter:TLAssertionParameterTwincodeOutbound value:(NSObject *)twincode];
 }
 
++ (nonnull instancetype)initWithTwincodeInbound:(nonnull TLTwincodeInbound *)twincode {
+
+    return [[TLAssertValue alloc] initWithParameter:TLAssertionParameterTwincodeInbound value:(NSObject *)twincode];
+}
+
 + (nonnull instancetype)initWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId {
 
     return [[TLAssertValue alloc] initWithParameter:TLAssertionParameterPeerConnectionId value:peerConnectionId];
@@ -183,5 +188,6 @@ TL_CREATE_ASSERT_POINT(BAD_VALUE, 14);
 TL_CREATE_ASSERT_POINT(INVALID_TAG_NSDEFAULTS, 15);
 TL_CREATE_ASSERT_POINT(STORE_ERROR, 16);
 TL_CREATE_ASSERT_POINT(CONVERSATION_OPERATION_ERROR, 17);
+TL_CREATE_ASSERT_POINT(DATABASE_WAL_ERROR, 18);
 
 @end

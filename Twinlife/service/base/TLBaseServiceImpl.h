@@ -31,7 +31,10 @@ static NSString * _Nonnull SERVICE_NAMES[] = {
     @"inbound.twincode.twinlife",
     @"outbound.twincode.twinlife",
     @"image.twinlife",
-    @"callservice.twinlife"
+    @"callservice.twinlife",
+    @"cryptoservice.twinlife",
+    @"backupservice.twinlife",
+    @"secureroster.twinlife"
 };
 
 #define TL_BASE_SERVICE_IMPL_MAX_FRAME_SIZE 921600 // HD=1280x720

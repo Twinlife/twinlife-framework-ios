@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -12,7 +12,7 @@
 @protocol TLSessionKeyPair;
 @class TLCryptoService;
 @class TLTwincodeOutbound;
-@class TLKeyInfo;
+@class TLTwincodeKeyInfo;
 @class TLKeyPair;
 @class TLSessionSecretKeyPair;
 @class TLRawKeyInfo;
@@ -41,14 +41,14 @@
 
 - (nonnull instancetype)initWithService:(nonnull TLCryptoService *)service database:(nonnull TLDatabaseService *)database;
 
-- (nullable TLKeyInfo *)loadPeerEncryptionKeyWithTwincodeId:(nonnull NSUUID *)twincodeId;
+- (nullable TLTwincodeKeyInfo *)loadPeerEncryptionKeyWithTwincodeId:(nonnull NSUUID *)twincodeId;
 
 /// Load the twincode signing and encryption keys with flags.
-- (nullable TLKeyInfo *)loadKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincode;
+- (nullable TLTwincodeKeyInfo *)loadKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincode;
 
 /// Load the twincode signing and encryption keys with the secret key to talk to the given peer twincode.
 /// When `options` is set, a new secret is created and associated with the pair (twincode, peerTwincode).
-- (nullable TLKeyInfo *)loadKeySecretsWithTwincode:(nonnull TLTwincodeOutbound *)twincode peerTwincode:(nonnull TLTwincodeOutbound *)peerTwincode useSequenceCount:(long)useSequenceCount options:(int)options;
+- (nullable TLTwincodeKeyInfo *)loadKeySecretsWithTwincode:(nonnull TLTwincodeOutbound *)twincode peerTwincode:(nonnull TLTwincodeOutbound *)peerTwincode useSequenceCount:(long)useSequenceCount options:(int)options;
 
 - (nullable TLKeyPair *)loadKeyPairWithTwincode:(nonnull TLTwincodeOutbound *)twincode;
 

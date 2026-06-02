@@ -168,6 +168,7 @@ typedef NS_ENUM(NSUInteger, TLAssertionParameter) {
 
 + (nonnull instancetype)initWithSubject:(nonnull id<TLRepositoryObject>)subject;
 + (nonnull instancetype)initWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincode;
++ (nonnull instancetype)initWithTwincodeInbound:(nonnull TLTwincodeInbound *)twincode;
 + (nonnull instancetype)initWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId;
 + (nonnull instancetype)initWithInvocationId:(nonnull NSUUID *)invocationId;
 + (nonnull instancetype)initWithResourceId:(nonnull NSUUID *)resourceId;
@@ -209,5 +210,6 @@ typedef NS_ENUM(NSUInteger, TLAssertionParameter) {
 +(nonnull TLAssertPoint *)BAD_VALUE;
 +(nonnull TLAssertPoint *)STORE_ERROR;
 +(nonnull TLAssertPoint *)CONVERSATION_OPERATION_ERROR;
++(nonnull TLAssertPoint *)DATABASE_WAL_ERROR;
 
 @end

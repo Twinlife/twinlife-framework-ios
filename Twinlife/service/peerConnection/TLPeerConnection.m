@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2025 twinlife SA.
+ *  Copyright (c) 2013-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -65,7 +65,7 @@ static const int64_t RESTART_DATA_ICE_DELAY = 5000; // ms delay to wait before r
 
 static const int STATS_REPORT_VERSION = 2;
 static const int CONNECT_REPORT_VERSION = 2;
-static const int IQ_REPORT_VERSION = 5;
+static const int IQ_REPORT_VERSION = 6;
 static const int AUDIO_REPORT_VERSION = 2;
 static const int VIDEO_REPORT_VERSION = 2;
 
@@ -86,6 +86,7 @@ static const TLPeerConnectionServiceStatType SET_STAT_LIST[] = {
     TLPeerConnectionServiceStatTypeIqSetPushTwincode,
     TLPeerConnectionServiceStatTypeIqSetSynchronize,
     TLPeerConnectionServiceStatTypeIqSetSignatureInfo,
+    TLPeerConnectionServiceStatTypeIqSetPushPoll,
     TLPeerConnectionServiceStatTypeIqError
 };
 static const int SET_STAT_LIST_COUNT = sizeof(SET_STAT_LIST) / sizeof(SET_STAT_LIST[0]);
@@ -106,7 +107,8 @@ static const TLPeerConnectionServiceStatType RESULT_STAT_LIST[] = {
     TLPeerConnectionServiceStatTypeIqResultPushGeolocation,
     TLPeerConnectionServiceStatTypeIqResultPushTwincode,
     TLPeerConnectionServiceStatTypeIqResultSynchronize,
-    TLPeerConnectionServiceStatTypeIqResultSignatureInfo
+    TLPeerConnectionServiceStatTypeIqResultSignatureInfo,
+    TLPeerConnectionServiceStatTypeIqResultPushPoll
 };
 static const int RESULT_STAT_LIST_COUNT = sizeof(RESULT_STAT_LIST) / sizeof(RESULT_STAT_LIST[0]);
 
@@ -141,6 +143,14 @@ static const int ERROR_STAT_LIST_COUNT = sizeof(ERROR_STAT_LIST) / sizeof(ERROR_
 
 /*
  * <pre>
+ * Date: 2026/05/13
+ *  changes: added IQ stat push-poll-iq
+ *  iqReport: version 6
+ *  iq_report = version:set:set_report:result:result_report:recv:recv_report:sdp:sdp_report:padding_flag:error_report
+ *  sdp_report = sdp-receive-clear:sdp-send-clear:sdp-receive-encrypted:sdp-send-encrypted
+ *  padding_flag = ':P' if leading padding
+ *  error_report = err:serialize-error-count:send-error-count:audio-track-error:video-track-error
+ *
  * Date: 2024/12/16
  *  changes: added error report and padding flag
  *  iqReport: version 5
@@ -318,13 +328,13 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property (readonly, nonnull) TLPeerCallService *peerCallService;
 @property (readonly, nonnull) TLTransportCandidateList *pendingCandidates;
 
-@property (readonly, nonnull) NSString *defaultStreamLabel;
 @property (readonly) BOOL initiator;
 @property (readonly, nonnull) TLBaseServiceImplConfiguration *configuration;
 @property (readonly, nullable) TLNotificationContent *notificationContent;
 @property RTC_OBJC_TYPE(RTCPeerConnection) *peerConnection;
 @property RTC_OBJC_TYPE(RTCPeerConnectionFactory) *peerConnectionFactory;
 @property atomic_bool initialized;
+@property atomic_bool serverNotified;
 @property atomic_int renegotiationNeeded;
 @property atomic_int renegotationPending;
 @property atomic_bool terminated;
@@ -545,7 +555,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     DDLogVerbose(@"%@ initWithPeerConnectionService: %@ peerId: %@ offer: %@ offerToReceive: %@ notificationContent: %@ configuration: %@", LOG_TAG, peerConnectionService, peerId, offer, offerToReceive, notificationContent, configuration);
     
     self = [super init];
-    
+
     _uuid = sessionId;
     _keyPair = sessionKeyPair;
     _peerConnectionService = peerConnectionService;
@@ -553,7 +563,6 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     _twinlife = [_peerConnectionService twinlife];
     _peerCallService = [_twinlife getPeerCallService];
     _peerId = peerId;
-    _defaultStreamLabel = [[NSUUID UUID] UUIDString];
     _notificationContent = notificationContent;
     _initiator = YES;
     _offer = offer;
@@ -562,6 +571,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     _delegate = delegate;
     _initialized = NO;
     _terminated = NO;
+    _serverNotified = NO;
 
     // Prevent re-negotiation due to the creation of the data-channel or setup of WebRTC connection.
     _renegotiationNeeded = 1;
@@ -612,7 +622,6 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     _twinlife = [_peerConnectionService twinlife];
     _peerCallService = [_twinlife getPeerCallService];
     _peerId = peerId;
-    _defaultStreamLabel = [[NSUUID UUID] UUIDString];
     _initiator = NO;
     _peerOfferToReceive = offerToReceive;
     _notificationContent = nil;
@@ -624,6 +633,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     }
     _initialized = NO;
     _terminated = NO;
+    _serverNotified = NO;
 
     // Prevent re-negotiation due to the creation of the data-channel or setup of WebRTC connection.
     _renegotiationNeeded = 1;
@@ -1476,7 +1486,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                     [self terminatePeerConnectionWithTerminateReason:TLPeerConnectionServiceTerminateReasonRevoked notifyPeer:NO];
                     return;
                 }
-                
+                self.serverNotified = 1;
                 [self onSendServerWithErrorCode:errorCode requestId:requestId];
             }];
         }
@@ -1628,8 +1638,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     }
 
     if (self.initiator) {
-        
-        return YES;
+        // We can ping only if the session-initiate was sent to the server.
+        return atomic_load(&_serverNotified);
     }
 
     NSRange range = [self.peerId rangeOfString:@"/"];
@@ -2575,7 +2585,12 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             }
         }
     }
-    
+/*
+    *  iq_report = version:set:set_report:result:result_report:recv:recv_report:sdp:sdp_report:padding_flag:error_report
+    *  sdp_report = sdp-receive-clear:sdp-send-clear:sdp-receive-encrypted:sdp-send-encrypted
+    *  padding_flag = ':P' if leading padding
+    *  error_report = err:serialize-error-count:send-error-count:audio-track-error:video-track-error
+*/
     // Report iq statistics if we were connected and it was a data channel.
     NSMutableString *iqReport = nil;
     if (self.connectedTimestamp != 0 && self.offer.data) {

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2025 twinlife SA.
+ *  Copyright (c) 2020-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -74,7 +74,7 @@ static TLSerializer *PUSH_COMMAND_OPERATION_SERIALIZER = nil;
     int64_t requestId = [TLTwinlife newRequestId];
     [self updateWithRequestId:requestId];
     if ([connection isSupportedWithMajorVersion:CONVERSATION_SERVICE_MAJOR_VERSION_2 minorVersion:CONVERSATION_SERVICE_MINOR_VERSION_17]) {
-        TLPushTransientIQ *pushTransientObjectIQ = [[TLPushTransientIQ alloc] initWithSerializer:[TLPushCommandIQ SERIALIZER_2] requestId:requestId transientObjectDescriptor:commandDescriptor flags:0];
+        TLPushTransientIQ *pushTransientObjectIQ = [[TLPushTransientIQ alloc] initWithSerializer:[TLPushCommandIQ SERIALIZER_2] requestId:requestId transientObjectDescriptor:commandDescriptor flags:1];
         [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqSetPushTransient iq:pushTransientObjectIQ];
     } else {
         int majorVersion = [connection getMaxPeerMajorVersion];

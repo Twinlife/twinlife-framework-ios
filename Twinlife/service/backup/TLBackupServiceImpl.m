@@ -59,7 +59,7 @@ static const uint8_t FILE_SIGNATURE[] = {0x53, 0x46, 0x42, 0x4b};
 - (instancetype)init {
     DDLogVerbose(@"%@ init", LOG_TAG);
     
-    self = [super initWithBaseServiceId:TLBaseServiceIdManagementService version:TLBackupService.VERSION serviceOn:NO];
+    self = [super initWithBaseServiceId:TLBaseServiceIdBackupService version:TLBackupService.VERSION serviceOn:NO];
     
     return self;
 }

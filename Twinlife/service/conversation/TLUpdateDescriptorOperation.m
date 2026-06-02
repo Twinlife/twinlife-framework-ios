@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2025 twinlife SA.
+ *  Copyright (c) 2025-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 #import <CocoaLumberjack.h>
 
@@ -125,6 +126,12 @@ static const int ddLogLevel = DDLogLevelWarning;
 
             copyAllowed = (self.updateFlags & TL_UPDATE_COPY_ALLOWED) ? [NSNumber numberWithBool:fileDescriptor.copyAllowed] : nil;
             expireTimeout = (self.updateFlags & TL_UPDATE_EXPIRATION) ? [NSNumber numberWithLongLong:fileDescriptor.expireTimeout] : nil;
+
+        } else if ([descriptor isKindOfClass:[TLGeolocationDescriptor class]]) {
+            TLGeolocationDescriptor *geolocationDescriptor = (TLGeolocationDescriptor *)descriptor;
+
+            copyAllowed = (self.updateFlags & TL_UPDATE_COPY_ALLOWED) ? [NSNumber numberWithBool:geolocationDescriptor.copyAllowed] : nil;
+            expireTimeout = (self.updateFlags & TL_UPDATE_EXPIRATION) ? [NSNumber numberWithLongLong:geolocationDescriptor.expireTimeout] : nil;
 
         } else {
             return TLBaseServiceErrorCodeBadRequest;

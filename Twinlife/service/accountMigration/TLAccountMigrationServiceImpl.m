@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -623,6 +623,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
     
     // Erase the existing database (if one of them remain, we could have some trouble when we restart).
+    // We must also remove some -wal and -shm that could exist in some rare cases (they are encrypted with another key).
     NSString *dest = [rootDirectory stringByAppendingPathComponent:CIPHER_V4_DATABASE_NAME];
     if ([self.fileManager fileExistsAtPath:dest]) {
         [self.fileManager removeItemAtPath:dest error:nil];
@@ -631,7 +632,18 @@ static const int ddLogLevel = DDLogLevelWarning;
     if ([self.fileManager fileExistsAtPath:dest]) {
         [self.fileManager removeItemAtPath:dest error:nil];
     }
-
+    NSString* wal = [dest stringByAppendingString:@"-wal"];
+    if ([self.fileManager fileExistsAtPath:wal]) {
+        [self.fileManager removeItemAtPath:wal error:nil];
+    }
+    NSString *shm = [dest stringByAppendingString:@"-shm"];
+    if ([self.fileManager fileExistsAtPath:shm]) {
+        [self.fileManager removeItemAtPath:shm error:nil];
+    }
+    NSString *journal = [dest stringByAppendingString:@"-journal"];
+    if ([self.fileManager fileExistsAtPath:journal]) {
+        [self.fileManager removeItemAtPath:journal error:nil];
+    }
     dest = [rootDirectory stringByAppendingPathComponent:targetDB];
     BOOL result;
     NSError *error;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2025 twinlife SA.
+ *  Copyright (c) 2013-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -57,6 +57,7 @@
 #import "TLDatabaseService.h"
 #import "TLAccountMigrationServiceImpl.h"
 #import "TLBackupService.h"
+#import "TLSecureRosterServiceImpl.h"
 
 #import "TLTwinlifeContext+Protected.h"
 
@@ -83,6 +84,10 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 /**
  * <pre>
+ * Database Version 26
+ *  Date: 2026/04/20
+ *   No database schema change but convert groups to use secure roster.
+ *
  * Database Version 25
  *  Date: 2024/10/14
  *   Fix twincodeOutbound flags after introduction of beta support for SDPs encryption keys (internal version).
@@ -280,7 +285,7 @@ static const int ddLogLevel = DDLogLevelWarning;
  * </pre>
  */
 
-#define DATABASE_VERSION 25
+#define DATABASE_VERSION 26
 
 static NSTimeInterval MAX_DISCONNECTED_TIMEOUT = 512; // s
 
@@ -363,6 +368,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         _peerCallServiceConfiguration = [[TLPeerCallServiceConfiguration alloc] init];
         _accountMigrationServiceConfiguration = [[TLAccountMigrationServiceConfiguration alloc] init];
         _backupServiceConfiguration = [[TLBackupServiceConfiguration alloc] init];
+        _secureRosterServiceConfiguration = [[TLSecureRosterServiceConfiguration alloc] init];
 
         NSString* path = [[NSBundle mainBundle] pathForResource:@"tool" ofType:@"cfg"];
         NSData *data = [NSData dataWithContentsOfFile:path];
@@ -537,6 +543,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     return BACKUP_EXTENSION;
 }
 
++ (nonnull NSString *)GROUP_SECURE_ROSTER_MIGRATION {
+    
+    return @"GroupSecureRosterMigration";
+}
+
 + (nonnull TLBinaryPacketIQSerializer *)IQ_ON_ERROR_SERIALIZER {
     
     return IQ_ON_ERROR_SERIALIZER_INSTANCE;
@@ -558,6 +569,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         _twincodeFactoryService = [[TLTwincodeFactoryService alloc] initWithTwinlife:self];
         _twincodeInboundService = [[TLTwincodeInboundService alloc] initWithTwinlife:self];
         _twincodeOutboundService = [[TLTwincodeOutboundService alloc] initWithTwinlife:self];
+        _secureRosterService = [[TLSecureRosterService alloc] initWithTwinlife:self];
         _repositoryService = [[TLRepositoryService alloc] initWithTwinlife:self];
         _notificationService = [[TLNotificationService alloc] initWithTwinlife:self];
         _peerCallService = [[TLPeerCallService alloc] initWithTwinlife:self];
@@ -583,7 +595,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
                               _imageService,
                               _accountMigrationService,
                               _accountService,
-                              _backupService
+                              _backupService,
+                              _secureRosterService
                               ];
 
         const char *twinlifeQueueName = "twinlifeQueue";
@@ -632,8 +645,6 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
         return TLBaseServiceErrorCodeWrongLibraryConfiguration;
     }
 
-    [TLKeyChain waitUntilReady];
-
 #if defined(DEBUG) && DEBUG == 1
     // For development only, before loading the secure configuration and anything else,
     // check for the import directory to replace the current configuration by the imported one.
@@ -661,7 +672,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
                 return TLBaseServiceErrorCodeWrongLibraryConfiguration;
             }
 
-#ifndef TWINME_PLUS
+#if !defined(TWINME_PLUS) && !defined(MYTWINLIFE_PLUS)
             // Create the new secure configuration
             self.twinlifeSecuredConfiguration = [[TLTwinlifeSecuredConfiguration alloc] initWithSerializerFactory:self.serializerFactory];
             if (!self.twinlifeSecuredConfiguration) {
@@ -723,6 +734,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     [self.twincodeOutboundService configure:twinlifeConfiguration.twincodeOutboundServiceConfiguration];
     self.twinlifeConfiguration.twincodeOutboundServiceConfiguration = (TLTwincodeOutboundServiceConfiguration *)self.twincodeOutboundService.serviceConfiguration;
     
+    [self.secureRosterService configure:twinlifeConfiguration.secureRosterServiceConfiguration];
+    self.twinlifeConfiguration.secureRosterServiceConfiguration = (TLSecureRosterServiceConfiguration *)self.secureRosterService.serviceConfiguration;
+
     [self.repositoryService configure:twinlifeConfiguration.repositoryServiceConfiguration factories:twinlifeConfiguration.factories];
     self.twinlifeConfiguration.repositoryServiceConfiguration = (TLRepositoryServiceConfiguration *)self.repositoryService.serviceConfiguration;
     
@@ -781,7 +795,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     return TLBaseServiceErrorCodeSuccess;
 }
 
-#ifdef TWINME_PLUS
+#if defined(TWINME_PLUS) || defined(MYTWINLIFE_PLUS)
 - (BOOL)importApplicationData {
     DDLogVerbose(@"%@ importApplicationData", LOG_TAG);
 
@@ -881,6 +895,23 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     DDLogVerbose(@"%@ isDatabaseUpgraded", LOG_TAG);
     
     return self.databaseUpgraded;
+}
+
+- (BOOL)needMigrationWithTag:(nonnull NSString *)tag {
+
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *path = [TLTwinlife getAppGroupPath:fileManager path:tag];
+
+    return [fileManager fileExistsAtPath:path];
+}
+
+- (void)finishMigrationWithTag:(nonnull NSString *)tag {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *path = [TLTwinlife getAppGroupPath:fileManager path:tag];
+
+    if ([fileManager fileExistsAtPath:path]) {
+        [fileManager removeItemAtPath:path error:nil];
+    }
 }
 
 - (void)stopWithCompletionHandler:(nullable void (^)(TLBaseServiceErrorCode status))completionHandler {
@@ -990,6 +1021,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 - (nonnull TLCryptoService *)getCryptoService {
     
     return self.cryptoService;
+}
+
+- (nonnull TLSecureRosterService *)getSecureRosterService {
+
+    return self.secureRosterService;
 }
 
 - (NSDictionary<NSString *, TLServiceStats *> *)getServiceStats {
@@ -1262,7 +1298,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 }
 
 - (void)twinlifeSuspend {
-    DDLogVerbose(@"%@ twinlifeSuspend", LOG_TAG);
+    DDLogInfo(@"%@ twinlifeSuspend in state %d", LOG_TAG, [self status]);
     
     // If a connection monitor is running, stop it.
     TL_START_MEASURE(self.startSuspendTime)
@@ -1291,14 +1327,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
             [service onTwinlifeSuspend];
         }
     }
-    
-    // If a connection monitor is running, stop it.
-    @synchronized (self) {
-        if (self.connectionMonitor) {
-            self.connectionMonitor.running = NO;
-            self.connectionMonitor = nil;
-        }
-    }
+
     [self.serverConnection triggerWorker];
 
     // Note: the call to disconnect must not be done now but later, if we are still connected
@@ -1347,7 +1376,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
 }
 
 - (void)twinlifeResume {
-    DDLogVerbose(@"%@ twinlifeResume startTime: %lld", LOG_TAG, self.startTime);
+    DDLogInfo(@"%@ twinlifeResume status %d startTime: %lld", LOG_TAG, [self status], self.startTime);
 
     // Check immediately the status to avoid dispatching for nothing.
     TLTwinlifeStatus status = [self status];
@@ -1411,10 +1440,10 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
             // Create a connection monitor instance dedicated to the new thread and stop a possible running connection monitor.
             TLConnectionMonitor *connectionMonitor;
             @synchronized (self) {
-                connectionMonitor = [[TLConnectionMonitor alloc] init];
                 if (self.connectionMonitor) {
-                    self.connectionMonitor.running = NO;
+                    return;
                 }
+                connectionMonitor = [[TLConnectionMonitor alloc] init];
                 self.connectionMonitor = connectionMonitor;
             }
 
@@ -1526,11 +1555,24 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         if ([fileManager fileExistsAtPath:cipherV5DatabasePath]) {
             NSURL *target = [appDir URLByAppendingPathComponent:CIPHER_V5_DATABASE_NAME];
             DDLogError(@"%@ Export %@ to %@", LOG_TAG, cipherV5DatabasePath, target.path);
-            
             [fileManager copyItemAtPath:cipherV5DatabasePath toPath:target.path error:nil];
+
+            NSString *walPath = [cipherV5DatabasePath stringByAppendingString:@"-wal"];
+            if ([fileManager fileExistsAtPath:cipherV5DatabasePath]) {
+                NSString *walTargetPath = [target.path stringByAppendingString:@"-wal"];
+                DDLogError(@"%@ Export WAL %@ to %@", LOG_TAG, walPath, walTargetPath);
+                [fileManager copyItemAtPath:walPath toPath:walTargetPath error:nil];
+            }
+
+            NSString *shmPath = [cipherV5DatabasePath stringByAppendingString:@"-shm"];
+            if ([fileManager fileExistsAtPath:cipherV5DatabasePath]) {
+                NSString *shmTargetPath = [target.path stringByAppendingString:@"-shm"];
+                DDLogError(@"%@ Export SHM %@ to %@", LOG_TAG, walPath, shmTargetPath);
+                [fileManager copyItemAtPath:shmPath toPath:shmTargetPath error:nil];
+            }
         }
     }
-    
+
     // NSUserDefaults *userDefaults = [TLTwinlife getAppSharedUserDefaultsWithAlternateApplication:NO];
     
     NSData *content = [TLKeyChain getKeyChainDataWithKey:TWINLIFE_SECURED_CONFIGURATION_KEY tag:TWINLIFE_SECURED_CONFIGURATION_TAG alternateApplication:NO];
@@ -1598,6 +1640,9 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         NSString *cipherV5DatabasePath = dbPath.path;
         DDLogError(@"%@ Import V5 database %@ to %@", LOG_TAG, path.path, cipherV5DatabasePath);
         [fileManager removeItemAtPath:cipherV5DatabasePath error:nil];
+        [fileManager removeItemAtPath:[cipherV5DatabasePath stringByAppendingString:@"-wal"] error:nil];
+        [fileManager removeItemAtPath:[cipherV5DatabasePath stringByAppendingString:@"-shm"] error:nil];
+        [fileManager removeItemAtPath:[cipherV5DatabasePath stringByAppendingString:@"-journal"] error:nil];
         [fileManager copyItemAtPath:path.path toPath:cipherV5DatabasePath error:nil];
     } else {
         // Import twinlife-4.cipher from the private area.
@@ -1622,6 +1667,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         if (![TLKeyChain updateKeyChainWithKey:TWINLIFE_SECURED_CONFIGURATION_KEY tag:TWINLIFE_SECURED_CONFIGURATION_TAG data:content alternateApplication:NO]) {
             DDLogError(@"%@ loadWithSerializerFactory:twinlifeConfiguration: updateKeyChainWithKey error 2", LOG_TAG);
         }
+        [fileManager removeItemAtPath:path.path error:nil];
     }
 
     path = [appDir URLByAppendingPathComponent:EXPORT_ACCOUNT_CONFIGURATION];
@@ -1631,6 +1677,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         if (![TLKeyChain updateKeyChainWithKey:ACCOUNT_SERVICE_SECURED_CONFIGURATION_KEY tag:ACCOUNT_SERVICE_SECURED_CONFIGURATION_TAG data:content alternateApplication:NO]) {
             DDLogError(@"%@ loadWithSerializerFactory:twinlifeConfiguration: updateKeyChainWithKey error 2", LOG_TAG);
         }
+        [fileManager removeItemAtPath:path.path error:nil];
     }
 
     // Erase the import directory to make sure we don't import again.
@@ -1702,11 +1749,13 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
                 // Execute the operation handler from the server queue (so that we don't block the caller, which is the
                 // connection monitor thread, and we can give the de-serialized IQ to another thread).
                 dispatch_async(self.serverQueue, ^{
-                    @try {
-                        TLBinaryPacketIQ *iq = (TLBinaryPacketIQ *)object;
-                        listener(iq);
-                    } @catch(NSException *lException) {
-                        DDLogError(@"%@ didReceiveBinaryData: exception: %@ schemaId: %@", LOG_TAG, lException, schemaId);
+                    @autoreleasepool {
+                        @try {
+                            TLBinaryPacketIQ *iq = (TLBinaryPacketIQ *)object;
+                            listener(iq);
+                        } @catch(NSException *lException) {
+                            DDLogError(@"%@ didReceiveBinaryData: exception: %@ schemaId: %@", LOG_TAG, lException, schemaId);
+                        }
                     }
                 });
             }
@@ -1798,6 +1847,8 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         self.restoreMode = YES;
     }
     
+    atomic_store(&_twinlifeStatus, TLTwinlifeStatusRestoring);
+    
     [self openDatabase];
     
     //TODO BKP: disable jobs, unsolicited IQs from the server, ...
@@ -1808,6 +1859,8 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         self.restoreMode = NO;
     }
         
+    atomic_store(&_twinlifeStatus, TLTwinlifeStatusStarted);
+    
     //TODO BKP: enable jobs, process IQs from the server, ...
 }
 
@@ -1921,51 +1974,86 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
 #endif
 
         BOOL databaseExists = [fileManager fileExistsAtPath:databasePath];
-        self.databaseQueue = [FMDatabaseQueue databaseQueueWithPath:databasePath];
         self.databasePath = databasePath;
-        // Check databaseKey
-        __block NSError *error = nil;
-        __block int databaseVersion = 0;
-        [self.databaseQueue inDatabase:^(FMDatabase *database) {
-            if (cipherVersion == 3) {
-                [database setKey:databaseKey];
-                [database executeUpdate:@"PRAGMA cipher_compatibility = 3"];
-            } else {
-                // Keep 32 bytes header in clear text for iOS for Apple's stupidities.
-                [database executeUpdate:@"PRAGMA cipher_plaintext_header_size = 32"];
-                [database setKey:[NSString stringWithFormat:@"x'%@'", databaseKey]];
-            }
-            
-            // Always check the database key in case the file was changed behind us.
-            FMResultSet *resultSet = [database executeQuery:@"SELECT COUNT(*) FROM sqlite_master" values:nil error:&error];
-            [resultSet close];
-            if (error) {
-                return;
-            }
 
-            databaseVersion = [database intForQuery:@"PRAGMA user_version"];
-            if (databaseVersion < 20) {
-                int result = [database intForQuery:@"SELECT COUNT(*) FROM sqlite_master WHERE [type]='table' AND name='databaseVersion'"];
-                if (result > 0) {
-                    databaseVersion = [database intForQuery:@"SELECT version FROM databaseVersion WHERE key='twinlifeDatabase'"];
+        // Check databaseKey
+        __block int databaseVersion = 0;
+        __block NSError *error = nil;
+        for (int retry = 0; retry < 3; retry++) {
+            self.databaseQueue = [FMDatabaseQueue databaseQueueWithPath:databasePath];
+            [self.databaseQueue inDatabase:^(FMDatabase *database) {
+                if (cipherVersion == 3) {
+                    [database setKey:databaseKey];
+                    [database executeUpdate:@"PRAGMA cipher_compatibility = 3"];
+                } else {
+                    // Keep 32 bytes header in clear text for iOS for Apple's stupidities.
+                    [database executeUpdate:@"PRAGMA cipher_plaintext_header_size = 32"];
+                    [database setKey:[NSString stringWithFormat:@"x'%@'", databaseKey]];
                 }
-                if (!databaseVersion) {
-                    // Database was created with version >14 and <21, so it has neither a user_version PRAGMA nor a databaseVersion table.
-                    // Set the version manually, to make sure upgrades run and the user_version PRAGMA is set.
-                    int result = [database intForQuery:@"SELECT COUNT(*) FROM sqlite_master WHERE [type]='table' AND name='repository'"];
-                    if (result == 0) {
-                        databaseVersion = 19;
-                    } else {
-                        databaseVersion = 20;
+                
+                // Always check the database key in case the file was changed behind us.
+                FMResultSet *resultSet = [database executeQuery:@"SELECT COUNT(*) FROM sqlite_master" values:nil error:&error];
+                [resultSet close];
+                if (error) {
+                    return;
+                }
+                
+                databaseVersion = [database intForQuery:@"PRAGMA user_version"];
+                if (databaseVersion < 20) {
+                    int result = [database intForQuery:@"SELECT COUNT(*) FROM sqlite_master WHERE [type]='table' AND name='databaseVersion'"];
+                    if (result > 0) {
+                        databaseVersion = [database intForQuery:@"SELECT version FROM databaseVersion WHERE key='twinlifeDatabase'"];
+                    }
+                    if (!databaseVersion) {
+                        // Database was created with version >14 and <21, so it has neither a user_version PRAGMA nor a databaseVersion table.
+                        // Set the version manually, to make sure upgrades run and the user_version PRAGMA is set.
+                        int result = [database intForQuery:@"SELECT COUNT(*) FROM sqlite_master WHERE [type]='table' AND name='repository'"];
+                        if (result == 0) {
+                            databaseVersion = 19;
+                        } else {
+                            databaseVersion = 20;
+                        }
                     }
                 }
+            }];
+            if (!error) {
+                break;
             }
-        }];
 
-        if (error) {
             DDLogError(@"%@ check database failed with error %@", LOG_TAG, error);
             self.databaseError = error; // Record the error (used for debugging).
             [self.databaseQueue close];
+
+            // For the main application only, if we fail to open the database we pause a little bit and retry:
+            // - after the first error and second error, we retry after 500ms,
+            // - after the third error, if SQLcipher indicates the encryption key is invalid,
+            //   we try to remove possible -wal and -shm files that could be encrypted using another key.
+            //   we will received the assertion only if such recovery succeeded.
+            if (!self.twinlifeConfiguration.enableSetup) {
+                break;
+            }
+            [NSThread sleepForTimeInterval:0.5];
+
+            if (retry >= 2 && error.code == SQLITE_NOTADB) {
+                NSString* wal = [databasePath stringByAppendingString:@"-wal"];
+                if ([fileManager fileExistsAtPath:wal]) {
+                    [fileManager removeItemAtPath:wal error:nil];
+                    [self assertionWithAssertPoint:[TLTwinlifeAssertPoint DATABASE_WAL_ERROR], [TLAssertValue initWithLine:__LINE__], nil];
+                }
+                NSString *shm = [databasePath stringByAppendingString:@"-shm"];
+                if ([fileManager fileExistsAtPath:shm]) {
+                    [fileManager removeItemAtPath:shm error:nil];
+                    [self assertionWithAssertPoint:[TLTwinlifeAssertPoint DATABASE_WAL_ERROR], [TLAssertValue initWithLine:__LINE__], nil];
+                }
+                NSString *journal = [databasePath stringByAppendingString:@"-journal"];
+                if ([fileManager fileExistsAtPath:journal]) {
+                    [fileManager removeItemAtPath:journal error:nil];
+                    [self assertionWithAssertPoint:[TLTwinlifeAssertPoint DATABASE_WAL_ERROR], [TLAssertValue initWithLine:__LINE__], nil];
+                }
+            }
+        }
+        
+        if (error) {
             switch (error.code) {
                 case SQLITE_NOTADB:
                     return TLBaseServiceErrorCodeDatabaseKeyError;
@@ -1975,7 +2063,6 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
                     return TLBaseServiceErrorCodeDatabaseError;
             }
         }
-        
         if (self.databaseVersion <= 0) {
             self.databaseVersion = databaseVersion;
 
@@ -2109,7 +2196,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         [self.databaseService onCloseDatabase];
         
         TLTwinlifeStatus status = [self status];
-        if (status == TLTwinlifeStatusSuspending || status == TLTwinlifeStatusStarted || status == TLTwinlifeStatusConfigured) {
+        if (status != TLTwinlifeStatusRestoring && (status == TLTwinlifeStatusSuspending || status == TLTwinlifeStatusStarted || status == TLTwinlifeStatusConfigured)) {
             atomic_store(&_twinlifeStatus, TLTwinlifeStatusSuspended);
         }
     }
@@ -2148,16 +2235,11 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
 
     NSError *error;
     
-    NSString *databasePath = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME].path;
-    if ([fileManager fileExistsAtPath:databasePath]) {
-        [fileManager removeItemAtPath:databasePath error:&error];
-        
-        if (error) {
-            DDLogError(@"%@ Could not delete database %@: %@", LOG_TAG, databasePath, error.userInfo);
-            return TLBaseServiceErrorCodeDatabaseError;
-        }
+    if (![self deleteDatabaseFilesWithDatabaseName:RESTORE_DATABASE_NAME error:&error]) {
+        return TLBaseServiceErrorCodeDatabaseError;
     }
     
+    [self.databaseService syncDatabase];
     [self closeDatabase];
     
     if (inPlaceRestore && [fileManager fileExistsAtPath:self.databasePath]) {
@@ -2165,6 +2247,8 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
             DDLogError(@"%@ Existing DB is not up-to-date, can't perform in-place restore. Current version: %d, expected version: %d", LOG_TAG, self.databaseVersion, DATABASE_VERSION);
             return TLBaseServiceErrorCodeDatabaseError;
         }
+    
+        NSString *databasePath = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME].path;
         
         [fileManager copyItemAtPath:self.databasePath toPath:databasePath error:&error];
         
@@ -2187,6 +2271,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         return NO;
     }
     
+    [self.databaseService syncDatabase];
     [self closeDatabase];
 
     NSError *error;
@@ -2195,15 +2280,8 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     NSURL *groupURL = [TLTwinlife getAppGroupURL:fileManager];
         
     for (NSString *existingDbName in @[CIPHER_V3_DATABASE_NAME, CIPHER_V4_DATABASE_NAME, CIPHER_V5_DATABASE_NAME]) {
-        NSURL *existingDbUrl = [groupURL URLByAppendingPathComponent:existingDbName];
-        
-        if ([fileManager fileExistsAtPath:existingDbUrl.path]) {
-            [fileManager removeItemAtURL:existingDbUrl error:&error];
-        
-            if (error) {
-                DDLogError(@"%@ Couldn't remove existing DB: %@", LOG_TAG, existingDbUrl.path);
-                return NO;
-            }
+        if (![self deleteDatabaseFilesWithDatabaseName:existingDbName error:&error]) {
+            return NO;
         }
     }
     
@@ -2218,14 +2296,14 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
         return NO;
     }
     
-    self.restoreMode = NO;
+    [self disableRestoreMode];
     
     TLBaseServiceErrorCode dbOpen = [self openDatabase];
     if (dbOpen != TLBaseServiceErrorCodeSuccess) {
         [self.twinlifeContext onSignInErrorWithErrorCode:dbOpen];
         return NO;
     }
-    
+        
     return YES;
 }
 
@@ -2238,22 +2316,12 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     }
     
     [self closeDatabase];
-    
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSURL *groupURL = [TLTwinlife getAppGroupURL:fileManager];
-    NSURL *restoredDatabasePath = [groupURL URLByAppendingPathComponent:RESTORE_DATABASE_NAME];
 
-    if ([fileManager fileExistsAtPath:restoredDatabasePath.path]) {
-        NSError *error;
-        [fileManager removeItemAtURL:restoredDatabasePath error:&error];
-        
-        if (error) {
-            DDLogError(@"%@ Couldn't remove restored DB %@: %@", LOG_TAG, restoredDatabasePath.path, error.userInfo);
-            return NO;
-        }
+    if (![self deleteDatabaseFilesWithDatabaseName:RESTORE_DATABASE_NAME error:nil]) {
+        return NO;
     }
     
-    self.restoreMode = NO;
+    [self disableRestoreMode];
     
     TLBaseServiceErrorCode dbOpen = [self openDatabase];
     if (dbOpen != TLBaseServiceErrorCodeSuccess) {
@@ -2334,6 +2402,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     }
 
     NSTimeInterval disconnectedTimeout = 0.1;
+    TLServerConnection *serverConnection = self.serverConnection;
     while (monitor.running) {
         do {
             DDLogInfo(@"%@ %@", LOG_TAG, @"wait for connected network...");
@@ -2360,36 +2429,44 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
                     disconnectedTimeout = MAX_DISCONNECTED_TIMEOUT;
                 }
             }
-        } while (![self.connectivityService isConnectedNetwork] && monitor.running);
+        } while (![self.connectivityService isConnectedNetwork]);
 
-        // Do not try to re-connect if we are disconnecting.
-        BOOL hasLock = NO;
-        if (![self.serverConnection isDisconnecting]) {
+        BOOL hasNetwork;
+        do {
+            hasNetwork = [self.connectivityService isConnectedNetwork];
+            TLTwinlifeStatus status = self.twinlifeStatus;
 
-            while (monitor.running && [self.connectivityService isConnectedNetwork]) {
-                if (![self isConnected] && monitor.running) {
-                    hasLock = [self lockServerConnection];
+            if (hasNetwork && (status == TLTwinlifeStatusStarted || status == TLTwinlifeStatusStarting)) {
+                TLConnectionStatus connectionStatus = [serverConnection connectionStatus];
+
+                // Try to connect if there is no active WebSocket and we are starting or started.
+                if (connectionStatus == TLConnectionStatusNoService) {
+                    BOOL hasLock = [self lockServerConnection];
                     if (hasLock) {
                         DDLogInfo(@"%@ %@", LOG_TAG, @"connect...");
-                        
-                        if (![self.serverConnection connect]) {
+                            
+                        if (![serverConnection connect]) {
                             // Connection failed immediately, may be the Internet connectivity was lost,
                             // exit this loop to check again BUT give 500ms to the libwebsocket to pause
                             // because if we retry the call to connect() too quickly, we will get the
                             // same error and consume CPU for nothing.
-                            [self.serverConnection serviceWithTimeout:500];
+                            [serverConnection serviceWithTimeout:500];
                             break;
                         }
                     }
                 }
-                [self.serverConnection serviceWithTimeout:5000];
+                [serverConnection serviceWithTimeout:5000];
+            } else {
+                [serverConnection serviceWithTimeout:30000];
             }
+            
+            // We should stay in the serviceWithTimeout if we have a WebSocket connection (it may be trying
+            // to connect, connected and being disconnecting).  If there is no network and no WebSocket,
+            // we can leave and let the upper loop wait for network connection to come back.
+            hasNetwork = [self.connectivityService isConnectedNetwork];
+        } while (hasNetwork || [serverConnection connectionStatus] != TLConnectionStatusNoService);
 
-            [self unlockServerConnection];
-        }
-    }
-    while ([self.serverConnection isOpened] || [self.serverConnection isDisconnecting]) {
-        [self.serverConnection serviceWithTimeout:10];
+        [self unlockServerConnection];
     }
     DDLogVerbose(@"%@ stopping thread: %@", LOG_TAG, object);
 }
@@ -2404,6 +2481,30 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     NSString *model = [NSString stringWithCString:buffer encoding:NSUTF8StringEncoding];
     free(buffer);
     return [model stringByReplacingOccurrencesOfString:@"," withString:@"_"];
+}
+
+- (BOOL)deleteDatabaseFilesWithDatabaseName:(nonnull NSString *)databaseName error:(NSError **)error {
+    DDLogVerbose(@"%@ deleteDatabaseFilesWithDatabaseName:%@", LOG_TAG, databaseName);
+
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSURL *groupURL = [TLTwinlife getAppGroupURL:fileManager];
+    NSString *databasePath = [groupURL URLByAppendingPathComponent:databaseName].path;
+
+    NSError *deleteError = nil;
+    
+    for (NSString *dbFile in @[databasePath, [databasePath stringByAppendingString:@"-wal"], [databasePath stringByAppendingString:@"-shm"], [databasePath stringByAppendingString:@"-journal"]]) {
+        if ([fileManager fileExistsAtPath:dbFile]) {
+            if (![fileManager removeItemAtPath:dbFile error:&deleteError]) {
+                DDLogError(@"%@ Could not delete database file %@: %@", LOG_TAG, dbFile, deleteError.userInfo);
+                if (error) {
+                    *error = deleteError;
+                }
+                return NO;
+            }
+        }
+    }
+    
+    return YES;
 }
 
 @end

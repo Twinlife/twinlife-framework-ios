@@ -1,10 +1,11 @@
 /*
- *  Copyright (c) 2015-2023 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Shiyi Gu (Shiyi.Gu@twinlife-systems.com)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
 typedef enum {
@@ -19,6 +20,7 @@ typedef enum {
 #define TL_TWINCODE_DESCRIPTION  @"description"
 #define TL_TWINCODE_AVATAR_ID    @"avatarId"
 #define TL_TWINCODE_CAPABILITIES @"capabilities"
+#define TL_ROSTER_ID             @"rosterId"
 
 typedef NS_ENUM(NSUInteger, TLTrustMethod) {
     TLTrustMethodNone,              // No public key or not trusted.

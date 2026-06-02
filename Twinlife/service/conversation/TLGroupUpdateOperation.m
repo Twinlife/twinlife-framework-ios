@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 twinlife SA.
+ *  Copyright (c) 2025-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -37,7 +37,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
     self = [super initWithConversation:conversation type:TLConversationServiceOperationTypeUpdateGroupMember groupTwincodeId:groupTwincodeId memberTwincodeId:memberTwincodeId];
     if (self) {
-        _permissions = 0;
+        _permissions = permissions;
     }
     return self;
 }

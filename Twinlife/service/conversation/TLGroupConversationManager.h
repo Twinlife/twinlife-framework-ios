@@ -49,6 +49,7 @@ typedef enum {
 @class TLTwincodeOutboundService;
 @class TLGroupJoinOperation;
 @class TLGroupLeaveOperation;
+@class TLSecureRosterService;
 
 @interface TLGroupConversationManager : NSObject
 
@@ -58,6 +59,7 @@ typedef enum {
 @property (readonly, nonnull) TLTwinlife *twinlife;
 @property (readonly, nonnull) TLCryptoService *cryptoService;
 @property (readonly, nonnull) TLTwincodeOutboundService *twincodeOutboundService;
+@property (readonly, nonnull) TLSecureRosterService *secureRosterService;
 
 - (nonnull instancetype)initWithConversationService:(nonnull TLConversationService *)conversationService;
 
@@ -77,13 +79,26 @@ typedef enum {
 
 - (TLBaseServiceErrorCode)setPermissionsWithSubject:(nullable id<TLRepositoryObject>)group memberTwincodeId:(nonnull NSUUID *)memberTwincodeId permissions:(int64_t)permissions;
 
+/// Update the group according to a new list of members provided by the secure roster service.
+/// From this list we have to:
+/// - identify and record new members,
+/// - update existing members (mostly permissions since twincodes and public key don't change)
+/// - remove members that are not in the new list.
+/// @param group the group to refresh.
+/// @param members the list of roster members as known and reported by the server.
+/// @param memberTwincodes the map of twincodes for these members.
+/// @return SUCCESS if the refresh operation succeeded.
+- (TLBaseServiceErrorCode)refreshWithGroup:(nonnull id<TLRepositoryObject>)group members:(nonnull NSArray<TLRosterMember *> *)members memberTwincodes:(nonnull NSDictionary<NSUUID *, TLTwincodeOutbound *> *)memberTwincodes;
+
 - (void)deleteGroupConversation:(nonnull TLGroupConversationImpl *)groupConversation;
 
-- (TLGroupConversationAddMemberStatusType)addMember:(nonnull TLGroupConversationImpl *)groupConversation memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode permissions:(int64_t)permissions invitedContactId:(nullable NSUUID *)invitedContactId returnMembers:(nullable NSMutableArray<TLOnJoinGroupMemberInfo*> *)returnMembers propagate:(BOOL)propagate signedOffTwincodeId:(nullable NSUUID *)signedOffTwincodeId signature:(nullable NSString *)signature;
+- (TLGroupConversationAddMemberStatusType)addMember:(nonnull TLGroupConversationImpl *)groupConversation memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode permissions:(int64_t)permissions invitedContactId:(nullable NSUUID *)invitedContactId returnMembers:(nullable NSMutableArray<TLOnJoinGroupMemberInfo*> *)returnMembers propagate:(BOOL)propagate useSecureRoster:(BOOL)useSecureRoster signedOffTwincodeId:(nullable NSUUID *)signedOffTwincodeId signature:(nullable NSString *)signature;
 
 - (BOOL)delMember:(nonnull TLGroupConversationImpl *)groupConversation memberTwincodeId:(nonnull NSUUID *)memberTwincodeId;
 
 - (TLBaseServiceErrorCode)invokeJoinGroupWithConversation:(nonnull TLConversationImpl *)conversation groupOperation:(nonnull TLGroupJoinOperation *)groupOperation;
+
+- (TLBaseServiceErrorCode)invokeDeleteRosterMemberWithConversation:(nonnull TLConversationImpl *)conversation groupOperation:(nonnull TLGroupLeaveOperation *)groupOperation;
 
 - (TLBaseServiceErrorCode)invokeLeaveGroupWithConversation:(nonnull TLConversationImpl *)conversation groupOperation:(nonnull TLGroupLeaveOperation *)groupOperation;
 
@@ -93,9 +108,11 @@ typedef enum {
 
 - (void)processRevokeInviteGroup:(nonnull TLConversationImpl *)conversation descriptorId:(nonnull TLDescriptorId *)descriptorId;
 
-- (nullable TLGroupJoinResult *)processJoinGroupWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode descriptorId:(nonnull TLDescriptorId *)descriptorId publicKey:(nullable NSString *)publicKey;
+- (void)processJoinGroupAsyncWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode descriptorId:(nonnull TLDescriptorId *)descriptorId publicKey:(nullable NSString *)publicKey withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLGroupJoinResult *_Nullable joinResult))block;
 
-- (nullable TLGroupJoinResult *)processJoinGroupWithGroupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode memberPermissions:(int64_t)memberPermissions;
+- (nullable TLGroupJoinResult *)processJoinGroupLegacyWithConversation:(nonnull TLConversationImpl *)conversation groupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode descriptorId:(nonnull TLDescriptorId *)descriptorId;
+
+- (nullable TLGroupJoinResult *)processJoinGroupLegacyWithGroupTwincodeId:(nonnull NSUUID *)groupTwincodeId memberTwincode:(nonnull TLTwincodeOutbound *)memberTwincode memberPermissions:(int64_t)memberPermissions;
 
 - (void)processRejectJoinGroupWithConversation:(nullable TLConversationImpl *)conversation descriptorId:(nonnull TLDescriptorId *)descriptorId;
 

@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2017-2024 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -208,8 +209,8 @@ static const int ddLogLevel = DDLogLevelWarning;
     return [self.serviceProvider getNotificationStats];
 }
 
-- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nullable NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser {
-    DDLogVerbose(@"%@ createNotificationWithType: %d notificationId: %@ subject: %@ descriptorId: %@ annotatingUser: %@", LOG_TAG, type, notificationId, subject, descriptorId, annotatingUser);
+- (nullable TLNotification *)createNotificationWithType:(TLNotificationType)type notificationId:(nullable NSUUID *)notificationId subject:(nonnull id<TLRepositoryObject>)subject descriptorId:(nullable TLDescriptorId *)descriptorId annotatingUser:(nullable TLTwincodeOutbound *)annotatingUser annotation:(nullable TLDescriptorAnnotation *)annotation {
+    DDLogVerbose(@"%@ createNotificationWithType: %d notificationId: %@ subject: %@ descriptorId: %@ annotatingUser: %@ annotation: %@", LOG_TAG, type, notificationId, subject, descriptorId, annotatingUser, annotation);
     
     if (!self.serviceOn) {
         return nil;
@@ -218,7 +219,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     if (!notificationId) {
         notificationId = [NSUUID UUID];
     }
-    return [self.serviceProvider createNotificationWithType:type notificationId:notificationId subject:subject descriptorId:descriptorId annotatingUser:annotatingUser];
+    return [self.serviceProvider createNotificationWithType:type notificationId:notificationId subject:subject descriptorId:descriptorId annotatingUser:annotatingUser annotation:annotation];
 }
 
 - (void)acknowledgeWithNotification:(nonnull TLNotification *)notification {

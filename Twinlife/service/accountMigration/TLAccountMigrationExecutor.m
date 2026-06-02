@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -953,6 +953,10 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     } else if (fileInfo.fileId == DATABASE_CIPHER_5_FILE_INDEX) {
         path = [dbDir URLByAppendingPathComponent:MIGRATION_DATABASE_CIPHER_V5_NAME].path;
         self.migrationDatabasePath = path;
+    } else {
+        // Should not happen.
+        path = [dbDir URLByAppendingPathComponent:@"unknown"].path;
+        self.migrationDatabasePath = path;
     }
     return path;
 }
@@ -1514,7 +1518,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     }
     
     if (self.requestTimeoutExpired) {
-        DDLogError(@"%@ timeout on pending reauests!", LOG_TAG);
+        DDLogError(@"%@ timeout on pending requests!", LOG_TAG);
         
         [self closeConnection];
         return;
@@ -1560,8 +1564,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
 -(nonnull TLAccountIQ *)sendAccountWithRequestId:(int64_t)requestId {
     DDLogVerbose(@"%@ sendAccountWithRequestId: %lld", LOG_TAG, requestId);
 
+    int version = !self.peerVersion || self.peerVersion.major > 2 || (self.peerVersion.major == 2 && self.peerVersion.minor >= 2) ? 5 : 4;
     NSData *secureData = [TLTwinlifeSecuredConfiguration exportWithSerializerFactory:self.serializerFactory];
-    NSData *accountData =  [TLAccountServiceSecuredConfiguration exportWithSerializerFactory:self.serializerFactory];
+    NSData *accountData =  [TLAccountServiceSecuredConfiguration exportWithSerializerFactory:self.serializerFactory version:version];
     
     return [[TLAccountIQ alloc] initWithSerializer:IQ_SWAP_ACCOUNT_SERIALIZER requestId:requestId securedConfiguration:secureData accountConfiguration:accountData hasPeerAccount:self.accountReceived];
 }

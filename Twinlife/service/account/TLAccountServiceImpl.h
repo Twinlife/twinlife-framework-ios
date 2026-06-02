@@ -15,6 +15,7 @@
 @class TLAuthChallengeIQ;
 @class TLOnAuthChallengeIQ;
 @class TLRestoreChallengeIQ;
+@class TLAccountServiceSecuredConfiguration;
 
 typedef void(^ConsumerBlock)(TLBaseServiceErrorCode errorCode, id _Nullable result);
 
@@ -87,10 +88,10 @@ typedef void(^ConsumerBlock)(TLBaseServiceErrorCode errorCode, id _Nullable resu
 
 @interface TLRestoreChallengePendingRequest : TLConsumerAccountPendingRequest
 
-@property (readonly, nonatomic, nonnull)NSString *accountPassword;
+@property (readonly, nonatomic, nonnull)TLAccountServiceSecuredConfiguration *accountSecuredConfiguration;
 @property (readonly, nonatomic, nonnull)TLRestoreChallengeIQ *restoreChallengeIQ;
 
-- (nonnull instancetype)initWithAccountPassword:(nonnull NSString *)accountPassword restoreChallengeIQ:(nonnull TLRestoreChallengeIQ *)restoreChallengeIQ consumer:(nonnull ConsumerBlock)consumer;
+- (nonnull instancetype)initWithAccountSecuredConfiguration:(nonnull TLAccountServiceSecuredConfiguration *)accountSecuredConfiguration restoreChallengeIQ:(nonnull TLRestoreChallengeIQ *)restoreChallengeIQ consumer:(nonnull ConsumerBlock)consumer;
 
 @end
 
@@ -99,6 +100,7 @@ typedef void(^ConsumerBlock)(TLBaseServiceErrorCode errorCode, id _Nullable resu
 @property (readonly, nonatomic, nonnull)TLRestoreChallengeIQ *restoreChallengeIQ;
 @property (readonly, nonatomic, nonnull)TLOnAuthChallengeIQ *onRestoreChallengeIQ;
 @property (readonly, nonatomic, nonnull)NSData *serverKey;
+@property (readonly, nonatomic, nonnull)TLAccountServiceSecuredConfiguration *accountSecuredConfiguration;
 
 
 - (nonnull instancetype)initWithRestoreChallengePendingRequest:(nonnull TLRestoreChallengePendingRequest *)restoreChallengePendingRequest onRestoreChallengeIQ:(nonnull TLOnAuthChallengeIQ *)onRestoreChallengeIQ serverKey:(nonnull NSData *)serverKey;
@@ -129,7 +131,7 @@ typedef void(^ConsumerBlock)(TLBaseServiceErrorCode errorCode, id _Nullable resu
 - (BOOL)isAccountDisabled;
 
 - (void)generateBackupKeyWithBackupId:(nonnull NSUUID *)backupId password:(nonnull NSData *)password salt:(nonnull NSData *)salt forRestore:(BOOL)forRestore withBlock:(nonnull void (^)(TLBaseServiceErrorCode status, NSData * _Nullable serverDerivedKey, NSUUID * _Nullable lastBackupId, int64_t lastBackupTimestamp))block;
-- (void)setRestoreAccountConfigurationWithAccountConfiguration:(nullable TLAccountServiceSecuredConfiguration *)accountConfiguration;
+- (void)removeRestoreAccountConfiguration;
 
 - (void)getAllBackupsWithBlock:(nonnull void (^)(TLBaseServiceErrorCode status, NSArray<TLBackupInfo *> * _Nullable backups))block;
 - (void)deleteBackupsWithBlock:(nonnull void (^)(TLBaseServiceErrorCode status))block;

@@ -93,6 +93,7 @@ typedef enum {
     TLPeerConnectionServiceStatTypeIqSetWithdrawInviteGroup,
     TLPeerConnectionServiceStatTypeIqSetPushGeolocation,
     TLPeerConnectionServiceStatTypeIqSetPushTwincode,
+    TLPeerConnectionServiceStatTypeIqSetPushPoll,
     TLPeerConnectionServiceStatTypeIqSetSynchronize,
     TLPeerConnectionServiceStatTypeIqSetSignatureInfo,
     TLPeerConnectionServiceStatTypeIqError,
@@ -110,6 +111,7 @@ typedef enum {
     TLPeerConnectionServiceStatTypeIqResultWithdrawInviteGroup,
     TLPeerConnectionServiceStatTypeIqResultPushGeolocation,
     TLPeerConnectionServiceStatTypeIqResultPushTwincode,
+    TLPeerConnectionServiceStatTypeIqResultPushPoll,
     TLPeerConnectionServiceStatTypeIqResultSynchronize,
     TLPeerConnectionServiceStatTypeIqResultSignatureInfo,
 

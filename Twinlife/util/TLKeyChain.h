@@ -19,8 +19,6 @@ typedef NS_ENUM(NSUInteger, TLKeyChainTagType) {
 
 @interface TLKeyChain : NSObject
 
-+ (void)waitUntilReady;
-
 /// Get a data tag from the filesystem or from the NSUserDefaults.  The data tag value should not contain sensitive value
 /// this is only intended to be used to detect re-installation of the application.  The iOS NSUserDefaults are not reliable to store
 /// some content and we use both filesystem & NSUserDefaults for this detection.  In most cases, the tag content is either

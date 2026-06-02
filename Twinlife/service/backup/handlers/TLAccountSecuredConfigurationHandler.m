@@ -112,7 +112,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (void)backupWithBinaryEncoder:(nonnull TLBinaryEncoder *)encoder {
     DDLogVerbose(@"%@ backupWithBinaryEncoder: %@", LOG_TAG, encoder);
 
-    NSData *secureConfig = [TLAccountServiceSecuredConfiguration exportWithSerializerFactory:self.twinlife.serializerFactory];;
+    NSData *secureConfig = [TLAccountServiceSecuredConfiguration exportWithSerializerFactory:self.twinlife.serializerFactory version:4];
     
     if (!secureConfig) {
         @throw [NSException exceptionWithName:@"TLDecoderException" reason:nil userInfo:nil];

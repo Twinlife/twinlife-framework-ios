@@ -1328,11 +1328,11 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
     TLUploadImagePendingRequest *uploadRequest;
     TLPutImageIQ *nextIQ = nil;
     @synchronized (self) {
+        uploadRequest = self.uploadRequest;
         if (onPutImageIQ.status != TLPutImageStatusTypeIncomplete) {
             [self.pendingRequests removeObjectForKey:lRequestId];
             self.uploadRequest = nil;
         } else {
-            uploadRequest = self.uploadRequest;
             if (uploadRequest) {
                 if (uploadRequest.queue.count > 0 && uploadRequest.sendCount <= MAX_SEND_IMAGE_IQ) {
                     nextIQ = uploadRequest.queue.firstObject;

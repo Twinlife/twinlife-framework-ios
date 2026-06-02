@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -16,6 +16,7 @@
 @property (nonatomic, readonly, nonnull) TLPeerConnectionService *peerConnectionService;
 @property (nonatomic, nullable) NSUUID *peerConnectionId;
 @property (nonatomic, readonly, nonnull) TLSerializerFactory *serializerFactory;
+@property (nonatomic, nullable) TLVersion *peerVersion;
 
 - (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife peerId:(nonnull NSString *)peerId;
 

@@ -18,7 +18,7 @@
  * <pre>
  * {
  *  "schemaId":"9CEE4256-D2B7-4DE3-A724-1F61BB1454C8",
- *  "schemaVersion":"1",
+ *  "schemaVersion":"2",
  *
  *  "type":"record",
  *  "name":"OnAuthRequestIQ",

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2023 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -11,6 +11,7 @@
 #include "TLDatabaseServiceProvider.h"
 
 @class TLTwincodeInboundService;
+@class TLTwincodeInfo;
 
 //
 // Interface: TLTwincodeInboundServiceProvider
@@ -22,6 +23,8 @@
 
 - (nullable TLTwincodeInbound *)loadTwincodeWithTwincodeId:(nonnull NSUUID *)twincodeInboundId;
 
+- (nullable TLTwincodeInbound *)loadTwincodeWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound;
+
 - (void)updateTwincodeWithTwincode:(nonnull TLTwincodeInbound *)twincodeInbound attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate;
 
 - (nullable TLTwincodeInbound *)importTwincodeWithTwincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate;
@@ -29,5 +32,7 @@
 - (nonnull NSArray<TLTwincodeInbound *> *)loadTwincodes;
 
 - (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId modificationDate:(int64_t)modificationDate;
+
+- (nullable NSArray<TLTwincodeInfo *> *)syncWithTwincodes:(nonnull NSDictionary<NSUUID *, NSArray<TLTwincodeInfo *> *> *)serverTwincodes;
 
 @end

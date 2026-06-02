@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016-2025 twinlife SA.
+ *  Copyright (c) 2016-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -26,13 +26,15 @@ typedef enum {
     TLConversationServiceOperationTypePushGeolocation,
     TLConversationServiceOperationTypePushTwincode,
     TLConversationServiceOperationTypePushCommand,
+    TLConversationServiceOperationTypePushPoll,
     TLConversationServiceOperationTypeUpdateAnnotations,
     TLConversationServiceOperationTypeUpdateObject,
 
     // Operations that don't need the P2P connection to be opened.
     TLConversationServiceOperationTypeInvokeJoinGroup,
     TLConversationServiceOperationTypeInvokeLeaveGroup,
-    TLConversationServiceOperationTypeInvokeAddMember
+    TLConversationServiceOperationTypeInvokeAddMember,
+    TLConversationServiceOperationTypeInvokeRosterRemove
 } TLConversationServiceOperationType;
 
 static const int64_t OPERATION_NO_REQUEST_ID = -1L;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2025 twinlife SA.
+ *  Copyright (c) 2025-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -69,7 +69,9 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (TLBaseServiceErrorCode)executeInvokeWithConversation:(nonnull TLConversationImpl *)conversationImpl conversationService:(nonnull TLConversationService *)conversationService {
     
-    if (self.type == TLConversationServiceOperationTypeInvokeLeaveGroup) {
+    if (self.type == TLConversationServiceOperationTypeInvokeRosterRemove) {
+        return [conversationService.groupManager invokeDeleteRosterMemberWithConversation:conversationImpl groupOperation:self];
+    } else if (self.type == TLConversationServiceOperationTypeInvokeLeaveGroup) {
         return [conversationService.groupManager invokeLeaveGroupWithConversation:conversationImpl groupOperation:self];
     }
     return TLBaseServiceErrorCodeSuccess;

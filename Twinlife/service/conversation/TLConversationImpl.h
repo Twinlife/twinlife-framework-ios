@@ -13,6 +13,21 @@
 #import "TLSerializer.h"
 #import "TLDatabaseService.h"
 
+/**
+ * Conversation flags (must be synchronized between Android and iOS):
+ * - FLAG_JOINED: the conversation is joined = 0x01
+ * - FLAG_LEAVING: the conversation is leaving = 0x02
+ * - FLAG_DELETED: the conversation is deleted = 0x04
+ * - FLAG_SECURE_ROSTER: the conversation is using the secure roster = 0x08
+ * - FLAG_V21: the conversation is using at least the protocol version V2.21 = 0x10
+ *   (used to know whether the secure roster is available or not)
+ */
+#define FLAG_JOINED        0x01
+#define FLAG_LEAVING       0x02
+#define FLAG_DELETED       0x04
+#define FLAG_SECURE_ROSTER 0x08
+#define FLAG_V21           0x10
+
 //
 // Interface: TLConversationFactory
 //
@@ -87,6 +102,12 @@
 
 /// Old group member support: transfer the connection from the TLGroupConversation incoming P2P to the real group member conversation.
 - (nonnull TLConversationConnection *)transferWithConnection:(nonnull TLConversationConnection*)connection twinlife:(nonnull TLTwinlife *)twinlife;
+
+/// Set the V21 flag if it is not set.
+/// @return true if the V21 flag was set.
+- (BOOL)setVersion21;
+
+- (BOOL)hasVersion21;
 
 - (void)appendTo:(nonnull NSMutableString*)string;
 

@@ -150,6 +150,20 @@
     return [super initWithName:name value:uuidValue];
 }
 
+- (BOOL)isEqual:(id)object {
+    if ([object isKindOfClass:self.class]) {
+        return [super isEqual:object];
+    }
+    
+    if ([object isKindOfClass:TLAttributeNameImageIdValue.class]) {
+        NSString *otherName = ((TLAttributeNameImageIdValue *)object).name;
+        TLExportedImageId *otherImageId = (TLExportedImageId *)((TLAttributeNameImageIdValue *)object).value;
+        return [self.name isEqual:otherName] && [self.value isEqual:otherImageId.publicId];
+    }
+    
+    return NO;
+}
+
 @end
 
 //
@@ -161,6 +175,24 @@
 - (nonnull instancetype)initWithName:(nullable NSString *)name imageId:(nonnull TLExportedImageId *)imageId {
     
     return [super initWithName:name value:imageId];
+}
+
+- (BOOL)isEqual:(id)object {
+    if ([object isKindOfClass:self.class]) {
+        return [super isEqual:object];
+    }
+    
+    if ([object isKindOfClass:TLAttributeNameUUIDValue.class]) {
+        NSString *otherName = ((TLAttributeNameUUIDValue *)object).name;
+        NSUUID *otherValue = (NSUUID *)((TLAttributeNameUUIDValue *)object).value;
+        return [self.name isEqual:otherName] && [((TLExportedImageId *)self.value).publicId isEqual:otherValue];
+    }
+    
+    return NO;
+}
+
+- (NSUInteger)hash {
+    return self.name.hash ^ ((TLExportedImageId *)self.value).publicId.hash;
 }
 
 @end

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -15,7 +15,10 @@
 #import "TLTwincodeInboundServiceImpl.h"
 #import "TLManagementServiceImpl.h"
 #import "TLRepositoryServiceImpl.h"
+#import "TLTwincodeOutboundServiceImpl.h"
+#import "TLTwincodeFactoryServiceImpl.h"
 #import "TLCryptoServiceImpl.h"
+#import "TLTwincodeInfo.h"
 #import "TLAttributeNameValue.h"
 #import "TLBinaryCompactDecoder.h"
 #import "TLBinaryCompactEncoder.h"
@@ -37,7 +40,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define TWINCODE_INBOUND_SERVICE_VERSION          @"3.3.1"
+#define TWINCODE_INBOUND_SERVICE_VERSION          @"3.4.1"
 
 #define GET_TWINCODE_SCHEMA_ID                    @"22903c9e-545f-44f4-948b-908b3153cfc2"
 #define ON_GET_TWINCODE_SCHEMA_ID                 @"177b0d15-2d19-4e89-8e16-701f7266ab48"
@@ -547,6 +550,16 @@ typedef void (^TLWaitingCodeBlock) (void);
     }
 }
 
+- (nullable TLTwincodeInbound *)getTwincodeWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound {
+    DDLogVerbose(@"%@: getTwincodeWithTwincodeOutbound: %@", LOG_TAG, twincodeOutbound);
+    
+    if (!self.serviceOn) {
+        return nil;
+    }
+
+    return [self.serviceProvider loadTwincodeWithTwincodeOutbound:twincodeOutbound];
+}
+
 - (void)bindTwincodeWithTwincode:(nonnull TLTwincodeInbound *)twincodeInbound withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLTwincodeInbound *_Nullable twincodeInboundId))block {
     DDLogVerbose(@"%@: bindTwincodeWithTwincode: %@", LOG_TAG, twincodeInbound);
     
@@ -610,10 +623,15 @@ typedef void (^TLWaitingCodeBlock) (void);
     if (errorCode == TLBaseServiceErrorCodeItemNotFound) {
         errorCode = TLBaseServiceErrorCodeExpired;
     }
-    
-    NSNumber *requestId = [TLBaseService newRequestId];
-    TLAcknowledgeInvocationIQ *iq = [[TLAcknowledgeInvocationIQ alloc] initWithSerializer:IQ_ACKNOWLEDGE_INVOCATION_SERIALIZER requestId:requestId.longLongValue invocationId:invocationId errorCode:errorCode];
-    [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+
+    // If the invocation failed with offline, don't acknowledge it now, but we must still
+    // finish the invocation and remove it from our local queue: it will be handled again at
+    // the next connection.
+    if (errorCode != TLBaseServiceErrorCodeTwinlifeOffline) {
+        NSNumber *requestId = [TLBaseService newRequestId];
+        TLAcknowledgeInvocationIQ *iq = [[TLAcknowledgeInvocationIQ alloc] initWithSerializer:IQ_ACKNOWLEDGE_INVOCATION_SERIALIZER requestId:requestId.longLongValue invocationId:invocationId errorCode:errorCode];
+        [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+    }
 
     [self finishInvocationWithId:invocationId];
 }
@@ -681,6 +699,25 @@ typedef void (^TLWaitingCodeBlock) (void);
     @synchronized (self) {
         return self.pendingInvocations.count > 0;
     }
+}
+
+- (void)syncTwincodesWithBlock:(nonnull void (^) (TLBaseServiceErrorCode errorCode))block {
+    DDLogVerbose(@"%@: syncTwincodesWithBlock", LOG_TAG);
+
+    [[self.twinlife getTwincodeOutboundService] getAllTwincodesWithBlock:^(TLBaseServiceErrorCode errorCode, NSDictionary<NSUUID *, NSArray<TLTwincodeInfo *> *> * _Nullable serverTwincodes) {
+        if (errorCode == TLBaseServiceErrorCodeSuccess) {
+            NSArray<TLTwincodeInfo*> * unknown = [self.serviceProvider syncWithTwincodes:serverTwincodes];
+            if (unknown) {
+                // Delete unknown twincode outbounds (ignore result, ignore errors, don't retry).
+                for (TLTwincodeInfo *toDelete in unknown) {
+                    [[self.twinlife getTwincodeFactoryService] deleteTwincodeWithFactoryId:toDelete.twincodeFactoryId withBlock:^(TLBaseServiceErrorCode errorCode, NSUUID *factoryId) {
+                        
+                    }];
+                }
+            }
+        }
+        block(errorCode);
+    }];
 }
 
 #pragma mark - TLTwincodeInboundService ()

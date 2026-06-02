@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2025 twinlife SA.
+ *  Copyright (c) 2015-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -41,6 +41,9 @@ typedef void (^TLPeerConnectionBinaryPacketListener) (TLConversationConnection *
 +(nonnull TLAssertPoint *)PROCESS_LEGACY_IQ;
 +(nonnull TLAssertPoint *)RESET_CONVERSATION;
 +(nonnull TLAssertPoint *)LOCK_CONVERSATION_FAILED;
++(nonnull TLAssertPoint *)UNKNOWN_IQ;
++(nonnull TLAssertPoint *)PROCESS_UNKNOWN_IQ;
++(nonnull TLAssertPoint *)SIGNATURE;
 
 @end
 
@@ -150,5 +153,7 @@ typedef void (^TLPeerConnectionBinaryPacketListener) (TLConversationConnection *
 + (nonnull NSMutableArray<TLConversationImpl *> *)getConversations:(nonnull id <TLConversation>)conversation sendTo:(nullable NSUUID *)sendTo;
 
 - (void)updateWithDescriptor:(nonnull TLDescriptor *)descriptor conversation:(nonnull TLConversationImpl *)conversationImpl;
+
+- (TLBaseServiceErrorCode)operationNotSupportedWithConnection:(nonnull TLConversationConnection*)connection descriptor:(nonnull TLDescriptor *)descriptor;
 
 @end

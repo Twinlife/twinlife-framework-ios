@@ -207,18 +207,38 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 @implementation TLDescriptorAnnotation
 
-- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int64_t)value count:(int)count {
-    DDLogVerbose(@"%@ initWithType: %d value: %lld count: %d", LOG_TAG, type, value, count);
+- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int64_t)value {
+    DDLogVerbose(@"%@ initWithType: %d value: %lld", LOG_TAG, type, value);
     
     self = [super init];
     
     if (self) {
         _type = type;
         _value = value;
-        _count = count;
     }
 
     return self;
+}
+
+- (nonnull id)copyWithZone:(nullable NSZone *)zone { 
+    return self;
+}
+
+- (BOOL)isEqual:(id)object {
+    if (self == object) {
+        return YES;
+    }
+
+    if (![object isKindOfClass:[TLDescriptorAnnotation class]]) {
+        return NO;
+    }
+
+    TLDescriptorAnnotation *other = (TLDescriptorAnnotation *)object;
+    return (self.type == other.type) && (self.value == other.value);
+}
+
+- (NSUInteger)hash {
+    return (NSUInteger)self.type ^ (NSUInteger)self.value;
 }
 
 @end
@@ -481,8 +501,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (nullable TLDescriptorAnnotation *)getDescriptorAnnotationWithType:(TLDescriptorAnnotationType)type {
     
-    if (self.annotations) {
-        for (TLDescriptorAnnotation *annotation in self.annotations) {
+    for (NSArray<TLDescriptorAnnotation *> *annotations in self.annotations.allValues) {
+        for (TLDescriptorAnnotation *annotation in annotations) {
             if (annotation.type == type) {
                 
                 return annotation;
@@ -494,16 +514,13 @@ static const int ddLogLevel = DDLogLevelWarning;
 }
 
 /// Get the list of annotations of a given type.
-- (nullable NSArray<TLDescriptorAnnotation *> *)getDescriptorAnnotationsWithType:(TLDescriptorAnnotationType)type {
+- (nonnull NSArray<TLDescriptorAnnotation *> *)getDescriptorAnnotationsWithType:(TLDescriptorAnnotationType)type {
     DDLogVerbose(@"%@ getDescriptorAnnotationsWithType: %d", LOG_TAG, type);
 
-    NSMutableArray<TLDescriptorAnnotation *> *result = nil;
-    if (self.annotations) {
-        for (TLDescriptorAnnotation *annotation in self.annotations) {
+    NSMutableArray<TLDescriptorAnnotation *> *result = [NSMutableArray array];
+    for (NSArray<TLDescriptorAnnotation *> *annotations in self.annotations.allValues) {
+        for (TLDescriptorAnnotation *annotation in annotations) {
             if (annotation.type == type) {
-                if (result == nil) {
-                    result = [[NSMutableArray alloc] init];
-                }
                 [result addObject:annotation];
             }
         }
@@ -579,6 +596,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _deletedTimestamp = 0L;
         _peerDeletedTimestamp = 0L;
         _readTimestamp = 0L;
+        _annotations = [NSMutableDictionary dictionary];
     }
     return self;
 }
@@ -601,6 +619,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _deletedTimestamp = 0L;
         _peerDeletedTimestamp = 0L;
         _readTimestamp = 0L;
+        _annotations = [NSMutableDictionary dictionary];
     }
     return self;
 }
@@ -623,6 +642,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _deletedTimestamp = deletedTimestamp;
         _peerDeletedTimestamp = peerDeletedTimestamp;
         _readTimestamp = readTimestamp;
+        _annotations = [NSMutableDictionary dictionary];
     }
     return self;
 }
@@ -646,6 +666,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _deletedTimestamp = descriptor.deletedTimestamp;
         _peerDeletedTimestamp = descriptor.peerDeletedTimestamp;
         _readTimestamp = descriptor.readTimestamp;
+        _annotations = [NSMutableDictionary dictionaryWithDictionary:descriptor.annotations];
     }
     return self;
 }
@@ -668,6 +689,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         _deletedTimestamp = deleteDate;
         _peerDeletedTimestamp = peerDeleteDate;
         _readTimestamp = readDate;
+        _annotations = [NSMutableDictionary dictionary];
     }
     return self;
 }

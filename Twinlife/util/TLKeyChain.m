@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2025 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -42,6 +42,7 @@ static const char sUUID2[kCCKeySizeAES256] = {203, 179, 22, 102, 61, 178, 72, 87
 static char sSecretKey[kCCKeySizeAES256] = {0};
 
 #define TWINLIFE_ACCESSIBLE_AFTER_FIRST_UNLOCK_KEY @"TLTwinlifeAccessibleAfterFirstUnlock"
+#define TL_KEYCHAIN_RETRY_PAUSE    1.0
 
 //
 // Interface: TLKeyChain
@@ -67,24 +68,6 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     
     for (int i = 0; i < kCCKeySizeAES256; i++) {
         sSecretKey[i] = (char)(sUUID1[i] ^ sUUID2[kCCKeySizeAES256 - 1 - i]);
-    }
-}
-
-+ (void)waitUntilReady {
-    DDLogVerbose(@"%@ waitUntilReady", LOG_TAG);
-    
-    NSMutableDictionary *queryAttributes = [[NSMutableDictionary alloc] init];
-    [queryAttributes setObject:(__bridge id)kSecClassGenericPassword forKey:(__bridge id)kSecClass];
-    [queryAttributes setObject:TWINLIFE_ACCESSIBLE_AFTER_FIRST_UNLOCK_KEY forKey:(__bridge id)kSecAttrAccount];
-    [queryAttributes setObject:KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
-    [queryAttributes setObject:(__bridge id)kSecMatchLimitOne forKey:(__bridge id)kSecMatchLimit];
-    [queryAttributes setObject:(id)kCFBooleanTrue forKey:(__bridge id)kSecReturnData];
-    CFTypeRef result = nil;
-    OSStatus resultCode = SecItemCopyMatching((__bridge CFDictionaryRef)queryAttributes, &result);
-    NSTimeInterval timeInterval = 1;
-    while (resultCode == errSecInteractionNotAllowed) {
-        [NSThread sleepForTimeInterval:timeInterval];
-        resultCode = SecItemCopyMatching((__bridge CFDictionaryRef)queryAttributes, &result);
     }
 }
 
@@ -218,36 +201,45 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     OSStatus resultCode;
     NSString *keychainKey = TO_KEYCHAIN_KEY(key);
     NSString *keychainTag = TO_KEYCHAIN_KEY(tag);
-    [queryAttributes removeAllObjects];
     [queryAttributes setObject:(__bridge id)kSecClassGenericPassword forKey:(__bridge id)kSecClass];
     [queryAttributes setObject:keychainKey forKey:(__bridge id)kSecAttrAccount];
     [queryAttributes setObject:alternateApplication ? TWINME_KEYCHAIN_SERVICE : KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
     [queryAttributes setObject:(__bridge id)kSecMatchLimitOne forKey:(__bridge id)kSecMatchLimit];
     [queryAttributes setObject:(id)kCFBooleanTrue forKey:(__bridge id)kSecReturnData];
-    resultCode = SecItemCopyMatching((__bridge CFDictionaryRef)queryAttributes, &result);
     NSData *data = nil;
-    if (resultCode == errSecItemNotFound) {
-        // For twinme and twinme+, look at the NSUserDefaults and deobfuscate with the default encryption key.
-        // If we are the main application, store the decrypted content in the iOS KeyChain.  Unlike Android, we don't
-        // need to change the key name to detect whether upgrade was necessary.  For now, we also keep the credentials
-        // in the NSUserDefaults in case there are issues.
-        if (LEGACY_NO_KEYSTORE) {
-            NSUserDefaults *userDefaults = [TLTwinlife getAppSharedUserDefaultsWithAlternateApplication:alternateApplication];
-            data = [userDefaults dataForKey:key];
-            if (data) {
-                data = [TLKeyChain decryptWithData:data];
-                if (data && !alternateApplication) {
-                    [TLKeyChain createKeyChainWithKey:key tag:tag data:data];
-                }
-            }
+    while (1) {
+        resultCode = SecItemCopyMatching((__bridge CFDictionaryRef)queryAttributes, &result);
+        if (resultCode == errSecSuccess) {
+            break;
         }
 
-        // Nothing in the Keychain, this is a fresh installation.
-        return data;
-    }
-    if (resultCode != errSecSuccess) {
-        TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
-        return nil;
+        if (resultCode == errSecItemNotFound) {
+            // For twinme and twinme+, look at the NSUserDefaults and deobfuscate with the default encryption key.
+            // If we are the main application, store the decrypted content in the iOS KeyChain.  Unlike Android, we don't
+            // need to change the key name to detect whether upgrade was necessary.  For now, we also keep the credentials
+            // in the NSUserDefaults in case there are issues.
+            if (LEGACY_NO_KEYSTORE) {
+                NSUserDefaults *userDefaults = [TLTwinlife getAppSharedUserDefaultsWithAlternateApplication:alternateApplication];
+                data = [userDefaults dataForKey:key];
+                if (data) {
+                    data = [TLKeyChain decryptWithData:data];
+                    if (data && !alternateApplication) {
+                        [TLKeyChain createKeyChainWithKey:key tag:tag data:data];
+                    }
+                }
+            }
+            
+            // Nothing in the Keychain, this is a fresh installation.
+            return data;
+        }
+
+        // Sometimes, the keychain is not available
+        if (resultCode != errSecInteractionNotAllowed && resultCode != errSecNotAvailable) {
+            TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
+            return nil;
+        }
+
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
     }
     data = (__bridge id)result;
 
@@ -279,7 +271,21 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     [queryAttributes setObject:alternateApplication ? TWINME_KEYCHAIN_SERVICE : KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
     [queryAttributes setObject:(__bridge id)kSecMatchLimitOne forKey:(__bridge id)kSecMatchLimit];
     [queryAttributes setObject:(id)kCFBooleanTrue forKey:(__bridge id)kSecReturnData];
-    resultCode = SecItemCopyMatching((__bridge CFDictionaryRef)queryAttributes, &result);
+    while (1) {
+        resultCode = SecItemCopyMatching((__bridge CFDictionaryRef)queryAttributes, &result);
+        if (resultCode == errSecSuccess || resultCode == errSecItemNotFound) {
+            break;
+        }
+
+        // Sometimes, the keychain is not available
+        if (resultCode != errSecInteractionNotAllowed && resultCode != errSecNotAvailable) {
+            TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
+            return nil;
+        }
+
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
+    }
+
     NSData *tagData = nil;
     if (resultCode == errSecSuccess) {
         tagData = (__bridge id)result;
@@ -340,14 +346,20 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     [queryAttributes setObject:[tagValue.UUIDString dataUsingEncoding:NSUTF8StringEncoding] forKey:(__bridge id)kSecValueData];
     [queryAttributes setObject:KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
     [queryAttributes setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
-    OSStatus resultCode = SecItemAdd((__bridge CFDictionaryRef)queryAttributes, NULL);
-    
-    // Create the tag with a new UUID that we put in the keychain and user defaults.
-    // Both values must match when they are retrieved.  This is not sensitive data.
-    if (resultCode == errSecSuccess) {
-        [TLKeyChain saveContentWithTag:tag type:TLKeyChainTagTypeApplication content:tagValue.UUIDString];
-        return YES;
-    }
+    OSStatus resultCode;
+    do {
+        resultCode = SecItemAdd((__bridge CFDictionaryRef)queryAttributes, NULL);
+        
+        // Create the tag with a new UUID that we put in the keychain and user defaults.
+        // Both values must match when they are retrieved.  This is not sensitive data.
+        if (resultCode == errSecSuccess) {
+            [TLKeyChain saveContentWithTag:tag type:TLKeyChainTagTypeApplication content:tagValue.UUIDString];
+            return YES;
+        }
+
+        // Sometimes, the keychain is not available
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
+    } while (resultCode == errSecInteractionNotAllowed || resultCode == errSecNotAvailable);
 
     TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint STORE_KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
     return NO;
@@ -362,15 +374,19 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     [queryAttributes setObject:KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
     [queryAttributes setObject:data forKey:(__bridge id)kSecValueData];
     [queryAttributes setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
-    OSStatus resultCode = SecItemAdd((__bridge CFDictionaryRef)queryAttributes, NULL);
-        
-    if (tag && resultCode == errSecSuccess) {
-        [TLKeyChain createTagChainWithTag:tag];
-    }
-    
-    if (resultCode == errSecSuccess) {
-        return YES;
-    }
+    OSStatus resultCode;
+    do {
+        resultCode = SecItemAdd((__bridge CFDictionaryRef)queryAttributes, NULL);
+        if (resultCode == errSecSuccess) {
+            if (tag) {
+                [TLKeyChain createTagChainWithTag:tag];
+            }
+            return YES;
+        }
+
+        // Sometimes, the keychain is not available
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
+    } while (resultCode == errSecInteractionNotAllowed || resultCode == errSecNotAvailable);
 
     TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint STORE_KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
     return NO;
@@ -385,28 +401,32 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     [queryAttributes setObject:alternateApplication ? TWINME_KEYCHAIN_SERVICE : KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
     NSMutableDictionary *attributesToUpdate = [[NSMutableDictionary alloc] init];
     [attributesToUpdate setObject:data forKey:(__bridge id)kSecValueData];
-    OSStatus resultCode = SecItemUpdate((__bridge CFDictionaryRef)queryAttributes, (__bridge CFDictionaryRef)attributesToUpdate);
-    if (resultCode == errSecSuccess) {
-        return YES;
-    }
-    if (resultCode != errSecItemNotFound) {
-        TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint STORE_KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
-        return NO;
-    }
-
-    // If the item was not found, try to insert it
-    // (this provides the same behavior as the NSUserDefaults setObject method used below
-    // when Keychain is not used).
-    [queryAttributes setObject:data forKey:(__bridge id)kSecValueData];
-    [queryAttributes setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
-    resultCode = SecItemAdd((__bridge CFDictionaryRef)queryAttributes, NULL);
-
-    if (resultCode == errSecSuccess) {
-        if (tag) {
-            [TLKeyChain createTagChainWithTag:tag];
+    OSStatus resultCode;
+    do {
+        resultCode = SecItemUpdate((__bridge CFDictionaryRef)queryAttributes, (__bridge CFDictionaryRef)attributesToUpdate);
+        if (resultCode == errSecSuccess) {
+            return YES;
         }
-        return YES;
-    }
+
+        // If the item was not found, try to insert it
+        // (this provides the same behavior as the NSUserDefaults setObject method used below
+        // when Keychain is not used).
+        if (resultCode == errSecItemNotFound) {
+            [queryAttributes setObject:data forKey:(__bridge id)kSecValueData];
+            [queryAttributes setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
+            resultCode = SecItemAdd((__bridge CFDictionaryRef)queryAttributes, NULL);
+
+            if (resultCode == errSecSuccess) {
+                if (tag) {
+                    [TLKeyChain createTagChainWithTag:tag];
+                }
+                return YES;
+            }
+        }
+
+        // Sometimes, the keychain is not available
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
+    } while (resultCode == errSecInteractionNotAllowed || resultCode == errSecNotAvailable);
 
     TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint STORE_KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
     return NO;
@@ -419,14 +439,21 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     [queryAttributes setObject:(__bridge id)kSecClassGenericPassword forKey:(__bridge id)kSecClass];
     [queryAttributes setObject:TO_KEYCHAIN_KEY(key) forKey:(__bridge id)kSecAttrAccount];
     [queryAttributes setObject:KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
-    OSStatus resultCode = SecItemDelete((__bridge CFDictionaryRef)queryAttributes);
+    OSStatus resultCode;
+    do {
+        resultCode = SecItemDelete((__bridge CFDictionaryRef)queryAttributes);
+        
+        // Use removeContentWithTag so that we remove in NSUserDefaults and on file system (necessary for the tag).
+        [TLKeyChain removeContentWithTag:key type:TLKeyChainTagTypeApplication];
+        [TLKeyChain removeContentWithTag:key type:TLKeyChainTagTypePrivate];
+        if (resultCode == errSecSuccess || resultCode == errSecItemNotFound) {
+            return YES;
+        }
 
-    // Use removeContentWithTag so that we remove in NSUserDefaults and on file system (necessary for the tag).
-    [TLKeyChain removeContentWithTag:key type:TLKeyChainTagTypeApplication];
-    [TLKeyChain removeContentWithTag:key type:TLKeyChainTagTypePrivate];
-    if (resultCode == errSecSuccess || resultCode == errSecItemNotFound) {
-        return YES;
-    }
+        // Sometimes, the keychain is not available
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
+    } while (resultCode == errSecInteractionNotAllowed || resultCode == errSecNotAvailable);
+
     TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint STORE_KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
     return NO;
 }
@@ -438,21 +465,29 @@ static char sSecretKey[kCCKeySizeAES256] = {0};
     [queryAttributes setObject:(__bridge id)kSecClassGenericPassword forKey:(__bridge id)kSecClass];
     [queryAttributes setObject:TO_KEYCHAIN_KEY(key) forKey:(__bridge id)kSecAttrAccount];
     [queryAttributes setObject:KEYCHAIN_SERVICE forKey:(__bridge id)kSecAttrService];
-    OSStatus resultCode = SecItemDelete((__bridge CFDictionaryRef)queryAttributes);
+
     NSUserDefaults *oldUserDefaults = [NSUserDefaults standardUserDefaults];
-    [oldUserDefaults removeObjectForKey:key];
-    if (tag) {
-        [queryAttributes setObject:TO_KEYCHAIN_KEY(tag) forKey:(__bridge id)kSecAttrAccount];
-        SecItemDelete((__bridge CFDictionaryRef)queryAttributes);
-        [TLKeyChain removeContentWithTag:tag type:TLKeyChainTagTypeApplication];
-        [TLKeyChain removeContentWithTag:tag type:TLKeyChainTagTypePrivate];
-    }
-    
     NSUserDefaults *userDefaults = [TLTwinlife getAppSharedUserDefaults];
-    [userDefaults removeObjectForKey:key];
-    if (resultCode == errSecSuccess || resultCode == errSecItemNotFound) {
-        return YES;
-    }
+    OSStatus resultCode;
+    do {
+        resultCode = SecItemDelete((__bridge CFDictionaryRef)queryAttributes);
+        [oldUserDefaults removeObjectForKey:key];
+        if (tag) {
+            [queryAttributes setObject:TO_KEYCHAIN_KEY(tag) forKey:(__bridge id)kSecAttrAccount];
+            SecItemDelete((__bridge CFDictionaryRef)queryAttributes);
+            [TLKeyChain removeContentWithTag:tag type:TLKeyChainTagTypeApplication];
+            [TLKeyChain removeContentWithTag:tag type:TLKeyChainTagTypePrivate];
+        }
+        
+        [userDefaults removeObjectForKey:key];
+        if (resultCode == errSecSuccess || resultCode == errSecItemNotFound) {
+            return YES;
+        }
+
+        // Sometimes, the keychain is not available
+        [NSThread sleepForTimeInterval:TL_KEYCHAIN_RETRY_PAUSE];
+    } while (resultCode == errSecInteractionNotAllowed || resultCode == errSecNotAvailable);
+
     TL_ASSERTION([TLTwinlife sharedTwinlife], [TLTwinlifeAssertPoint STORE_KEY_CHAIN], [TLAssertValue initWithNumber:resultCode], nil);
     return NO;
 }

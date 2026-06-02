@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -77,6 +77,12 @@ typedef TLBaseServiceErrorCode (^TLTwincodeInvocationListener) (TLTwincodeInvoca
 
 - (void)getTwincodeWithTwincodeId:(nonnull NSUUID *)twincodeInboundId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLTwincodeInbound *_Nullable twincodeinbound))block;
 
+/// Get the twincode inbound associated with the twincode outbound.
+/// The twincode inbound is known only if we are owner of the twincode.
+/// @param twincodeOutbound the twincode outbound.
+/// @return the twincode inbound or null.
+- (nullable TLTwincodeInbound *)getTwincodeWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound;
+
 - (void)bindTwincodeWithTwincode:(nonnull TLTwincodeInbound *)twincodeInbound withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLTwincodeInbound *_Nullable twincodeInbound))block;
 
 - (void)unbindTwincodeWithTwincode:(nonnull TLTwincodeInbound *)twincodeInbound withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLTwincodeInbound *_Nullable twincodeInbound))block;
@@ -95,5 +101,8 @@ typedef TLBaseServiceErrorCode (^TLTwincodeInvocationListener) (TLTwincodeInvoca
 
 /// Check if we have some pending invocations being processed.
 - (BOOL)hasPendingInvocations;
+
+/// Synchronize the local database of twincodes with the server's view.
+- (void)syncTwincodesWithBlock:(nonnull void (^) (TLBaseServiceErrorCode errorCode))block;
 
 @end

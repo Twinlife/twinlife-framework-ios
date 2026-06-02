@@ -28,10 +28,6 @@ static const int ddLogLevel = DDLogLevelWarning;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define FLAG_JOINED    0x01
-#define FLAG_LEAVING   0x02
-#define FLAG_DELETED   0x04
-
 static NSUUID *GROUP_CONVERSATION_SCHEMA_ID = nil;
 static int GROUP_CONVERSATION_SCHEMA_VERSION = 2;
 

@@ -43,6 +43,8 @@ typedef enum {
 
 + (TLDescriptorAnnotationType)toDescriptorAnnotationType:(int)type;
 
++ (int)fromDescriptorAnnotationType:(TLDescriptorAnnotationType)type;
+
 - (nonnull instancetype)initWithService:(nonnull TLConversationService *)service database:(nonnull TLDatabaseService *)database;
 
 - (nonnull NSMutableArray<id<TLConversation>> *)listConversationsWithFilter:(nullable TLFilter *)filter;
@@ -113,12 +115,14 @@ typedef enum {
 /// Set the descriptor annotations for a given descriptor and annotated by a given peer twincode.
 /// Existing annotations of the given peer twincode are either updated or removed.
 /// Return true if the descriptor was modified (some annotations added, updated or removed).
-- (BOOL)setAnnotationsWithDescriptor:(nonnull TLDescriptor *)descriptor peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId annotations:(nonnull NSArray<TLDescriptorAnnotation *> *)annotations  annotatingUsers:(nonnull NSMutableSet<TLTwincodeOutbound *> *)annotatingUsers;
+- (BOOL)setAnnotationsWithDescriptor:(nonnull TLDescriptor *)descriptor peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId annotations:(nonnull NSArray<TLDescriptorAnnotation *> *)annotations  updatedAnnotations:(nonnull NSMutableDictionary<TLTwincodeOutbound *, NSSet<TLDescriptorAnnotation *> *> *)updatedAnnotations;
 
 /// Set the descriptor annotation for the current user to a new value.
 /// The descriptor annotation is either inserted or updated if a previous annotation from the user was set.
 /// Return true if the annotation was inserted or updated and false if it existed and was not modified.
 - (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor type:(TLDescriptorAnnotationType)type value:(int64_t)value;
+
+- (BOOL)setAnnotationWithDescriptor:(nonnull TLDescriptor *)descriptor peerTwincodeOutbound:(nullable TLTwincodeOutbound *)peerTwincodeOutbound type:(TLDescriptorAnnotationType)type value:(int64_t)value;
 
 /// Delete the descriptor annotation from current user only.
 /// Return true if an annotation was removed and false if there was not change.

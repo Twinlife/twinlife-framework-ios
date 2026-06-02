@@ -20,6 +20,9 @@
 #define DESCRIPTOR_FLAG_INCOMING_CALL   0x20
 #define DESCRIPTOR_FLAG_ACCEPTED_CALL   0x40
 
+// Flags used by the PollDescriptor
+#define DESCRIPTOR_FLAG_MULTIPLE_CHOICES   0x80
+
 #define DESCRIPTOR_FIELD_SEPARATOR      @"\n"
 
 //
@@ -46,7 +49,7 @@
 
 @interface TLDescriptorAnnotation ()
 
-- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int64_t)value count:(int)count;
+- (nonnull instancetype)initWithType:(TLDescriptorAnnotationType)type value:(int64_t)value;
 
 @end
 
@@ -57,7 +60,7 @@
 @interface TLDescriptor ()
 
 @property int64_t createdTimestamp;
-@property (nullable) NSMutableArray<TLDescriptorAnnotation *> *annotations;
+@property (nonnull) NSMutableDictionary<NSUUID *, NSMutableArray<TLDescriptorAnnotation *> *> *annotations;
 @property int64_t conversationId;
 
 /// Extract the string content into an array of arguments that can be queried by extractWithArgs

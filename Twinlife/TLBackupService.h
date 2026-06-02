@@ -26,6 +26,8 @@ typedef enum {
     TLRestoreStateRestoreAccount,
     TLRestoreStatePrepareDatabase,
     TLRestoreStateRestoreData,
+    TLRestoreStateGetAllTwincodes,
+    TLRestoreStateCheckConsistency,
     TLRestoreStateWaitConfirm,
     TLRestoreStateCommit,
     TLRestoreStateTerminated,

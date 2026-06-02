@@ -109,22 +109,12 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (BOOL) writeDataToFileWithData:(nonnull NSData *)data {
     BOOL success;
-    if (@available(iOS 13.0, *)) {
-        __autoreleasing NSError *error = nil;
-        success = [self.fileHandle writeData:data error:&error];
-        
-        //TODO BKP: handle error
-        if (!success || error != nil) {
-            DDLogError(@"%@ could not write auth: %@", LOG_TAG, error);
-        }
-    } else {
-        @try {
-            [self.fileHandle writeData:data];
-            success = YES;
-        } @catch (NSException *exception) {
-            DDLogError(@"%@ could not write data to backup file: %@", LOG_TAG, exception);
-            success = NO;
-        }
+    __autoreleasing NSError *error = nil;
+    success = [self.fileHandle writeData:data error:&error];
+    
+    //TODO BKP: handle error
+    if (!success || error != nil) {
+        DDLogError(@"%@ could not write auth: %@", LOG_TAG, error);
     }
     
     DDLogVerbose(@"%@ writeDataToFileWithData, data length=%lu success=%@", LOG_TAG, (unsigned long)data.length, success ? @"YES" : @"NO");

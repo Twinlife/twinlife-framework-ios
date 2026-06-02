@@ -35,6 +35,7 @@ typedef NS_ENUM(NSUInteger, TLTwincodeURIKind) {
 +(nonnull NSString *) TRANSFER_ACTION;
 +(nonnull NSString *) INVITE_ACTION;
 +(nonnull NSString *) ACCOUNT_MIGRATION_ACTION;
++(nonnull NSString *) ACCOUNT_MIGRATION_LEGACY_ACTION;
 +(nonnull NSString *) AUTHENTICATE_ACTION;
 +(nonnull NSString *) PROXY_ACTION;
 +(nonnull NSString *) CALL_PATH;

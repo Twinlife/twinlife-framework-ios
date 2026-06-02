@@ -6,34 +6,14 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Chedi Baccari (Chedi.Baccari@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLBaseService.h"
 #import "TLSerializer.h"
 #import "TLPeerConnectionService.h"
 #import "TLDatabase.h"
-
-typedef enum {
-    TLPermissionTypeNone = -1,
-    TLPermissionTypeInviteMember = 0,
-    TLPermissionTypeUpdateMember,
-    TLPermissionTypeRemoveMember,
-    TLPermissionTypeSendMessage,
-    TLPermissionTypeSendImage,
-    TLPermissionTypeSendAudio,
-    TLPermissionTypeSendVideo,
-    TLPermissionTypeSendFile,
-    TLPermissionTypeDeleteMessage,
-    TLPermissionTypeDeleteImage,
-    TLPermissionTypeDeleteAudio,
-    TLPermissionTypeDeleteVideo,
-    TLPermissionTypeDeleteFile,
-    TLPermissionTypeResetConversation,
-    TLPermissionTypeSendGeolocation,
-    TLPermissionTypeSendTwincode,
-    TLPermissionTypeReceiveMessage,
-    TLPermissionTypeSendCommand
-} TLPermissionType;
+#import "TLPermissions.h"
 
 typedef enum {
     TLGroupMemberFilterTypeAllMembers,
@@ -44,6 +24,7 @@ typedef enum {
 @protocol TLRepositoryObject;
 @class TLTwincodeOutbound;
 @class TLFilter;
+@class TLRosterMember;
 
 //
 // Interface: TLConversation
@@ -70,6 +51,8 @@ typedef enum {
 - (BOOL)hasPeer;
 
 - (nullable TLTwincodeOutbound *)peerTwincodeOutbound;
+
+- (int64_t)permissions;
 
 @end
 
@@ -146,12 +129,12 @@ typedef enum {
     TLDescriptorAnnotationTypePoll,       /// The descriptor is marked by an answer of a poll: the getValue() gives the vote entry.
     TLDescriptorAnnotationTypeReceived,   /// The descriptor was received by the peer: the getValue() gives the timestamp (group conversations only)
     TLDescriptorAnnotationTypeRead,       /// The descriptor was read by the peer: the getValue() gives the timestamp (group conversations only)
+    TLDescriptorAnnotationTypeError,      /// The descriptor could not be sent: the getValues() gives the reason for the failure
 } TLDescriptorAnnotationType;
 
-@interface TLDescriptorAnnotation : NSObject
+@interface TLDescriptorAnnotation : NSObject<NSCopying>
 
 @property (readonly) TLDescriptorAnnotationType type;
-@property (readonly) int count;
 @property (readonly) int64_t value;
 
 @end
@@ -173,7 +156,8 @@ typedef enum {
     TLDescriptorTypeGeolocationDescriptor,
     TLDescriptorTypeTwincodeDescriptor,
     TLDescriptorTypeCallDescriptor,
-    TLDescriptorTypeClearDescriptor
+    TLDescriptorTypeClearDescriptor,
+    TLDescriptorTypePollDescriptor
 } TLDescriptorType;
 
 @interface TLDescriptor : NSObject
@@ -214,7 +198,7 @@ typedef enum {
 - (nullable TLDescriptorAnnotation *)getDescriptorAnnotationWithType:(TLDescriptorAnnotationType)type;
 
 /// Get the list of annotations of a given type.
-- (nullable NSArray<TLDescriptorAnnotation *> *)getDescriptorAnnotationsWithType:(TLDescriptorAnnotationType)type;
+- (nonnull NSArray<TLDescriptorAnnotation *> *)getDescriptorAnnotationsWithType:(TLDescriptorAnnotationType)type;
 
 @end
 
@@ -229,6 +213,9 @@ typedef enum {
 @property (readonly) BOOL isEdited;
 
 + (BOOL)DEFAULT_COPY_ALLOWED;
+
+// TODO POLL: remove when ConversationViewController.addPollDescriptor is properly implemented
+- (nonnull instancetype)initWithDescriptor:(nonnull TLDescriptor *)descriptor message:(nonnull NSString *)message copyAllowed:(BOOL)copyAllowed;
 
 @end
 
@@ -326,6 +313,38 @@ typedef enum {
 @end
 
 //
+// Interface: TLChoice
+//
+@interface TLChoice : NSObject
+
+@property int position;
+@property (readonly, nonnull) NSString *label;
+
++ (nonnull NSArray<TLChoice *> *)fromAnnotationValueWithValue:(int64_t)value choices:(nonnull NSArray<TLChoice *> *)choices;
+
++ (int64_t)toAnnotationValueWithChoices:(nonnull NSArray<TLChoice *> *)choices;
+
+- (nonnull instancetype)initWithPosition:(int)position label:(nonnull NSString *)label;
+
+@end
+
+//
+// Interface: TLTwincodeDescriptor
+//
+
+@interface TLPollDescriptor : TLDescriptor
+
+@property BOOL copyAllowed;
+@property (readonly) BOOL multipleChoicesAllowed;
+@property (readonly, nonnull) NSString *question;
+@property (readonly, nonnull) NSArray<TLChoice *> *choices;
+
+- (nonnull NSDictionary<NSUUID *, NSArray<TLChoice *> *> *)getVotes;
+
+@end
+
+
+//
 // Interface: TLInvitationDescriptor
 //
 
@@ -361,6 +380,7 @@ typedef enum {
 @property double mapLongitudeDelta;
 @property (nullable) NSString *localMapPath;
 @property BOOL isValidLocalMap;
+@property BOOL copyAllowed;
 
 - (nullable NSURL *)getURL;
 
@@ -453,7 +473,7 @@ typedef enum {
 
 - (void)onUpdateDescriptorWithRequestId:(int64_t)requestId conversation:(nonnull id <TLConversation>)conversation descriptor:(nonnull TLDescriptor *)descriptor updateType:(TLConversationServiceUpdateType)updateType;
 
-- (void)onUpdateAnnotationWithConversation:(nonnull id <TLConversation>)conversation descriptor:(nonnull TLDescriptor *)descriptor annotatingUser:(nonnull TLTwincodeOutbound *)annotatingUser;
+- (void)onUpdateAnnotationWithConversation:(nonnull id <TLConversation>)conversation descriptor:(nonnull TLDescriptor *)descriptor annotatingUser:(nonnull TLTwincodeOutbound *)annotatingUser annotations:(nonnull NSSet<TLDescriptorAnnotation *> *)annotations;
 
 - (void)onMarkReadDescriptorWithRequestId:(int64_t)requestId conversation:(nonnull id <TLConversation>)conversation descriptor:(nonnull TLDescriptor *)descriptor;
 
@@ -582,7 +602,11 @@ typedef enum {
 
 - (void)pushFileWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo path:(nonnull NSString *)path type:(TLDescriptorType)type toBeDeleted:(BOOL)toBeDeleted copyAllowed:(BOOL)copyAllowed expireTimeout:(int64_t)expireTimeout;
 
-- (void)pushGeolocationWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta localMapPath:(nullable NSString *)localMapPath expireTimeout:(int64_t)expireTimeout;
+- (void)pushGeolocationWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation sendTo:(nullable NSUUID *)sendTo replyTo:(nullable TLDescriptorId *)replyTo longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta localMapPath:(nullable NSString *)localMapPath expireTimeout:(int64_t)expireTimeout copyAllowed:(BOOL)copyAllowed;
+
+- (void)pushPollWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation multipleChoicesAllowed:(BOOL)multipleChoicesAllowed question:(nonnull NSString *)question choices:(nonnull NSArray<TLChoice *> *)choices expireTimeout:(int64_t)expireTimeout copyAllowed:(BOOL)copyAllowed;
+
+- (void)submitPollVotesWithDescriptorId:(nonnull TLDescriptorId *)descriptorId choices:(nonnull NSArray<TLChoice *> *)choices;
 
 - (void)updateGeolocationWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation descriptorId:(nonnull TLDescriptorId *)descriptorId longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta localMapPath:(nullable NSString *)localMapPath;
 
@@ -632,6 +656,17 @@ typedef enum {
 - (TLBaseServiceErrorCode)registeredGroupWithRequestId:(int64_t)requestId group:(nullable id<TLRepositoryObject>)group adminTwincodeOutbound:(nonnull TLTwincodeOutbound *)adminTwincodeOutbound adminPermissions:(long)adminPermissions permissions:(long)permissions;
 
 - (TLBaseServiceErrorCode)leaveGroupWithRequestId:(int64_t)requestId group:(nullable id<TLRepositoryObject>)group memberTwincodeId:(nonnull NSUUID*)memberTwincodeId;
+
+/// Update the group according to a new list of members provided by the secure roster service.
+/// From this list we have to:
+/// - identify and record new members,
+/// - update existing members (mostly permissions since twincodes and public key don't change)
+/// - remove members that are not in the new list.
+/// @param group the group to refresh.
+/// @param members the list of roster members as known and reported by the server.
+/// @param memberTwincodes the map of twincodes for these members.
+/// @return SUCCESS if the refresh operation succeeded.
+- (TLBaseServiceErrorCode)refreshWithGroup:(nonnull id<TLRepositoryObject>)group members:(nonnull NSArray<TLRosterMember *> *)members memberTwincodes:(nonnull NSDictionary<NSUUID *, TLTwincodeOutbound *> *)memberTwincodes;
 
 - (nullable TLInvitationDescriptor*)getInvitationWithDescriptorId:(nonnull TLDescriptorId *)descriptorId;
 

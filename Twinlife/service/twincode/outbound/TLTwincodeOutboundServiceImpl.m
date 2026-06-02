@@ -46,6 +46,7 @@
 #import "TLInvitationCode.h"
 #import "TLProxyDescriptor.h"
 #import "TLTwincodeInfo.h"
+#import "TLBackupServiceImpl.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -333,9 +334,12 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
             [TLAttributeNameStringValue removeAttributeWithName:name list:attributes];
         }
     }
-    for (TLAttributeNameValue *attribute in update) {
-        [TLAttributeNameValue removeAttributeWithName:attribute.name list:attributes];
-        [attributes addObject:attribute];
+    
+    if (update) {
+        for (TLAttributeNameValue *attribute in update) {
+            [TLAttributeNameValue removeAttributeWithName:attribute.name list:attributes];
+            [attributes addObject:attribute];
+        }
     }
     return attributes;
 }
@@ -442,6 +446,13 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
     }
     [string appendString:@"]"];
     return string;
+}
+
+
+
+- (nonnull id)copyWithZone:(nullable NSZone *)zone {
+    NSArray<TLAttributeNameValue *> *attributes = [self getAttributes:nil deleteAttributeNames:nil];
+    return [[TLTwincodeOutbound alloc] initWithIdentifier:self.identifier twincodeId:self.uuid attributes:attributes flags:self.flags modificationDate:self.modificationDate];
 }
 
 @end
@@ -1023,7 +1034,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
             
         case TLTwincodeURIKindAccountMigration:
             label = [NSUUID fromUUID:twincodeId];
-            uri = [NSString stringWithFormat:@"%@/?id=%@", TLTwincodeURI.ACCOUNT_MIGRATION_ACTION, twincodeId.UUIDString];
+            uri = [NSString stringWithFormat:@"%@/?id=%@", TLTwincodeURI.ACCOUNT_MIGRATION_LEGACY_ACTION, twincodeId.UUIDString];
             break;
             
         case TLTwincodeURIKindSpaceCard:
@@ -1134,7 +1145,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
         kind = TLTwincodeURIKindMeeting;
     } else if ([host isEqualToString:TLTwincodeURI.TRANSFER_ACTION]) {
         kind = TLTwincodeURIKindTransfer;
-    } else if ([host isEqualToString:TLTwincodeURI.ACCOUNT_MIGRATION_ACTION]) {
+    } else if ([host isEqualToString:TLTwincodeURI.ACCOUNT_MIGRATION_LEGACY_ACTION] || [host isEqualToString:TLTwincodeURI.ACCOUNT_MIGRATION_ACTION]) {
         kind = TLTwincodeURIKindAccountMigration;
     } else if ([host isEqualToString:TLTwincodeURI.AUTHENTICATE_ACTION]) {
         kind = TLTwincodeURIKindAuthenticate;
@@ -1756,7 +1767,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
         self.refreshJobId = nil;
     }
 
-    if (!self.isTwinlifeOnline || !self.enableTwincodeRefresh) {
+    if (!self.isTwinlifeOnline || !self.enableTwincodeRefresh || self.twinlife.status == TLTwinlifeStatusRestoring) {
         return;
     }
 

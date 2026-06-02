@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -166,7 +166,6 @@ static const int ddLogLevel = DDLogLevelWarning;
         _disconnecting = NO;
         _activeProxy = nil;
         _shuffledDeadline = 0;
-        _shuffledProxies = nil;
         _lastProxy = nil;
         
         // Separate the Keyed proxies vs the SNI ones.
@@ -192,7 +191,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 if ([proxy isKindOfClass:[TLKeyProxyDescriptor class]]) {
                     [_keyProxies addObject:(TLKeyProxyDescriptor *)proxy];
                     
-                } else if ([proxy isKindOfClass:[TLSNIProxyDescriptor class]]) {
+                } else if ([proxy isKindOfClass:[TLSNIProxyDescriptor class]] && hostList && domainList && tldList) {
                     TLSNIProxyDescriptor *sniProxyDescriptor = (TLSNIProxyDescriptor *)proxy;
                     NSString *sni = [TLServerConnection createSNIWithList:hostList domainList:domainList tldList:tldList];
                     [_sniProxies addObject:[[TLSNIProxyDescriptor alloc] initWithHost:sniProxyDescriptor.host port:sniProxyDescriptor.port stunPort:sniProxyDescriptor.stunPort customSNI:sni isUserProxy:NO]];
@@ -283,11 +282,6 @@ static const int ddLogLevel = DDLogLevelWarning;
     return self.session != nil && [self.session isConnected];
 }
 
-- (BOOL)isDisconnecting {
-    
-    return self.disconnecting;
-}
-
 - (TLConnectionStatus)connectionStatus {
     
     TLConnectionStatus result;
@@ -296,6 +290,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             result = TLConnectionStatusConnected;
         } else if (self.connecting) {
             result = TLConnectionStatusConnecting;
+        } else if (self.disconnecting) {
+            result = TLConnectionStatusDisconnecting;
         } else {
             result = TLConnectionStatusNoService;
         }
@@ -464,7 +460,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     @synchronized (self) {
         if (self.interfaces) {
             for (NSString *interface in interfaces) {
-                if (self.interfaces[interface]) {
+                if (self.interfaces[interface] != nil) {
                     [self.interfaces removeObjectForKey:interface];
                 } else {
                     needReconnect = YES;

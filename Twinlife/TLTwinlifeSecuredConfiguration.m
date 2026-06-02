@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2024 twinlife SA.
+ *  Copyright (c) 2017-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -389,7 +389,7 @@ static TLSerializer *TWINLIFE_APP_SECURED_CONFIGURATION_SERIALIZER_2 = nil;
     return newKey;
 }
 
-#ifdef TWINME_PLUS
+#if defined(TWINME_PLUS) || defined(MYTWINLIFE_PLUS)
 + (BOOL)importApplicationData {
     DDLogVerbose(@"%@ importApplicationData", LOG_TAG);
 

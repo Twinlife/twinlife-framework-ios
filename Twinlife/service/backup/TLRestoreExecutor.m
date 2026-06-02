@@ -168,7 +168,12 @@ static const int ddLogLevel = DDLogLevelWarning;
         return;
     }
     
-    [self.backupService onBackupHeaderInfoWithHeaderInfo:self.backupHeaderInfo lastBackupId:lastBackupId lastBackupTimestamp:lastBackupTimestamp];
+    // Ignore last backup info: they belong to the currently authenticated account,
+    // so if we're restoring a backup made on another device they can't be used to check whether
+    // we're restoring the latest backup.
+    // We'll get the info from the server once we're authenticated with the account extracted
+    // from the backup.
+    [self.backupService onBackupHeaderInfoWithHeaderInfo:self.backupHeaderInfo lastBackupId:nil lastBackupTimestamp:-1L];
     
     self.restoreState = TLRestoreStateRestoreAccount;
     [self.backupService onRestoreStateChangeWithState:self.restoreState restoreContent:self.restoreContent];
@@ -275,7 +280,26 @@ static const int ddLogLevel = DDLogLevelWarning;
             return;
         }
         
-        [self restoreData];
+        [self.twinlife.getAccountService getAllBackupsWithBlock:^(TLBaseServiceErrorCode status, NSArray<TLBackupInfo *> * _Nullable backups) {
+            if (status != TLBaseServiceErrorCodeSuccess || backups == nil) {
+                [self cancelWithTerminateReason:TLBackupServiceTerminateReasonError];
+                return;
+            }
+            
+            if (backups.count > 0 && self.backupHeaderInfo) {
+                TLBackupInfo *lastBackupInfo = nil;
+                
+                for (TLBackupInfo *backupInfo in backups) {
+                    if (!lastBackupInfo || lastBackupInfo.creationDate < backupInfo.creationDate) {
+                        lastBackupInfo = backupInfo;
+                    }
+                }
+                
+                [self.backupService onBackupHeaderInfoWithHeaderInfo:self.backupHeaderInfo lastBackupId:lastBackupInfo.uuid lastBackupTimestamp:lastBackupInfo.creationDate];
+            }
+            
+            [self restoreData];
+        }];
     }];
 }
 
@@ -335,32 +359,30 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
         
 
-        [self checkTwincodeConsistencyWithBlock:^(TLBaseServiceErrorCode status, TLRestoreContent *restoreContent) {
-            [self executeIfNotCancelledWithBlock:^{
-                
-                if (status != TLBaseServiceErrorCodeSuccess) {
-                    DDLogError(@"%@ Error occurred while checking twincodes", LOG_TAG);
-                    [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeInternalError baseErrorCode:status];
-                    [self cancelWithTerminateReason:TLBackupServiceTerminateReasonError];
-                } else {
-                    self.restoreState = TLRestoreStateWaitConfirm;
-                    [self.backupService onRestoreStateChangeWithState:self.restoreState restoreContent:self.restoreContent];
-                }
-            }];
-        }];
+        [self checkTwincodeConsistency];
     }];
 }
 
-- (void)checkTwincodeConsistencyWithBlock:(nonnull void (^)(TLBaseServiceErrorCode status, TLRestoreContent *restoreContent))block {
-    DDLogVerbose(@"%@ checkTwincodeConsistencyWithBlock", LOG_TAG);
+- (void)checkTwincodeConsistency {
+    DDLogVerbose(@"%@ checkTwincodeConsistency", LOG_TAG);
 
+    self.restoreState = TLRestoreStateGetAllTwincodes;
+        
     TLTwincodeOutboundService *twincodeService = self.twinlife.twincodeOutboundService;
     
     [twincodeService getAllTwincodesWithBlock:^(TLBaseServiceErrorCode status, NSDictionary<NSUUID *,NSArray<TLTwincodeInfo *> *> *serverTwincodes) {
         [self executeIfNotCancelledWithBlock:^{
+            if (status == TLBaseServiceErrorCodeTwinlifeOffline) {
+                DDLogVerbose(@"%@ Device is offline, waiting for server connection to try again.", LOG_TAG);
+                return;
+            }
+            
+            self.restoreState = TLRestoreStateCheckConsistency;
+                        
             if (status != TLBaseServiceErrorCodeSuccess || !serverTwincodes) {
-                DDLogVerbose(@"%@ Error occurred while getting twincodes: status=%d", LOG_TAG, status);
-                block(status, nil);
+                DDLogError(@"%@ Error occurred while getting twincodes: status=%d", LOG_TAG, status);
+                [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeInternalError baseErrorCode:status];
+                [self cancelWithTerminateReason:TLBackupServiceTerminateReasonError];
                 return;
             }
             
@@ -496,7 +518,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             DDLogVerbose(@"%@     deleted: %lu", LOG_TAG, self.restoreContent.getDeletedTwincodeIds.count);
             DDLogVerbose(@"%@     upToDate: %lu", LOG_TAG, self.restoreContent.getUpToDateTwincodeIds.count);
             
-            block(TLBaseServiceErrorCodeSuccess, self.restoreContent);
+            self.restoreState = TLRestoreStateWaitConfirm;
+            [self.backupService onRestoreStateChangeWithState:self.restoreState restoreContent:self.restoreContent];
         }];
     }];
 }
@@ -507,6 +530,8 @@ static const int ddLogLevel = DDLogLevelWarning;
     if (self.restoreState == TLRestoreStateTerminated) {
         return;
     }
+    
+    [self.twinlife.accountService removeRestoreAccountConfiguration];
     
     self.terminateReason = terminateReason;
         
@@ -597,6 +622,7 @@ static const int ddLogLevel = DDLogLevelWarning;
                 return;
             }
             
+            [self.twinlife.accountService removeRestoreAccountConfiguration];
             [self.twinlife.accountService restoreAccountSecuredConfigurationWithAccountConfiguration:accountConfiguration restoreCount:incarnationCount];
             
             [self prepareObjectsForUpdate];
@@ -737,7 +763,9 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (void)onTwinlifeOnline {
     [self executeIfNotCancelledWithBlock:^{
-        if (self.restoreState == TLRestoreStateSyncingObjects) {
+        if (self.restoreState == TLRestoreStateGetAllTwincodes) {
+            [self checkTwincodeConsistency];
+        } else if (self.restoreState == TLRestoreStateSyncingObjects) {
             [self updateObjectsAfterRestore];
         }
     }];

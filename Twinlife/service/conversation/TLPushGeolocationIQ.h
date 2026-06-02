@@ -1,10 +1,11 @@
 /*
- *  Copyright (c) 2021 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "TLBinaryPacketIQ.h"
@@ -12,10 +13,20 @@
 @class TLGeolocationDescriptor;
 
 //
-// Interface: TLPushGeolocationIQSerializer
+// Interface: TLPushGeolocationIQSerializer_3
 //
 
-@interface TLPushGeolocationIQSerializer : TLBinaryPacketIQSerializer
+@interface TLPushGeolocationIQSerializer_3 : TLBinaryPacketIQSerializer
+
+- (nonnull instancetype)initWithSchema:(nonnull NSString *)schema schemaVersion:(int)schemaVersion;
+
+@end
+
+//
+// Interface: TLPushGeolocationIQSerializer_2
+//
+
+@interface TLPushGeolocationIQSerializer_2 : TLBinaryPacketIQSerializer
 
 - (nonnull instancetype)initWithSchema:(nonnull NSString *)schema schemaVersion:(int)schemaVersion;
 
@@ -31,7 +42,11 @@
 
 + (nonnull NSUUID *)SCHEMA_ID;
 
++ (int)SCHEMA_VERSION_3;
+
 + (int)SCHEMA_VERSION_2;
+
++ (nonnull TLBinaryPacketIQSerializer *) SERIALIZER_3;
 
 + (nonnull TLBinaryPacketIQSerializer *) SERIALIZER_2;
 
