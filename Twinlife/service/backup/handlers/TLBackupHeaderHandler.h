@@ -10,7 +10,10 @@
 #import "TLBackupHeaderInfo.h"
 
 #define TL_BACKUP_HEADER_BACKUP_SCHEMA_ID [[NSUUID alloc] initWithUUIDString:@"7fe7023c-f2f3-4148-bf40-43ef04e7a86a"]
-#define TL_BACKUP_HEADER_BACKUP_SCHEMA_VERSION 1
+#define TL_BACKUP_HEADER_BACKUP_SCHEMA_VERSION 2
+
+#define TL_INCOMPATIBLE_VERSION_EXCEPTION @"TLIncompatibleVersionException"
+#define TL_INCOMPATIBLE_APP_EXCEPTION @"TLIncompatibleAppException"
 
 @interface TLBackupHeaderHandler : TLBackupHandler<TLBackupHeaderInfo *>
 

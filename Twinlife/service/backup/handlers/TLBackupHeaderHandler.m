@@ -71,6 +71,18 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 @end
 
+@interface TLBackupHeaderRestorerV2 : TLBackupHeaderRestorerV1
+
+@end
+
+@implementation TLBackupHeaderRestorerV2
+
++ (nonnull NSNumber *) VERSION {
+    return @2;
+}
+
+@end
+
 //
 // Implementation: TLBackupHeaderHandler
 //
@@ -82,7 +94,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (nonnull instancetype)initWithFileSignature:(nonnull NSData *)fileSignature {
     self = [super initWithRestorers:@{
-        TLBackupHeaderRestorerV1.VERSION : [[TLBackupHeaderRestorerV1 alloc] init]
+        TLBackupHeaderRestorerV1.VERSION : [[TLBackupHeaderRestorerV1 alloc] init],
+        TLBackupHeaderRestorerV2.VERSION : [[TLBackupHeaderRestorerV2 alloc] init]
     }];
     
     if (self) {
@@ -145,10 +158,19 @@ static const int ddLogLevel = DDLogLevelWarning;
     DDLogVerbose(@"%@ verifyWithBinaryDecoder: %@", LOG_TAG, decoder);
     
     if (![self checkSignatureWithBinaryDecoder:decoder]) {
-        @throw [NSException exceptionWithName:@"TLDecoderException" reason:@"Invalid file signature" userInfo:nil];
+        @throw [NSException exceptionWithName:TL_INCOMPATIBLE_APP_EXCEPTION reason:@"Invalid file signature" userInfo:nil];
     }
     
-    return [super verifyWithBinaryDecoder:decoder];
+    NSNumber *version = [[NSNumber alloc] initWithInt:[decoder readInt]];
+    
+    TLRestorer *restorer = self.restorers[version];
+    
+    if (!restorer) {
+        DDLogError(@"%@ no restorer found for version %d, current version is: %d", LOG_TAG, version.intValue, TL_BACKUP_HEADER_BACKUP_SCHEMA_VERSION);
+        @throw [NSException exceptionWithName:TL_INCOMPATIBLE_VERSION_EXCEPTION reason:nil userInfo:nil];
+    }
+    
+    return [restorer verifyWithBinaryDecoder:decoder];
 }
 
 - (BOOL)checkSignatureWithBinaryDecoder:(nonnull TLBinaryDecoder *)decoder {

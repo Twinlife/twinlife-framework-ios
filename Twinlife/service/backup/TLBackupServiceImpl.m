@@ -124,6 +124,14 @@ static const uint8_t FILE_SIGNATURE[] = {0x53, 0x46, 0x42, 0x4b};
     [self.backupExecutor startBackup];
 }
 
+- (TLBackupServiceErrorCode)checkFileCompatibilityWithBackupPath:(nonnull NSString *)backupPath {
+    DDLogVerbose(@"%@ checkCompatibilityWithBackupPath:%@", LOG_TAG, backupPath);
+    
+    TLVerifyExecutor *verifyExecutor = [[TLVerifyExecutor alloc] initWithBackupService:self twinlife:self.twinlife backupFilePath:backupPath];
+    
+    return [verifyExecutor verifyHeader];
+}
+
 - (void)restoreWithPassword:(nonnull NSData *)password backupPath:(nonnull NSString *)backupPath supportedSchemaIds:(nonnull NSArray<NSUUID *> *)supportedSchemaIds inPlace:(nullable NSNumber *)inPlace twinlifeContext:(nonnull TLTwinlifeContext *)twinlifeContext {
     DDLogVerbose(@"%@ restoreWithPassword: %@ backupPath: %@", LOG_TAG, password, backupPath);
     
@@ -218,25 +226,6 @@ static const uint8_t FILE_SIGNATURE[] = {0x53, 0x46, 0x42, 0x4b};
     }];
 }
 
-- (BOOL)checkFileSignatureWithBackupPath:(nonnull NSString *)backupPath {
-    DDLogVerbose(@"%@ checkFileSignatureWithBackupPath:%@", LOG_TAG, backupPath);
-    
-    NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingAtPath:backupPath];
-    // Only read a small chunk of data to decode the file signature.
-    NSData *signatureData = [fileHandle readDataOfLength:(16)];
-    [fileHandle closeFile];
-
-    TLBinaryDecoder *decoder = [[TLBinaryDecoder alloc] initWithData:signatureData];
-    TLBackupHeaderHandler *handler = [[TLBackupHeaderHandler alloc] initWithFileSignature:[TLBackupService getFileSignature]];
-    
-    @try {
-        return [handler checkSignatureWithBinaryDecoder:decoder];
-    } @catch (NSException *exception) {
-        DDLogError(@"%@ Error occurred while reading signature in backup file %@: %@", LOG_TAG, backupPath, exception.userInfo);
-        return NO;
-    }
-}
-
 - (void)onBackupStateChangeWithBackupId:(nonnull NSUUID *)backupId state:(TLBackupState)state {
     for (id delegate in self.delegates) {
         if ([delegate respondsToSelector:@selector(onBackupStateChangeWithBackupId:state:)]) {
@@ -271,6 +260,8 @@ static const uint8_t FILE_SIGNATURE[] = {0x53, 0x46, 0x42, 0x4b};
 }
 
 - (void)onTerminateBackupWithBackupId:(nonnull NSUUID *)backupId backupFilePath:(nullable NSString *)backupFilePath stats:(nonnull NSDictionary<NSUUID *, NSNumber *> *)stats {
+    self.restoreExecutor = nil;
+    
     for (id delegate in self.delegates) {
         if ([delegate respondsToSelector:@selector(onTerminateBackupWithBackupId:backupFilePath:stats:done:)]) {
             id<TLBackupServiceDelegate> lDelegate = delegate;

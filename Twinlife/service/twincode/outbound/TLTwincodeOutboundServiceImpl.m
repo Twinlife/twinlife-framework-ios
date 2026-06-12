@@ -1034,7 +1034,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_GET_ALL_TWINCODES_SERIALIZER = nil;
             
         case TLTwincodeURIKindAccountMigration:
             label = [NSUUID fromUUID:twincodeId];
-            uri = [NSString stringWithFormat:@"%@/?id=%@", TLTwincodeURI.ACCOUNT_MIGRATION_LEGACY_ACTION, twincodeId.UUIDString];
+            uri = [NSString stringWithFormat:@"%@/?id=%@", TLTwincodeURI.ACCOUNT_MIGRATION_ACTION, twincodeId.UUIDString];
             break;
             
         case TLTwincodeURIKindSpaceCard:

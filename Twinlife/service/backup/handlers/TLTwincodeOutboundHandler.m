@@ -77,6 +77,11 @@ static const int ddLogLevel = DDLogLevelWarning;
     NSArray<TLAttributeNameValue *> *attributes = [decoder readAttributes];
     int flags = [decoder readInt];
     
+    if (!attributes) {
+        DDLogWarn(@"%@ twincodeOutbound %@ has no attributes", LOG_TAG, twincodeId);
+        attributes = [NSArray array];
+    }
+    
     // Make sure the twincode will be refreshed from the server (see RestoreExecutor.syncTwincodes())
     flags |= FLAG_NEED_FETCH;
     
@@ -286,12 +291,17 @@ static const int ddLogLevel = DDLogLevelWarning;
         if (!rawKeyInfo) {
             [encoder writeBoolean:NO];
         } else {
-            [encoder writeBoolean:YES];
-            [encoder writeData:rawKeyInfo.signingKey];
-            [encoder writeOptionalData:rawKeyInfo.encryptionKey];
-            [encoder writeLong:rawKeyInfo.creationDate];
-            [encoder writeLong:rawKeyInfo.modificationDate];
-            [encoder writeInt:rawKeyInfo.flags];
+            if (!rawKeyInfo.signingKey) {
+                DDLogWarn(@"%@ TLRawKeyInfo for twincodeOutbound %@ has no signing key, it won't be included in the backup file", LOG_TAG, twincodeOutbound.uuid);
+                [encoder writeBoolean:NO];
+            } else {
+                [encoder writeBoolean:YES];
+                [encoder writeData:rawKeyInfo.signingKey];
+                [encoder writeOptionalData:rawKeyInfo.encryptionKey];
+                [encoder writeLong:rawKeyInfo.creationDate];
+                [encoder writeLong:rawKeyInfo.modificationDate];
+                [encoder writeInt:rawKeyInfo.flags];
+            }
         }
         
         DDLogVerbose(@"%@ Backed up twincodeOutbound=%@", LOG_TAG, twincodeOutbound);

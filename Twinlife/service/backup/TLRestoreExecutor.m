@@ -673,6 +673,15 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
     
     NSArray<TLTwincodeInfo *> *serverTwincodes = [self.addedTwincodes copy];
+    NSArray<id<TLRepositoryObject>> *deviceObjects = [self.deletedObjects copy];
+    NSArray<id<TLRepositoryObject>> *activeObjects = [self.activeObjects copy];
+
+    if (serverTwincodes.count == 0 && deviceObjects.count == 0 && activeObjects.count == 0) {
+        [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeInternalError baseErrorCode:TLBaseServiceErrorCodeLibraryError];
+        self.restoreState = TLRestoreStateTerminated;
+        [self.backupService onTerminateRestoreWithTerminateReason:TLBackupServiceTerminateReasonError];
+        return;
+    }
     
     for (TLTwincodeInfo *twincodeInfo in serverTwincodes) {
         [self.twinlife.twincodeFactoryService deleteTwincodeWithFactoryId:twincodeInfo.twincodeFactoryId withBlock:^(TLBaseServiceErrorCode errorCode, NSUUID * _Nullable twincodeFactoryId) {
@@ -699,7 +708,6 @@ static const int ddLogLevel = DDLogLevelWarning;
         }];
     }
     
-    NSArray<id<TLRepositoryObject>> *deviceObjects = [self.deletedObjects copy];
     for (id<TLRepositoryObject> object in deviceObjects) {
         [self.twinlife.repositoryService deleteObjectAfterRestoreWithTwinlifeContext:self.twinlifeContext object:object withBlock:^(TLBaseServiceErrorCode errorCode, id<TLRepositoryObject> _Nullable deletedObject) {
             [self executeIfNotCancelledWithBlock:^{
@@ -725,9 +733,6 @@ static const int ddLogLevel = DDLogLevelWarning;
         }];
     }
     
-    
-    
-    NSArray<id<TLRepositoryObject>> *activeObjects = [self.activeObjects copy];
     for (id<TLRepositoryObject> object in activeObjects) {
         [self.twinlife.repositoryService syncObjectAfterRestoreWithTwinlifecontext:self.twinlifeContext object:object withBlock:^(TLBaseServiceErrorCode errorCode, id<TLRepositoryObject> _Nullable deletedObject) {
             [self executeIfNotCancelledWithBlock:^{

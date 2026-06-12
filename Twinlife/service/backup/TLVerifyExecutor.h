@@ -15,7 +15,13 @@
 
 @property (nonatomic) TLRestoreState restoreState;
 
+/// Full constructor for startVerify
 - (nonnull instancetype)initWithBackupService:(nonnull TLBackupService *)backupService twinlife:(nonnull TLTwinlife *)twinlife password:(nonnull NSData *)password backupFilePath:(nonnull NSString *)backupFilePath supportedSchemaIds:(nonnull NSArray<NSUUID *> *)supportedSchemaIds;
+
+/// Simplified constructor for verifyHeader
+- (nonnull instancetype)initWithBackupService:(nonnull TLBackupService *)backupService twinlife:(nonnull TLTwinlife *)twinlife backupFilePath:(nonnull NSString *)backupFilePath;
+
+- (TLBackupServiceErrorCode)verifyHeader;
 
 - (void)startVerify;
 

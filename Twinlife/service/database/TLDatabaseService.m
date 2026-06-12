@@ -1391,6 +1391,29 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
     return twincodeInbound;
 }
 
+- (nonnull NSArray<TLTwincodeInbound *> *)loadAllTwincodeInbounds {
+    DDLogVerbose(@"%@ loadAllTwincodeInbounds", LOG_TAG);
+    
+    __block NSMutableArray<TLTwincodeInbound *> *result = [NSMutableArray array];
+    
+    [self inDatabase:^(FMDatabase *database) {
+        if (database) {
+            FMResultSet *resultSet = [database executeQuery:@"SELECT ti.id, ti.twincodeId, ti.factoryId, ti.twincodeOutbound, ti.modificationDate, ti.capabilities, ti.attributes FROM twincodeInbound AS ti INNER JOIN twincodeOutbound AS two ON ti.twincodeOutbound = two.id"];
+            if (resultSet) {
+                while ([resultSet next]) {
+                    TLTwincodeInbound * twincodeInbound = [self loadTwincodeInboundWithResultSet:resultSet offset:0];
+                    if (twincodeInbound) {
+                        [result addObject:twincodeInbound];
+                    }
+                }
+                [resultSet close];
+            }
+        }
+    }];
+    
+    return result;
+}
+
 - (nullable TLTwincodeOutbound *)loadTwincodeOutboundWithTwincodeId:(nonnull NSUUID *)twincodeId {
     DDLogVerbose(@"%@ loadTwincodeOutboundWithTwincodeId: %@", LOG_TAG, twincodeId);
     

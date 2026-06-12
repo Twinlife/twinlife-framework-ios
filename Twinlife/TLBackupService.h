@@ -40,7 +40,8 @@ typedef enum {
     TLBackupServiceErrorCodeNoSpaceLeft,
     TLBackupServiceErrorCodeIOError,
     TLBackupServiceErrorCodeRevoked,
-    TLBackupServiceErrorCodeBadVersion,
+    TLBackupServiceErrorCodeWrongVersion,
+    TLBackupServiceErrorCodeWrongApp,
     TLBackupServiceErrorCodeKeyGenFailed,
     TLBackupServiceErrorCodeInvalidKey,
     TLBackupServiceErrorCodeInvalidFile,
@@ -112,5 +113,5 @@ typedef enum {
 
 - (void)deleteBackups;
 
-- (BOOL)checkFileSignatureWithBackupPath:(nonnull NSString *)backupPath;
+- (TLBackupServiceErrorCode)checkFileCompatibilityWithBackupPath:(nonnull NSString *)backupPath;
 @end

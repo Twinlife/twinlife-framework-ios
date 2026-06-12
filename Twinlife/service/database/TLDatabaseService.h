@@ -331,6 +331,8 @@
 
 - (nullable TLTwincodeInbound *)loadTwincodeInboundWithTwincodeId:(nonnull NSUUID *)twincodeId;
 
+- (nonnull NSArray<TLTwincodeInbound *> *)loadAllTwincodeInbounds;
+
 - (nullable TLTwincodeOutbound *)loadTwincodeOutboundWithTwincodeId:(nonnull NSUUID *)twincodeId;
 
 - (nullable TLTwincodeOutbound *)loadTwincodeOutboundWithId:(long)databaseId;

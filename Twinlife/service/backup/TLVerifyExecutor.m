@@ -114,6 +114,58 @@ static const int ddLogLevel = DDLogLevelWarning;
     return self;
 }
 
+- (nonnull instancetype)initWithBackupService:(nonnull TLBackupService *)backupService twinlife:(nonnull TLTwinlife *)twinlife backupFilePath:(nonnull NSString *)backupFilePath {
+    DDLogVerbose(@"%@ initWithBackupFilePath: %@", LOG_TAG, backupFilePath);
+    
+    self = [super init];
+    
+    if (self) {
+        _backupService = backupService;
+        _twinlife = twinlife;
+        _backupFilePath = backupFilePath;
+        
+        _password = [NSData data];
+        _supportedSchemaIds = [NSArray array];
+        _handlers = [NSDictionary dictionary];
+        _restoreState = TLRestoreStateStarting;
+                
+        _restoreQueue = dispatch_queue_create("restoreQueue", DISPATCH_QUEUE_SERIAL);
+
+        _addedObjects = [NSMutableDictionary dictionary];
+        _deletedObjects = [NSMutableDictionary dictionary];
+        _modifiedObjects = [NSMutableDictionary dictionary];
+        _upToDateObjects = [NSMutableDictionary dictionary];
+        
+        _twincodeOutbounds = [NSMutableArray array];
+    }
+    
+    return self;
+}
+
+- (TLBackupServiceErrorCode)verifyHeader {
+    DDLogVerbose(@"%@ verifyHeader", LOG_TAG);
+    
+    NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingAtPath:self.backupFilePath];
+    NSData *backupData = [fileHandle readDataOfLength:128];
+    [fileHandle closeFile];
+
+    TLBinaryDecoder *decoder = [[TLBinaryDecoder alloc] initWithData:backupData];
+    
+    @try {
+        [[[TLBackupHeaderHandler alloc] initWithFileSignature:[TLBackupService getFileSignature]] verifyWithBinaryDecoder:decoder];
+    } @catch (NSException *e) {
+        if ([e.name isEqualToString:TL_INCOMPATIBLE_APP_EXCEPTION]) {
+            return TLBackupServiceErrorCodeWrongApp;
+        } else if ([e.name isEqualToString:TL_INCOMPATIBLE_VERSION_EXCEPTION]) {
+            return TLBackupServiceErrorCodeWrongVersion;
+        } else {
+            return TLBackupServiceErrorCodeInvalidFile;
+        }
+    }
+    
+    return TLBackupServiceErrorCodeSuccess;
+}
+
 - (void)startVerify {
     DDLogVerbose(@"%@ startVerify", LOG_TAG);
 
@@ -133,7 +185,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     NSFileHandle *fileHandle = [NSFileHandle fileHandleForReadingAtPath:self.backupFilePath];
     // Only read a small chunk of data to decode the unencrypted header.
     // We'll read the encrypted data once we have the key in onGenerateBackupKeyWithStatus.
-    NSData *backupData = [fileHandle readDataOfLength:(128)];
+    NSData *backupData = [fileHandle readDataOfLength:128];
     [fileHandle closeFile];
 
     self.decoder = [[TLBinaryDecoder alloc] initWithData:backupData];
@@ -147,7 +199,13 @@ static const int ddLogLevel = DDLogLevelWarning;
         self.backupHeaderInfo = ((TLBackupVerifyResultPresent<TLBackupHeaderInfo *> *)header).object;
     } @catch(NSException *exception) {
         DDLogError(@"%@ Couldn't decode BackupHeaderInfo: %@", LOG_TAG, exception.userInfo);
-        [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeInvalidFile baseErrorCode:TLBaseServiceErrorCodeFileNotSupported];
+        if ([exception.name isEqualToString:TL_INCOMPATIBLE_APP_EXCEPTION]) {
+            [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeWrongApp baseErrorCode:TLBaseServiceErrorCodeFileNotSupported];
+        } else if ([exception.name isEqualToString:TL_INCOMPATIBLE_VERSION_EXCEPTION]) {
+            [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeWrongVersion baseErrorCode:TLBaseServiceErrorCodeFileNotSupported];
+        } else {
+            [self.backupService onRestoreErrorWithBackupErrorCode:TLBackupServiceErrorCodeInvalidFile baseErrorCode:TLBaseServiceErrorCodeFileNotSupported];
+        }
         return;
     }
         

@@ -658,14 +658,14 @@ typedef void (^TLWaitingCodeBlock) (void);
     return [self.serviceProvider loadTwincodes];
 }
 
-- (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId modificationDate:(int64_t)modificationDate {
+- (nullable TLTwincodeInbound *)restoreTwincodeWithDatabaseId:(int64_t)databaseId twincodeId:(nonnull NSUUID *)twincodeId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound twincodeFactoryId:(nonnull NSUUID *)twincodeFactoryId attributes:(nonnull NSArray<TLAttributeNameValue *> *)attributes modificationDate:(int64_t)modificationDate {
     DDLogVerbose(@"%@: restoreTwincodeWithDatabaseId: %lld", LOG_TAG, databaseId);
 
     if (!self.serviceOn) {
         return nil;
     }
 
-    return [self.serviceProvider restoreTwincodeWithDatabaseId:databaseId twincodeId:twincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeFactoryId modificationDate:modificationDate];
+    return [self.serviceProvider restoreTwincodeWithDatabaseId:databaseId twincodeId:twincodeId twincodeOutbound:twincodeOutbound twincodeFactoryId:twincodeFactoryId attributes:attributes modificationDate:modificationDate];
 }
 
 - (void)waitInvocationsForTwincode:(nonnull NSUUID *)twincodeId withBlock:(nonnull void (^) (void))block {
