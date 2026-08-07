@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2024 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -13,7 +13,7 @@
 #import "TLBaseServiceImpl.h"
 
 @class TLRepositoryObjectFactoryImpl;
-@class TLDataOutputStream;
+@class TLBinaryEncoder;
 
 //
 // Interface: TLRepositoryPendingRequest
@@ -123,7 +123,7 @@ typedef void (^TLDeleteObjectComplete) (TLBaseServiceErrorCode status, NSUUID * 
 
 - (nonnull TLObjectStatReport *)reportWithId:(nonnull TLDatabaseIdentifier *)objectId;
 
-- (void)serialize:(nonnull TLDataOutputStream *)dataOutputStream;
+- (void)serialize:(nonnull TLBinaryEncoder *)encoder;
 
 + (void)initialize;
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -11,10 +11,6 @@
 #import "TLPeerConnectionService.h"
 #import "TLBaseServiceImpl.h"
 #import "TLPeerCallServiceImpl.h"
-
-//
-// Interface: TLPeerConnectionService ()
-//
 
 @class RTC_OBJC_TYPE(RTCConfiguration);
 @class RTC_OBJC_TYPE(RTCPeerConnectionFactory);
@@ -31,22 +27,40 @@
 @class TLPeerCallService;
 @class TLCryptoService;
 
+//
+// Interface: TLPeerConnectionFactory ()
+//
+
+@interface TLPeerConnectionFactory : NSObject
+
+@property (readonly, nonnull) RTC_OBJC_TYPE(RTCPeerConnectionFactory) *factory;
+@property (readonly, nonnull) RTC_OBJC_TYPE(RTCConfiguration) *configuration;
+
+- (nonnull instancetype)initWithFactory:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory configuration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration;
+
+@end
+
+//
+// Interface: TLPeerConnectionService ()
+//
+
 @interface TLPeerConnectionService () <TLPeerSignalingDelegate>
 
 @property (readonly, nonnull) TLPeerCallService *peerCallService;
 @property (readonly, nonnull) TLCryptoService *cryptoService;
 @property (readonly, nonnull) NSMutableDictionary<NSUUID *, TLPeerConnection *> *peerConnections;
 @property (nonnull) TLBaseServiceImplConfiguration *configuration;
-@property (nonnull) NSArray<RTC_OBJC_TYPE(RTCIceServer) *> *iceServers;
-@property (nonnull) NSArray<RTC_OBJC_TYPE(RTCHostname) *> *hostnames;
+@property (nonnull) NSArray<TLTurnServer *> *turnServers;
 @property (readonly, nonnull) dispatch_queue_t executorQueue;
 @property (nullable) TLNetworkLock *networkLock;
-@property (nonnull) RTC_OBJC_TYPE(RTCConfiguration) *peerConnectionConfiguration;
+@property (nonnull) RTC_OBJC_TYPE(RTCConfiguration) *peerDataConnectionConfiguration;
+@property (nonnull) RTC_OBJC_TYPE(RTCConfiguration) *peerMediaConnectionConfiguration;
 @property int videoConnections;
 @property BOOL usingFrontCamera;
 @property int videoFrameWidth;
 @property int videoFrameHeight;
 @property int videoFrameRate;
+@property TLPeerConnectionServiceIceTransportMode transportMode;
 
 + (nonnull NSString *)terminateReasonToString:(TLPeerConnectionServiceTerminateReason)reason;
 
@@ -56,7 +70,7 @@
 - (nonnull NSString *)getP2PDiagnostics;
 
 /// Get a peer connection factory with optional support for media
-- (nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)getPeerConnectionFactoryWithMedia:(BOOL)withMedia;
+- (nonnull TLPeerConnectionFactory *)getPeerConnectionFactoryWithMedia:(BOOL)withMedia;
 
 /// Release the PeerConnection and the factory.
 - (void)disposeWithPeerConnection:(nullable RTC_OBJC_TYPE(RTCPeerConnection) *)peerConnection factory:(nullable RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory;
@@ -92,8 +106,9 @@
 /// @param sessionId the P2P session id.
 /// @param updateType whether this is an offer or an answer.
 /// @param sdp the sdp content (clear text | compressed | encrypted).
+/// @param sequenceId a sequence ID for the session-update SDP.
 /// @return SUCCESS or ITEM_NOT_FOUND if the session id is not known.
-- (TLBaseServiceErrorCode)onSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId updateType:(RTCSdpType)updateType sdp:(nonnull TLSdp *)sdp;
+- (TLBaseServiceErrorCode)onSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId updateType:(RTCSdpType)updateType sdp:(nonnull TLSdp *)sdp sequenceId:(int64_t)sequenceId;
 
 /// Called when a transport-info IQ is received with a list of candidates.
 ///
@@ -155,5 +170,11 @@
 /// @param candidates the list of candidates.
 /// @param block the completion handler executed when the server sends us its response.
 - (void)transportInfoWithPeerConnection:(nonnull TLPeerConnection *)peerConnection candidates:(nonnull TLTransportCandidateList *)candidates withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block;
+
+- (void)ackPacketWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId requestId:(int64_t)requestId;
+
+/// Inform the peer connection service that secrets used to encrypt/decrypt the SDP between the given twincode associations
+/// have been changed and must be refreshed for existing P2P connections.
+- (void)refreshSecretsWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound;
 
 @end

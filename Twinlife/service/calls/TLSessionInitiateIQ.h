@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -19,6 +19,7 @@
 #define OFFER_TRANSFER       0x80    // The SDP is a session transfer (added in 1.3.0)
 #define OFFER_ENCRYPT_MASK   0x0ff00 // The encryption key index.
 #define OFFER_ENCRYPT_SHIFT  8
+#define OFFER_SEQUENCE_SHIFT 16
 #define OFFER_VOIP           (OFFER_AUDIO | OFFER_VIDEO)
 
 @class TLSdp;

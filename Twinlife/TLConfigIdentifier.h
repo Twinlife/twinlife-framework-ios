@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -120,6 +120,34 @@
 + (nonnull TLIntegerConfigIdentifier *)defineWithName:(nonnull NSString *)name defaultValue:(int)defaultValue;
 
 + (nonnull TLIntegerConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(int)defaultValue;
+
+@end
+
+//
+// Interface: TLEnumConfigIdentifier
+//
+
+@interface TLEnumConfigIdentifier : TLConfigIdentifier
+
+@property (readonly) NSUInteger defaultValue;
+@property NSUInteger enumValue;
+
++ (nonnull TLEnumConfigIdentifier *)defineWithName:(nonnull NSString *)name defaultValue:(NSUInteger)defaultValue;
+
++ (nonnull TLEnumConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(NSUInteger)defaultValue;
+
+@end
+
+//
+// Interface: TLEnumSharedConfigIdentifier
+//
+
+@interface TLEnumSharedConfigIdentifier : TLConfigIdentifier
+
+@property (readonly) NSUInteger defaultValue;
+@property NSUInteger enumValue;
+
++ (nonnull TLEnumSharedConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(NSUInteger)defaultValue;
 
 @end
 

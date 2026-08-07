@@ -10,6 +10,7 @@
 #import "TLPeerConnectionService.h"
 #import "TLSerializer.h"
 #import "TLBaseServiceImpl.h"
+#import "TLImageService.h"
 
 //
 // Interface: TLConversationImpl ()
@@ -89,6 +90,7 @@ typedef enum  {
 static const int CONVERSATION_SERVICE_MAJOR_VERSION_2 = 2;
 static const int CONVERSATION_SERVICE_MAJOR_VERSION_1 = 1;
 
+static const int CONVERSATION_SERVICE_MINOR_VERSION_22 = 22; // Added PushContactShareIQ 2026-07
 static const int CONVERSATION_SERVICE_MINOR_VERSION_21 = 21; // Added PushPollIQ 2026-03
 static const int CONVERSATION_SERVICE_MINOR_VERSION_20 = 20;
 static const int CONVERSATION_SERVICE_MINOR_VERSION_19 = 19;
@@ -114,7 +116,7 @@ static const int CONVERSATION_SERVICE_MINOR_VERSION_0 = 0;
 static const int MAX_MAJOR_VERSION = CONVERSATION_SERVICE_MAJOR_VERSION_2;
 
 // The maximum minor number that is supported by the major version 2.
-static const int MAX_MINOR_VERSION_2 = CONVERSATION_SERVICE_MINOR_VERSION_21;
+static const int MAX_MINOR_VERSION_2 = CONVERSATION_SERVICE_MINOR_VERSION_22;
 static const int MAX_MINOR_VERSION_1 = CONVERSATION_SERVICE_MINOR_VERSION_0;
 
 typedef enum {
@@ -129,6 +131,7 @@ typedef enum {
 @property (readonly, nonnull) TLSerializerFactory *serializerFactory;
 @property (readonly, nonnull) TLPeerConnectionService *peerConnectionService;
 @property (readonly, nonnull) TLConversationService *conversationService;
+@property (readonly, nonnull) TLImageService *imageService;
 @property BOOL withLeadingPadding;
 
 @property int64_t accessedTime;
@@ -240,4 +243,5 @@ typedef enum {
 
 - (nullable TLSignatureInfoIQ *)createSignatureWithConnection:(nonnull TLConversationConnection *)connection groupTwincodeId:(nonnull NSUUID *)groupTwincodeId;
 
+- (nullable TLImageInfo *)getImageInfoWithImageId:(nonnull TLImageId *)imageId;
 @end

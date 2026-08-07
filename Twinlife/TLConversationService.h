@@ -14,6 +14,7 @@
 #import "TLPeerConnectionService.h"
 #import "TLDatabase.h"
 #import "TLPermissions.h"
+#import "TLDataChannelHandler.h"
 
 typedef enum {
     TLGroupMemberFilterTypeAllMembers,
@@ -25,6 +26,7 @@ typedef enum {
 @class TLTwincodeOutbound;
 @class TLFilter;
 @class TLRosterMember;
+@class TLImageId;
 
 //
 // Interface: TLConversation
@@ -157,7 +159,8 @@ typedef enum {
     TLDescriptorTypeTwincodeDescriptor,
     TLDescriptorTypeCallDescriptor,
     TLDescriptorTypeClearDescriptor,
-    TLDescriptorTypePollDescriptor
+    TLDescriptorTypePollDescriptor,
+    TLDescriptorTypeContactShareDescriptor,
 } TLDescriptorType;
 
 @interface TLDescriptor : NSObject
@@ -329,7 +332,7 @@ typedef enum {
 @end
 
 //
-// Interface: TLTwincodeDescriptor
+// Interface: TLPollDescriptor
 //
 
 @interface TLPollDescriptor : TLDescriptor
@@ -402,6 +405,25 @@ typedef enum {
 - (long)duration;
 
 - (TLPeerConnectionServiceTerminateReason)terminateReason;
+
+@end
+
+//
+// Interface: TLPollDescriptor
+//
+
+@interface TLContactShareDescriptor : TLDescriptor
+
++ (nonnull NSUUID *)CONTACT_SHARE_SCHEMA_ID;
+
+@property (readonly, nonnull) NSString *name;
+@property TLInvitationDescriptorStatusType status;
+@property BOOL autoAnswer;
+@property (nullable) NSUUID *invitationTwincodeOutboundId;
+@property (nullable) NSUUID *targetContactId;
+@property (nullable) NSString *invitationTwincodeOutboundPubkey;
+
+- (nullable NSData *)loadAvatarData;
 
 @end
 
@@ -608,6 +630,10 @@ typedef enum {
 
 - (void)submitPollVotesWithDescriptorId:(nonnull TLDescriptorId *)descriptorId choices:(nonnull NSArray<TLChoice *> *)choices;
 
+- (void)pushContactShareWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation name:(nonnull NSString *)name avatar:(nonnull NSData *)avatar contactId:(nonnull NSUUID *)contactId expireTimeout:(int64_t)expireTimeout;
+
+- (void)answerContactShareWithConversation:(nonnull id<TLConversation>)conversation contactShareDescriptor:(nonnull TLContactShareDescriptor *)contactShareDescriptor status:(TLInvitationDescriptorStatusType)status autoAnswer:(BOOL)autoAnswer invitationTwincodeOutboundId:(nullable NSUUID *)invitationTwincodeOutboundId invitationPublicKey:(nullable NSString *)invitationPublicKey block:(nonnull void (^)(TLBaseServiceErrorCode errorCode,  TLContactShareDescriptor * _Nullable descriptor))block;
+
 - (void)updateGeolocationWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation descriptorId:(nonnull TLDescriptorId *)descriptorId longitude:(double)longitude latitude:(double)latitude altitude:(double)altitude mapLongitudeDelta:(double)mapLongitudeDelta mapLatitudeDelta:(double)mapLatitudeDelta localMapPath:(nullable NSString *)localMapPath;
 
 - (void)saveGeolocationMapWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation descriptorId:(nonnull TLDescriptorId *)descriptorId path:(nonnull NSString *)path;
@@ -619,6 +645,10 @@ typedef enum {
 - (void)acceptPushTwincodeWithSchemaId:(nonnull NSUUID *)schemaId;
 
 - (void)updateDescriptorWithRequestId:(int64_t)requestId descriptorId:(nonnull TLDescriptorId *)descriptorId message:(nullable NSString *)message copyAllowed:(nullable NSNumber *)copyAllowed expireTimeout:(nullable NSNumber *)expireTimeout;
+
+- (TLBaseServiceErrorCode)updateContactShareDescriptorWithDescriptor:(nonnull TLContactShareDescriptor *)descriptor status:(TLInvitationDescriptorStatusType)status;
+
+- (void)cleanupContactShareWithDescriptor:(nonnull TLContactShareDescriptor *)descriptor targetConversation:(nullable id<TLConversation>)targetConversation;
 
 - (void)markDescriptorReadWithRequestId:(int64_t)requestId descriptorId:(nonnull TLDescriptorId *)descriptorId;
 
@@ -694,23 +724,9 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 // Interface: TLConversationHandler
 //
 
-@interface TLConversationHandler : NSObject <TLPeerConnectionDataChannelDelegate>
-
-@property (nonatomic, readonly, nonnull) TLPeerConnectionService *peerConnectionService;
-@property (nonatomic, nullable) NSUUID *peerConnectionId;
-@property (nonatomic, readonly, nonnull) TLSerializerFactory *serializerFactory;
+@interface TLConversationHandler : TLDataChannelHandler
 
 - (nonnull instancetype)initWithPeerConnectionService:(nonnull TLPeerConnectionService *)peerConnectionService;
-
-- (void)addPacketListener:(nonnull TLBinaryPacketIQSerializer *)serializer listener:(nonnull TLBinaryPacketListener)listener;
-
-- (void)onDataChannelOpenWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId peerVersion:(nonnull NSString *)peerVersion leadingPadding:(BOOL)leadingPadding;
-
-- (void)onDataChannelClosedWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId;
-
-- (void)onDataChannelMessageWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId data:(nonnull NSData *)data leadingPadding:(BOOL)leadingPadding;
-
-- (BOOL)sendMessageWithIQ:(nonnull TLBinaryPacketIQ *)iq statType:(TLPeerConnectionServiceStatType)statType;
 
 - (BOOL)sendWithDescriptor:(nonnull TLDescriptor *)descriptor;
 

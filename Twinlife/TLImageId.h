@@ -22,6 +22,8 @@
 
 @property (readonly) int64_t localId;
 
++ (nullable instancetype)fromString:(nonnull NSString *)string;
+
 - (nonnull instancetype)initWithLocalId:(int64_t)localId;
 
 @end

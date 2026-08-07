@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -25,5 +25,8 @@
 - (nonnull instancetype)initWithSessionId:(nonnull NSUUID *)sessionId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound privKeyFlags:(int)privKeyFlags secretUpdateDate:(int64_t)secretUpdateDate nonceSequence:(int64_t)nonceSequence keyIndex:(int)keyIndex secret:(nonnull NSData *)secret peerSecret1:(nonnull NSData *)peerSecret1 peerSecret2:(nullable NSData *)peerSecret2;
 
 - (void)refreshWithNonceSequence:(int64_t)nonceSequence;
+
+/// Check if this session key pair is for the given twincode association.
+- (BOOL)isAssociationWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound;
 
 @end

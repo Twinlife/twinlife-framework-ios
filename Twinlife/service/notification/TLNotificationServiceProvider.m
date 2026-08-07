@@ -453,6 +453,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             return TLNotificationTypeUpdatedAnnotation;
         case 18:
             return TLNotificationTypeNewPollMessage;
+        case 19:
+            return TLNotificationTypeNewContactShare;
         default:
             return TLNotificationTypeUnknown;
     }
@@ -498,6 +500,8 @@ static const int ddLogLevel = DDLogLevelWarning;
             return 17;
         case TLNotificationTypeNewPollMessage:
             return 18;
+        case TLNotificationTypeNewContactShare:
+            return 19;
         default:
             return -1;
     }

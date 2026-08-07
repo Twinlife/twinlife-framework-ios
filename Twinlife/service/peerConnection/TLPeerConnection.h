@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2013-2025 twinlife SA.
+ *  Copyright (c) 2013-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -59,9 +59,9 @@
 /// Create an incoming P2P connection.
 - (nonnull instancetype)initWithPeerConnectionService:(nonnull TLPeerConnectionService *)peerConnectionService sessionId:(nonnull NSUUID *)sessionId peerId:(nonnull NSString *)peerId offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive configuration:(nonnull TLBaseServiceImplConfiguration *)configuration sdp:(nonnull TLSdp *)sdp;
 
-- (void)createIncomingPeerConnectionWithConfiguration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration sessionDescription:(nullable RTC_OBJC_TYPE(RTCSessionDescription) *)sessionDescription dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block;
+- (void)createIncomingPeerConnectionWithSessionDescription:(nullable RTC_OBJC_TYPE(RTCSessionDescription) *)sessionDescription dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block;
 
-- (void)createOutgoingPeerConnectionWithConfiguration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block;
+- (void)createOutgoingPeerConnectionWithDataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block;
 
 - (void)initSourcesWithAudioOn:(BOOL)audioOn videoOn:(BOOL)videoOn;
 
@@ -94,5 +94,26 @@
 - (void)terminatePeerConnectionWithTerminateReason:(TLPeerConnectionServiceTerminateReason)reason notifyPeer:(BOOL)notifyPeer;
 
 - (void)sendDeviceRinging;
+
+/// Check if the peer supports receiving SDP signaling (transport-info and session-update)
+/// from the data-channel.  The preconditions:
+/// - the peer version must be >= 2.3
+/// - the data channel must be opened,
+/// - the WebRTC connection must be connected.
+/// @return true if we can send the SDP in the data-channel.
+- (BOOL)isSignalingSupported;
+
+/// Check if the session-update SDP was already received and handled.
+/// @param sequenceId the session-update sequence ID.
+/// @return true if the session-update was already received and false if this is a new session-update.
+- (BOOL)wasReceivedWithSequenceId:(int64_t)sequenceId;
+
+/// Allocate a new sequence ID for the session-update SDP that we send to the peer.
+/// This is the low part (16-bits) of the real sequence id, the high part are created
+/// from the Unix timestamp.  The sequence ID is allocated only for session-update.
+/// @return the new sequence ID.
+- (int)allocateSequenceId;
+
+- (void)ackTransportWithRequestId:(int64_t)requestId;
 
 @end

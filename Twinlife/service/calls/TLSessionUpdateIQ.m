@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -83,7 +83,7 @@
 @implementation TLSessionUpdateIQ
 
 - (nonnull instancetype)initWithSerializer:(nonnull TLBinaryPacketIQSerializer *)serializer requestId:(int64_t)requestId to:(nonnull NSString *)to sessionId:(nonnull NSUUID *)sessionId expirationDeadline:(int64_t)expirationDeadline updateType:(int)updateType sdp:(nonnull NSData*)sdp {
-
+    
     self = [super initWithSerializer:serializer requestId:requestId];
     
     if (self) {
@@ -104,6 +104,15 @@
     BOOL compressed = (self.updateType & OFFER_COMPRESSED) != 0;
     int keyIndex = (self.updateType & OFFER_ENCRYPT_MASK) >> OFFER_ENCRYPT_SHIFT;
     return [[TLSdp alloc] initWithData:self.sdp compressed:compressed keyIndex:keyIndex];
+}
+
+- (int64_t)sequenceId {
+    
+    return (self.expirationDeadline & ~0x0FFFFF) + (int64_t) ((self.updateType >> OFFER_SEQUENCE_SHIFT) & 0x0FFFF);
+}
+
+- (RTCSdpType)type {
+    return (self.updateType & OFFER_ANSWER) ? RTCSdpTypeAnswer : RTCSdpTypeOffer;
 }
 
 @end

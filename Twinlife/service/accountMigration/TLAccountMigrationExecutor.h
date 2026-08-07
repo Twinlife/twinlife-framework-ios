@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -10,6 +10,7 @@
 #import "TLPeerConnectionHandler.h"
 #import "TLAccountMigrationService.h"
 #import "TLTwinlifeImpl.h"
+#import "TLDataChannelHandler.h"
 
 #define PREFERENCES @"ManagementService"
 #define MIGRATION_PREFIX @"Migration"

@@ -40,7 +40,8 @@ typedef enum {
     TLNotificationTypeNewContactInvitation,
     TLNotificationTypeDeletedGroup,
     TLNotificationTypeUpdatedAnnotation,
-    TLNotificationTypeNewPollMessage
+    TLNotificationTypeNewPollMessage,
+    TLNotificationTypeNewContactShare,
 } TLNotificationType;
 
 //

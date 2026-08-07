@@ -28,7 +28,6 @@
 #import "TLArrayData.h"
 #import "TLRepositoryServiceProvider.h"
 #import "TLDataInputStream.h"
-#import "TLDataOutputStream.h"
 #import "TLCreateObjectIQ.h"
 #import "TLGetObjectIQ.h"
 #import "TLListObjectIQ.h"
@@ -47,7 +46,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define REPOSITORY_SERVICE_VERSION @"3.2.0"
+#define REPOSITORY_SERVICE_VERSION @"3.2.1"
 
 #define CREATE_OBJECT_SCHEMA_ID      @"cc1de051-04c9-49c2-827d-2d8c8545ff41"
 #define ON_CREATE_OBJECT_SCHEMA_ID   @"fde9aa2f-c0e3-437a-a1d1-0121e72e43bd"
@@ -94,21 +93,28 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_OBJECT_SERIALIZER = nil;
 #undef LOG_TAG
 #define LOG_TAG @"TLObjectStatImpl"
 
-// Order in which the stats are serialized and de-serialized (for version 3).
-// - new stats TLRepositoryServiceStatTypeNbTwincodeSent and TLRepositoryServiceStatTypeNbTwincodeReceived
-static const TLRepositoryServiceStatType OBJECT_STAT_SERIALIZE_ORDER_LIST[] = {
+// Order in which the stats are serialized and de-serialized (for version 4).
+// - new stats TLRepositoryServiceStatTypeNbPollSent, TLRepositoryServiceStatTypeNbContactShareSent,
+//   TLRepositoryServiceStatTypeNbPollReceived, TLRepositoryServiceStatTypeNbContactShareReceived
+static const TLRepositoryServiceStatType OBJECT_STAT_SERIALIZE_4_ORDER_LIST[] = {
     TLRepositoryServiceStatTypeNbMessageSent,
     TLRepositoryServiceStatTypeNbFileSent,
     TLRepositoryServiceStatTypeNbImageSent,
     TLRepositoryServiceStatTypeNbVideoSent,
     TLRepositoryServiceStatTypeNbAudioSent,
     TLRepositoryServiceStatTypeNbGeolocationSent,
+    TLRepositoryServiceStatTypeNbTwincodeSent,
+    TLRepositoryServiceStatTypeNbPollSent,
+    TLRepositoryServiceStatTypeNbContactShareSent,
     TLRepositoryServiceStatTypeNbMessageReceived,
     TLRepositoryServiceStatTypeNbFileReceived,
     TLRepositoryServiceStatTypeNbImageReceived,
     TLRepositoryServiceStatTypeNbVideoReceived,
     TLRepositoryServiceStatTypeNbAudioReceived,
     TLRepositoryServiceStatTypeNbGeolocationReceived,
+    TLRepositoryServiceStatTypeNbTwincodeReceived,
+    TLRepositoryServiceStatTypeNbPollReceived,
+    TLRepositoryServiceStatTypeNbContactShareReceived,
     TLRepositoryServiceStatTypeNbAudioCallSent,
     TLRepositoryServiceStatTypeNbVideoCallSent,
     TLRepositoryServiceStatTypeNbAudioCallReceived,
@@ -119,7 +125,42 @@ static const TLRepositoryServiceStatType OBJECT_STAT_SERIALIZE_ORDER_LIST[] = {
     TLRepositoryServiceStatTypeVideoCallSentDuration,
     TLRepositoryServiceStatTypeAudioCallReceivedDuration
 };
-static const int OBJECT_STAT_SERIALIZE_COUNT = sizeof(OBJECT_STAT_SERIALIZE_ORDER_LIST) / sizeof(OBJECT_STAT_SERIALIZE_ORDER_LIST[0]);
+static const int OBJECT_STAT_SERIALIZE_4_COUNT = sizeof(OBJECT_STAT_SERIALIZE_4_ORDER_LIST) / sizeof(OBJECT_STAT_SERIALIZE_4_ORDER_LIST[0]);
+
+// Order in which the stats are serialized and de-serialized (for version 3).
+// - new stats TLRepositoryServiceStatTypeNbTwincodeSent and TLRepositoryServiceStatTypeNbTwincodeReceived
+// Note: this is the correct and fix definition which is compatible with Android.
+static const TLRepositoryServiceStatType OBJECT_STAT_SERIALIZE_3_FIXED_ORDER_LIST[] = {
+    TLRepositoryServiceStatTypeNbMessageSent,
+    TLRepositoryServiceStatTypeNbFileSent,
+    TLRepositoryServiceStatTypeNbImageSent,
+    TLRepositoryServiceStatTypeNbVideoSent,
+    TLRepositoryServiceStatTypeNbAudioSent,
+    TLRepositoryServiceStatTypeNbGeolocationSent,
+    TLRepositoryServiceStatTypeNbTwincodeSent,
+    TLRepositoryServiceStatTypeNbMessageReceived,
+    TLRepositoryServiceStatTypeNbFileReceived,
+    TLRepositoryServiceStatTypeNbImageReceived,
+    TLRepositoryServiceStatTypeNbVideoReceived,
+    TLRepositoryServiceStatTypeNbAudioReceived,
+    TLRepositoryServiceStatTypeNbGeolocationReceived,
+    TLRepositoryServiceStatTypeNbTwincodeReceived,
+    TLRepositoryServiceStatTypeNbAudioCallSent,
+    TLRepositoryServiceStatTypeNbVideoCallSent,
+    TLRepositoryServiceStatTypeNbAudioCallReceived,
+    TLRepositoryServiceStatTypeNbVideoCallReceived,
+    TLRepositoryServiceStatTypeNbAudioCallMissed,
+    TLRepositoryServiceStatTypeNbVideoCallMissed,
+    TLRepositoryServiceStatTypeAudioCallSentDuration,
+    TLRepositoryServiceStatTypeVideoCallSentDuration,
+    TLRepositoryServiceStatTypeAudioCallReceivedDuration
+};
+static const int OBJECT_STAT_SERIALIZE_3_FIXED_COUNT = sizeof(OBJECT_STAT_SERIALIZE_3_FIXED_ORDER_LIST) / sizeof(OBJECT_STAT_SERIALIZE_3_FIXED_ORDER_LIST[0]);
+
+// Note: the iOS schema 3 was incorrect because TLRepositoryServiceStatTypeNbTwincodeSent and TLRepositoryServiceStatTypeNbTwincodeReceived
+// where not included.
+#define OBJECT_STAT_SERIALIZE_3_ORDER_LIST    OBJECT_STAT_SERIALIZE_2_ORDER_LIST
+#define OBJECT_STAT_SERIALIZE_3_COUNT         OBJECT_STAT_SERIALIZE_2_COUNT
 
 // Order in which the stats are serialized and de-serialized (for version 2).
 // - new stats TLRepositoryServiceStatTypeNbGeolocationSent and TLRepositoryServiceStatTypeNbGeolocationReceived
@@ -172,7 +213,8 @@ static const TLRepositoryServiceStatType OBJECT_STAT_SERIALIZE_1_ORDER_LIST[] = 
 };
 static const int OBJECT_STAT_SERIALIZE_1_COUNT = sizeof(OBJECT_STAT_SERIALIZE_1_ORDER_LIST) / sizeof(OBJECT_STAT_SERIALIZE_1_ORDER_LIST[0]);
 
-static const int OBJECT_STAT_SCHEMA_VERSION = 3;
+static const int OBJECT_STAT_SCHEMA_VERSION_4 = 4;
+static const int OBJECT_STAT_SCHEMA_VERSION_3 = 3;
 static const int OBJECT_STAT_SCHEMA_VERSION_2 = 2;
 static const int OBJECT_STAT_SCHEMA_VERSION_1 = 1;
 static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
@@ -477,33 +519,106 @@ static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
     return result;
 }
 
-- (void)serialize:(nonnull TLDataOutputStream *)dataOutputStream {
-    DDLogVerbose(@"%@ serialize: %@", LOG_TAG, dataOutputStream);
+- (void)serialize:(nonnull TLBinaryEncoder *)encoder {
+    DDLogVerbose(@"%@ serialize: %@", LOG_TAG, encoder);
     
-    [dataOutputStream writeUUID:OBJECT_STAT_SCHEMA_ID];
-    [dataOutputStream writeInt:OBJECT_STAT_SCHEMA_VERSION];
-    [dataOutputStream writeDouble:self.score];
-    [dataOutputStream writeDouble:self.scale];
-    [dataOutputStream writeDouble:self.points];
-    [dataOutputStream writeInt64:self.lastMessageDate];
+    [encoder writeUUID:OBJECT_STAT_SCHEMA_ID];
+    [encoder writeInt:OBJECT_STAT_SCHEMA_VERSION_4];
+    [encoder writeDouble:self.score];
+    [encoder writeDouble:self.scale];
+    [encoder writeDouble:self.points];
+    [encoder writeLong:self.lastMessageDate];
     
-    for (int i = 0; i < OBJECT_STAT_SERIALIZE_COUNT; i++) {
-        [dataOutputStream writeInt:self.statCounters[OBJECT_STAT_SERIALIZE_ORDER_LIST[i]]];
+    for (int i = 0; i < OBJECT_STAT_SERIALIZE_4_COUNT; i++) {
+        [encoder writeLong:self.statCounters[OBJECT_STAT_SERIALIZE_4_ORDER_LIST[i]]];
     }
-    for (int i = 0; i < OBJECT_STAT_SERIALIZE_COUNT; i++) {
-        [dataOutputStream writeInt:self.referenceCounters[OBJECT_STAT_SERIALIZE_ORDER_LIST[i]]];
+    for (int i = 0; i < OBJECT_STAT_SERIALIZE_4_COUNT; i++) {
+        [encoder writeLong:self.referenceCounters[OBJECT_STAT_SERIALIZE_4_ORDER_LIST[i]]];
     }
 }
 
 + (nullable TLObjectStatImpl *)deserializeWithDatabaseId:(nonnull TLDatabaseIdentifier *)databaseId data:(nonnull NSData *)data {
     DDLogVerbose(@"%@ deserializeWithDatabaseId: %@", LOG_TAG, databaseId);
 
+    // iOS was using an old encoding format that was different from Android, that old encoding produced bigger stats.
+    // Starting with twinme 35.1 and Skred 25.1, we switched to the Android format but we have to be able to decode
+    // the old format.  Try to decode schemaId with the new format, if we recognize, we can proceed with the new format.
+    TLBinaryDecoder *decoder = [[TLBinaryDecoder alloc] initWithData:data];
+    NSUUID *schemaId = nil;
+    int schemaVersion = 0;
+    @try {
+        schemaId = [decoder readUUID];
+        schemaVersion = [decoder readInt];
+    } @catch (NSException *lException) {
+        schemaId = nil;
+    }
+    if ([OBJECT_STAT_SCHEMA_ID isEqual:schemaId] && schemaVersion > 0 && schemaVersion <= 4) {
+        if (schemaVersion == OBJECT_STAT_SCHEMA_VERSION_4) {
+            double score = [decoder readDouble];
+            double scale = [decoder readDouble];
+            double points = [decoder readDouble];
+            int64_t lastMessageDate = [decoder readLong];
+            
+            int *statCounters = nil;
+            int *referenceCounters = nil;
+            @try {
+                statCounters = (int*) calloc(TLRepositoryServiceStatTypeLast, sizeof(int));
+                referenceCounters = (int*) calloc(TLRepositoryServiceStatTypeLast, sizeof(int));
+                for (int i = 0; i < OBJECT_STAT_SERIALIZE_4_COUNT; i++) {
+                    statCounters[OBJECT_STAT_SERIALIZE_4_ORDER_LIST[i]] = [decoder readInt];
+                }
+                for (int i = 0; i < OBJECT_STAT_SERIALIZE_4_COUNT; i++) {
+                    referenceCounters[OBJECT_STAT_SERIALIZE_4_ORDER_LIST[i]] = [decoder readInt];
+                }
+                
+                return [[TLObjectStatImpl alloc] initWithId:databaseId score:score scale:scale points:points statCounters:statCounters referenceCounters:referenceCounters lastMessageDate:lastMessageDate];
+            } @catch (NSException *lException) {
+                free(statCounters);
+                free(referenceCounters);
+                return nil;
+            }
+
+        } else if (schemaVersion == OBJECT_STAT_SCHEMA_VERSION_3) {
+            double score = [decoder readDouble];
+            double scale = [decoder readDouble];
+            double points = [decoder readDouble];
+            int64_t lastMessageDate = [decoder readLong];
+            
+            int *statCounters = nil;
+            int *referenceCounters = nil;
+            @try {
+                statCounters = (int*) calloc(TLRepositoryServiceStatTypeLast, sizeof(int));
+                referenceCounters = (int*) calloc(TLRepositoryServiceStatTypeLast, sizeof(int));
+                // For this schema 3, use the fixed object stat list.
+                for (int i = 0; i < OBJECT_STAT_SERIALIZE_3_FIXED_COUNT; i++) {
+                    statCounters[OBJECT_STAT_SERIALIZE_3_FIXED_ORDER_LIST[i]] = [decoder readInt];
+                }
+                for (int i = 0; i < OBJECT_STAT_SERIALIZE_3_FIXED_COUNT; i++) {
+                    referenceCounters[OBJECT_STAT_SERIALIZE_3_FIXED_ORDER_LIST[i]] = [decoder readInt];
+                }
+                
+                return [[TLObjectStatImpl alloc] initWithId:databaseId score:score scale:scale points:points statCounters:statCounters referenceCounters:referenceCounters lastMessageDate:lastMessageDate];
+            } @catch (NSException *lException) {
+                free(statCounters);
+                free(referenceCounters);
+                return nil;
+            }
+
+        } else {
+            // Drop and ignore very old stats.
+            return nil;
+        }
+    }
+
+    // Legacy stats using a format that is not compatible with Android! (this is only for version 1, 2 and 3).
+    // Note that version 3 is also using the OBJECT_STAT_SERIALIZE_3_ORDER_LIST which is not correct if we
+    // compare with Android.
     TLDataInputStream *dataInputStream = [[TLDataInputStream alloc] initWithData:data];
-    NSUUID* schemaId = [dataInputStream readUUID];
+    schemaId = [dataInputStream readUUID];
     if (![OBJECT_STAT_SCHEMA_ID isEqual:schemaId]) {
         return nil;
     }
-    int schemaVersion = [dataInputStream readInt];
+    schemaVersion = [dataInputStream readInt];
     if (schemaVersion == OBJECT_STAT_SCHEMA_VERSION_1) {
         double score = [dataInputStream readDouble];
         double scale = [dataInputStream readDouble];
@@ -550,7 +665,7 @@ static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
             return nil;
         }
     }
-    if (schemaVersion != OBJECT_STAT_SCHEMA_VERSION) {
+    if (schemaVersion != OBJECT_STAT_SCHEMA_VERSION_3) {
         return nil;
     }
     double score = [dataInputStream readDouble];
@@ -560,11 +675,11 @@ static NSUUID *OBJECT_STAT_SCHEMA_ID = nil;
     
     int *statCounters = (int*) calloc(TLRepositoryServiceStatTypeLast, sizeof(int));
     int *referenceCounters = (int*) calloc(TLRepositoryServiceStatTypeLast, sizeof(int));
-    for (int i = 0; i < OBJECT_STAT_SERIALIZE_COUNT; i++) {
-        statCounters[OBJECT_STAT_SERIALIZE_ORDER_LIST[i]] = [dataInputStream readInt];
+    for (int i = 0; i < OBJECT_STAT_SERIALIZE_3_COUNT; i++) {
+        statCounters[OBJECT_STAT_SERIALIZE_3_ORDER_LIST[i]] = [dataInputStream readInt];
     }
-    for (int i = 0; i < OBJECT_STAT_SERIALIZE_COUNT; i++) {
-        referenceCounters[OBJECT_STAT_SERIALIZE_ORDER_LIST[i]] = [dataInputStream readInt];
+    for (int i = 0; i < OBJECT_STAT_SERIALIZE_3_COUNT; i++) {
+        referenceCounters[OBJECT_STAT_SERIALIZE_3_ORDER_LIST[i]] = [dataInputStream readInt];
     }
     
     if ([dataInputStream isCompleted]) {

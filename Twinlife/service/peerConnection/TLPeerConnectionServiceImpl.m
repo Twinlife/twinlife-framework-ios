@@ -41,6 +41,8 @@
 #import "TLJobService.h"
 #import "TLSdp.h"
 #import "TLProxyDescriptor.h"
+#import "TLSessionUpdateIQ.h"
+#import "TLTransportInfoIQ.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -48,7 +50,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define PEER_CONNECTION_SERVICE_VERSION @"2.2.4"
+#define PEER_CONNECTION_SERVICE_VERSION @"2.5.0"
 
 #define EVENT_ID_REPORT_QUALITY @"twinlife::peerConnectionService::quality"
 
@@ -58,6 +60,20 @@ static const int MAX_VIDEO_FRAME_RATE = 30;
 static const int MIN_VIDEO_FRAME_RATE = 10;
 
 static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
+
+//
+// Interface: TLSdpPendingRequest ()
+//
+
+@interface TLSdpPendingRequest : NSObject
+
+@property (readonly, nonnull) TLBinaryPacketIQ *iq;
+@property (readonly, nonnull) NSUUID *sessionId;
+@property (readonly, nonnull) TLSessionConsumer consumer;
+
+- (nonnull instancetype)initWithSessionId:(nonnull NSUUID *)sessionId iq:(nonnull TLBinaryPacketIQ *)iq withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block;
+
+@end
 
 //
 // Interface: TLPeerConnectionService ()
@@ -79,6 +95,26 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 @property RTC_OBJC_TYPE(RTCVideoTrack) *videoTrack;
 @property (nullable) RTC_OBJC_TYPE(RTCCameraVideoCapturer) *videoCapturer;
 @property (nullable) RTC_OBJC_TYPE(RTCVideoSource) *videoSource;
+@property (readonly, nonnull) NSMutableDictionary<NSNumber *, TLSdpPendingRequest *> *pendingRequests;
+
+@end
+
+//
+// Interface: TLSdpPendingRequest ()
+//
+
+@implementation TLSdpPendingRequest
+
+- (nonnull instancetype)initWithSessionId:(nonnull NSUUID *)sessionId iq:(nonnull TLBinaryPacketIQ *)iq withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
+    
+    self = [super init];
+    if (self) {
+        _sessionId = sessionId;
+        _iq = iq;
+        _consumer = block;
+    }
+    return self;
+}
 
 @end
 
@@ -167,6 +203,24 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     _priority = priority;
     _operation = operation;
     _timeToLive = timeToLive;
+    return self;
+}
+
+@end
+
+//
+// Implementation: TLPeerConnectionFactory
+//
+
+@implementation TLPeerConnectionFactory
+
+- (nonnull instancetype)initWithFactory:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory configuration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration {
+
+    self = [super init];
+    if (self) {
+        _factory = factory;
+        _configuration = configuration;
+    }
     return self;
 }
 
@@ -316,28 +370,28 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
      * - BAD_ENCRYPTION_FORMAT: exception raised when deserializing the decrypted data.
      * - LIBRARY_ERROR: Internal exception raised.
      */
-
+    
     switch (errorCode) {
         case TLBaseServiceErrorCodeSuccess:
             return TLPeerConnectionServiceTerminateReasonSuccess;
-
+            
         case TLBaseServiceErrorCodeInvalidPublicKey:
         case TLBaseServiceErrorCodeInvalidPrivateKey:
         case TLBaseServiceErrorCodeNoPrivateKey:
             return TLPeerConnectionServiceTerminateReasonNoPrivateKey;
-
+            
         case TLBaseServiceErrorCodeNoPublicKey:
             return TLPeerConnectionServiceTerminateReasonNoPublicKey;
-
+            
         case TLBaseServiceErrorCodeNoSecretKey:
             return TLPeerConnectionServiceTerminateReasonNoSecretKey;
-
+            
         case TLBaseServiceErrorCodeNotEncrypted:
             return TLPeerConnectionServiceTerminateReasonNotEncrypted;
-
+            
         case TLBaseServiceErrorCodeEncryptError:
             return TLPeerConnectionServiceTerminateReasonEncryptError;
-
+            
         case TLBaseServiceErrorCodeBadSignature:
         case TLBaseServiceErrorCodeBadSignatureFormat:
         case TLBaseServiceErrorCodeBadSignatureMissingAttribute:
@@ -345,10 +399,29 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         case TLBaseServiceErrorCodeBadEncryptionFormat:
         case TLBaseServiceErrorCodeDecryptError:
             return TLPeerConnectionServiceTerminateReasonDecryptError;
-
+            
         default:
             return TLPeerConnectionServiceTerminateReasonUnknown;
     }
+}
+
++ (nonnull RTC_OBJC_TYPE(RTCConfiguration) *)createRTCConfigurationWithMedia:(BOOL)withMedia {
+    DDLogVerbose(@"%@ createRTCConfiguration", LOG_TAG);
+    
+    RTC_OBJC_TYPE(RTCConfiguration) *configuration = [[RTC_OBJC_TYPE(RTCConfiguration) alloc] init];
+    configuration.sdpSemantics = RTCSdpSemanticsUnifiedPlan;
+    configuration.disableLinkLocalNetworks = YES;
+    configuration.enableImplicitRollback = YES;
+    configuration.continualGatheringPolicy = RTCContinualGatheringPolicyGatherContinually;
+    
+    // Prune relay ports to drop duplicates and keep the highest priority.
+    configuration.turnPortPrunePolicy = RTCPortPrunePolicyPruneBasedOnPriority;
+    configuration.bundlePolicy = RTCBundlePolicyMaxBundle;
+    configuration.tcpCandidatePolicy = withMedia ? RTCTcpCandidatePolicyDisabled : RTCTcpCandidatePolicyEnabled;
+    
+    // Disable SRTP_AES128_CM_SHA1_32 and enable SRTP_AEAD_AES_256_GCM.
+    configuration.cryptoOptions = [[RTC_OBJC_TYPE(RTCCryptoOptions) alloc] initWithSrtpEnableGcmCryptoSuites:true srtpEnableAes128Sha1_32CryptoCipher:false srtpEnableEncryptedRtpHeaderExtensions:false sframeRequireFrameEncryption:false];
+    return configuration;
 }
 
 - (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife {
@@ -361,7 +434,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         _executorQueue = dispatch_queue_create(executorQueueName, DISPATCH_QUEUE_SERIAL);
         _executorQueueTag = &_executorQueueTag;
         dispatch_queue_set_specific(_executorQueue, _executorQueueTag, _executorQueueTag, NULL);
-
+        
         const char *cleaningQueueName = "peerConnectionCleaningQueue";
         _cleaningQueue = dispatch_queue_create(cleaningQueueName, DISPATCH_QUEUE_SERIAL);
         _peerCallService = twinlife.peerCallService;
@@ -378,18 +451,10 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         _videoFrameHeight = MAX_VIDEO_HEIGHT;
         _videoFrameRate = MAX_VIDEO_FRAME_RATE;
         _usingFrontCamera = YES;
-        
-        RTC_OBJC_TYPE(RTCConfiguration) *configuration = [[RTC_OBJC_TYPE(RTCConfiguration) alloc] init];
-        configuration.sdpSemantics = RTCSdpSemanticsUnifiedPlan;
-        configuration.disableLinkLocalNetworks = YES;
-        configuration.enableImplicitRollback = YES;
-        configuration.continualGatheringPolicy = RTCContinualGatheringPolicyGatherContinually;
-        configuration.bundlePolicy = RTCBundlePolicyMaxBundle;
-        
-        // Disable SRTP_AES128_CM_SHA1_32 and enable SRTP_AEAD_AES_256_GCM.
-        configuration.cryptoOptions = [[RTC_OBJC_TYPE(RTCCryptoOptions) alloc] initWithSrtpEnableGcmCryptoSuites:true srtpEnableAes128Sha1_32CryptoCipher:false srtpEnableEncryptedRtpHeaderExtensions:false sframeRequireFrameEncryption:false];
-        
-        _peerConnectionConfiguration = configuration;
+        _transportMode = TLPeerConnectionServiceIceTransportModeAll;
+        _peerDataConnectionConfiguration = [TLPeerConnectionService createRTCConfigurationWithMedia:NO];
+        _peerMediaConnectionConfiguration = [TLPeerConnectionService createRTCConfigurationWithMedia:YES];
+        _pendingRequests = [[NSMutableDictionary alloc] init];
     }
     return self;
 }
@@ -458,22 +523,41 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 - (void)onUpdateConfigurationWithConfiguration:(TLBaseServiceImplConfiguration *)configuration {
     DDLogVerbose(@"%@ onUpdateConfigurationWithConfiguration: %@", LOG_TAG, configuration);
     
+    self.turnServers = configuration.turnServers;
+    self.peerDataConnectionConfiguration.hostnames = configuration.hostnames;
+    self.peerMediaConnectionConfiguration.hostnames = configuration.hostnames;
+    [self updateConfiguration];
+}
+
+- (void)updateConfiguration {
+    DDLogVerbose(@"%@ updateConfiguration: %lu", LOG_TAG, self.transportMode);
+    
     TLProxyDescriptor *activeProxy = [self.serverStream currentProxyDescriptor];
-    NSMutableArray *iceServers = [[NSMutableArray alloc] initWithCapacity:configuration.turnServers.count + 1];
-    if (activeProxy && activeProxy.stunPort > 0) {
+    NSMutableArray *iceServers = [[NSMutableArray alloc] initWithCapacity:self.turnServers.count + 1];
+    if (activeProxy && activeProxy.stunPort > 0 && self.transportMode == TLPeerConnectionServiceIceTransportModeAll) {
         NSMutableArray *urls = [[NSMutableArray alloc] initWithCapacity:1];
         [urls addObject:[NSString stringWithFormat:@"stun:%@:%d", activeProxy.host, activeProxy.stunPort]];
         [iceServers addObject:[[RTC_OBJC_TYPE(RTCIceServer) alloc] initWithURLStrings:urls username:nil credential:nil tlsCertPolicy:RTCTlsCertPolicyInsecureNoCheck]];
     }
-    for (TLTurnServer *turnServer in configuration.turnServers) {
-        RTCTlsCertPolicy policy = [turnServer.url hasPrefix:@"turns"] ? RTCTlsCertPolicySecure : RTCTlsCertPolicyInsecureNoCheck;
-        
+    for (TLTurnServer *turnServer in self.turnServers) {
+        RTCTlsCertPolicy policy;
+        if ([turnServer.url hasPrefix:@"turns"]) {
+            policy = RTCTlsCertPolicySecure;
+        } else if (self.transportMode == TLPeerConnectionServiceIceTransportModeAll) {
+            policy = RTCTlsCertPolicyInsecureNoCheck;
+        } else {
+            continue;
+        }
         NSMutableArray *urls = [[NSMutableArray alloc] initWithCapacity:1];
         [urls addObject:turnServer.url];
         [iceServers addObject:[[RTC_OBJC_TYPE(RTCIceServer) alloc] initWithURLStrings:urls username:turnServer.username credential:turnServer.password tlsCertPolicy:policy]];
     }
-    self.iceServers = iceServers;
-    self.hostnames = configuration.hostnames;
+    
+    RTCIceTransportPolicy iceTransportPolicy = self.transportMode == TLPeerConnectionServiceIceTransportModeRelay ? RTCIceTransportPolicyRelay : RTCIceTransportPolicyAll;
+    self.peerDataConnectionConfiguration.iceServers = iceServers;
+    self.peerMediaConnectionConfiguration.iceServers = iceServers;
+    self.peerDataConnectionConfiguration.iceTransportPolicy = iceTransportPolicy;
+    self.peerMediaConnectionConfiguration.iceTransportPolicy = iceTransportPolicy;
 }
 
 - (void)onTwinlifeSuspend {
@@ -496,32 +580,10 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
                 [peerConnection onTwinlifeSuspend];
             }
         }
+        [self.pendingRequests removeAllObjects];
     }
     
     DDLogVerbose(@"%@ suspending with %ld P2P active sessions", LOG_TAG, count);
-}
-
-- (void)onTwinlifeOnline {
-    DDLogVerbose(@"%@ onTwinlifeOnline", LOG_TAG);
-    
-    [super onTwinlifeOnline];
-    
-    RTC_OBJC_TYPE(RTCConfiguration) *configuration = [[RTC_OBJC_TYPE(RTCConfiguration) alloc] init];
-    configuration.sdpSemantics = RTCSdpSemanticsUnifiedPlan;
-    configuration.disableLinkLocalNetworks = YES;
-    configuration.enableImplicitRollback = YES;
-    configuration.continualGatheringPolicy = RTCContinualGatheringPolicyGatherContinually;
-    configuration.bundlePolicy = RTCBundlePolicyMaxBundle;
-
-    // Prune relay ports to drop duplicates and keep highest priority.
-    configuration.turnPortPrunePolicy = RTCPortPrunePolicyPruneBasedOnPriority;
-    configuration.iceServers = self.iceServers;
-    configuration.hostnames = self.hostnames;
-    
-    // Disable SRTP_AES128_CM_SHA1_32 and enable SRTP_AEAD_AES_256_GCM.
-    configuration.cryptoOptions = [[RTC_OBJC_TYPE(RTCCryptoOptions) alloc] initWithSrtpEnableGcmCryptoSuites:true srtpEnableAes128Sha1_32CryptoCipher:false srtpEnableEncryptedRtpHeaderExtensions:false sframeRequireFrameEncryption:false];
-    
-    self.peerConnectionConfiguration = configuration;
 }
 
 #pragma mark - PeerConnectionService
@@ -532,7 +594,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     @synchronized (self) {
         count = self.peerConnections.count;
     }
-
+    
     DDLogVerbose(@"%@ sessionCount %ld", LOG_TAG, count);
     return count;
 }
@@ -589,6 +651,15 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     }
 }
 
+- (void)setIceTransportModeWithMode:(TLPeerConnectionServiceIceTransportMode)mode {
+    DDLogVerbose(@"%@ setIceTransportModeWithMode: %lu", LOG_TAG, mode);
+    
+    if (self.transportMode != mode) {
+        self.transportMode = mode;
+        [self updateConfiguration];
+    }
+}
+
 - (void)createIncomingPeerConnectionWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
     DDLogVerbose(@"%@ createIncomingPeerConnectionWithPeerConnectionId: %@ offer: %@ offerToReceive: %@", LOG_TAG, peerConnectionId, offer, offerToReceive);
     
@@ -622,7 +693,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(TLBaseServiceErrorCodeServiceUnavailable, nil);
         return;
     }
-
+    
     TLPeerConnection *peerConnection;
     @synchronized (self) {
         peerConnection = self.peerConnections[peerConnectionId];
@@ -631,7 +702,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(TLBaseServiceErrorCodeItemNotFound, nil);
         return;
     }
-
+    
     TLBaseServiceErrorCode errorCode;
     TLTwincodeOutbound *twincodeOutbound = [subject twincodeOutbound];
     if (!twincodeOutbound || !peerTwincodeOutbound) {
@@ -652,7 +723,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
             errorCode = [self createSecuredIncomingPeerConnectionWithPeerConnection:peerConnection sessionKeyPair:sessionKeyPair offer:offer offerToReceive:offerToReceive dataChannelDelegate:dataChannelDelegate delegate:delegate withBlock:block];
         }
     }
-
+    
     // If we failed to handle the incoming P2P connection, terminate the P2P with a specific terminate reason to inform the peer.
     if (errorCode != TLBaseServiceErrorCodeQueued) {
         [peerConnection terminatePeerConnectionWithTerminateReason:[TLPeerConnectionService toTerminateReason:errorCode] notifyPeer:YES];
@@ -662,7 +733,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 
 - (TLBaseServiceErrorCode)createSecuredIncomingPeerConnectionWithPeerConnection:(nonnull TLPeerConnection *)peerConnection sessionKeyPair:(nullable id<TLSessionKeyPair>)sessionKeyPair offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
     DDLogVerbose(@"%@ createSecuredIncomingPeerConnectionWithPeerConnection: %@ offer: %@ offerToReceive: %@", LOG_TAG, peerConnection, offer, offerToReceive);
-
+    
     peerConnection.offer = offer;
     peerConnection.offerToReceive = offerToReceive;
     RTC_OBJC_TYPE(RTCSessionDescription) *sessionDescription = nil;
@@ -694,8 +765,8 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     } else if ([peerConnection sdpEncryptionStatus] != TLPeerConnectionServiceSdpEncryptionStatusNone) {
         return TLBaseServiceErrorCodeNoPrivateKey;
     }
-
-    [peerConnection createIncomingPeerConnectionWithConfiguration:self.peerConnectionConfiguration sessionDescription:sessionDescription dataChannelDelegate:dataChannelDelegate delegate:delegate withBlock:block];
+    
+    [peerConnection createIncomingPeerConnectionWithSessionDescription:sessionDescription dataChannelDelegate:dataChannelDelegate delegate:delegate withBlock:block];
     return TLBaseServiceErrorCodeQueued;
 }
 
@@ -706,7 +777,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(TLBaseServiceErrorCodeServiceUnavailable, nil);
         return;
     }
-
+    
     NSUUID *sessionId = [NSUUID UUID];
     [self createSecuredOutgoingPeerConnectionWithSessionId:sessionId sessionKeyPair:nil peerId:peerId offer:offer offerToReceive:offerToReceive notificationContent:notificationContent dataChannelDelegate:dataChannelDelegate delegate:delegate withBlock:block];
 }
@@ -718,30 +789,49 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(TLBaseServiceErrorCodeServiceUnavailable, nil);
         return;
     }
-
+    
     TLTwincodeOutbound *twincodeOutbound = [subject twincodeOutbound];
     if (!twincodeOutbound || !peerTwincodeOutbound) {
         block(TLBaseServiceErrorCodeBadRequest, nil);
         return;
     }
-
+    
     NSString *peerId = [[self.twinlife getTwincodeOutboundService] getPeerId:peerTwincodeOutbound.uuid twincodeOutboundId:twincodeOutbound.uuid];
     NSUUID *sessionId = [NSUUID UUID];
     id<TLSessionKeyPair> sessionKeyPair;
     TLBaseServiceErrorCode errorCode = [self.cryptoService createKeyPairWithSessionId:sessionId twincodeOutbound:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound keyPair:&sessionKeyPair strict:YES];
     if ([twincodeOutbound isEncrypted] && [peerTwincodeOutbound isEncrypted] && errorCode != TLBaseServiceErrorCodeSuccess) {
         [self.twinlife assertionWithAssertPoint:[TLPeerConnectionAssertPoint ENCRYPT_ERROR], [TLAssertValue initWithSubject:subject], [TLAssertValue initWithTwincodeOutbound:peerTwincodeOutbound], [TLAssertValue initWithErrorCode:errorCode], nil];
-
+        
         block(errorCode, nil);
         return;
     }
-
+    
     [self createSecuredOutgoingPeerConnectionWithSessionId:sessionId sessionKeyPair:sessionKeyPair peerId:peerId offer:offer offerToReceive:offerToReceive notificationContent:notificationContent dataChannelDelegate:dataChannelDelegate delegate:delegate withBlock:block];
+}
+
+- (void)refreshSecretsWithTwincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound {
+    DDLogVerbose(@"%@ refreshSecretsWithTwincodeOutbound: %@ peerTwincodeOutbound: %@", LOG_TAG, twincodeOutbound, peerTwincodeOutbound);
+
+    @synchronized (self) {
+        for (NSUUID *peerConnectionId in self.peerConnections) {
+            TLPeerConnection *peerConnection = self.peerConnections[peerConnectionId];
+            id<TLSessionKeyPair> sessionKeyPair = peerConnection.keyPair;
+            if ([sessionKeyPair isAssociationWithTwincode:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound]) {
+                TLBaseServiceErrorCode errorCode = [self.cryptoService createKeyPairWithSessionId:peerConnectionId twincodeOutbound:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound keyPair:&sessionKeyPair strict:YES];
+                if (errorCode == TLBaseServiceErrorCodeSuccess) {
+                    [peerConnection configureSessionKey:sessionKeyPair];
+                }
+                // Note: we must continue checking other P2P session because we may have one P2P session for the ConversationService
+                // (that one that triggers the secret refresh), and another P2P session for a pending (or active) audio/video call.
+            }
+        }
+    }
 }
 
 - (void)createSecuredOutgoingPeerConnectionWithSessionId:(nonnull NSUUID *)sessionId sessionKeyPair:(nullable id<TLSessionKeyPair>)sessionKeyPair peerId:(nonnull NSString *)peerId offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive notificationContent:(nonnull TLNotificationContent*)notificationContent dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
     DDLogVerbose(@"%@ createSecuredOutgoingPeerConnectionWithSessionId: %@ offer: %@ offerToReceive: %@", LOG_TAG, peerId, offer, offerToReceive);
-
+    
     TLPeerConnection *peerConnection;
     @synchronized (self) {
         peerConnection = [[TLPeerConnection alloc] initWithPeerConnectionService:self sessionId:sessionId sessionKeyPair:sessionKeyPair peerId:peerId offer:offer offerToReceive:offerToReceive notificationContent:notificationContent configuration:self.configuration delegate:delegate];
@@ -751,7 +841,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         }
     }
     
-    [peerConnection createOutgoingPeerConnectionWithConfiguration:self.peerConnectionConfiguration dataChannelDelegate:dataChannelDelegate withBlock:block];
+    [peerConnection createOutgoingPeerConnectionWithDataChannelDelegate:dataChannelDelegate withBlock:block];
 }
 
 - (void)initSourcesWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId audioOn:(BOOL)audioOn videoOn:(BOOL)videoOn {
@@ -908,7 +998,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(TLBaseServiceErrorCodeServiceUnavailable, NO);
         return;
     }
-
+    
     dispatch_async(self.executorQueue, ^{
         [self switchCameraInternalWithFront:front withBlock:block];
     });
@@ -995,7 +1085,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 /// @return SUCCESS, NO_PERMISSION, ITEM_NOT_FOUND if the session id is not known.
 - (TLBaseServiceErrorCode)onSessionInitiateWithSessionId:(nonnull NSUUID *)sessionId from:(nonnull NSString *)from to:(nonnull NSString *)to sdp:(nonnull TLSdp *)sdp offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive maxReceivedFrameSize:(int)maxReceivedFrameSize maxReceivedFrameRate:(int)maxReceivedFrameRate {
     DDLogVerbose(@"%@ onSessionInitiateWithSessionId: %@ sdp: %@ offer: %@ offerToReceive: %@ maxReceivedFrameSize: %d maxReceivedFrameRate: %d", LOG_TAG, sessionId, sdp, offer, offerToReceive, maxReceivedFrameSize, maxReceivedFrameRate);
-
+    
     TLPeerConnectionServiceConfiguration* peerConnectionServiceConfiguration = (TLPeerConnectionServiceConfiguration *) self.serviceConfiguration;
     if (!peerConnectionServiceConfiguration.acceptIncomingCalls) {
         return TLBaseServiceErrorCodeNoPermission;
@@ -1046,7 +1136,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 /// @return SUCCESS, NO_PERMISSION, ITEM_NOT_FOUND if the session id is not known.
 - (TLBaseServiceErrorCode)onSessionAcceptWithSessionId:(nonnull NSUUID *)sessionId sdp:(nonnull TLSdp *)sdp offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive maxReceivedFrameSize:(int)maxReceivedFrameSize maxReceivedFrameRate:(int)maxReceivedFrameRate {
     DDLogVerbose(@"%@ onSessionAcceptWithSessionId: %@ sdp: %@ offer: %@ offerToReceive: %@ maxReceivedFrameSize: %d maxReceivedFrameRate: %d", LOG_TAG, sessionId, sdp, offer, offerToReceive, maxReceivedFrameSize, maxReceivedFrameRate);
-
+    
     TLPeerConnection *peerConnection;
     @synchronized (self) {
         peerConnection = self.peerConnections[sessionId];
@@ -1055,13 +1145,13 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         }
         peerConnection.peerOffer = offer;
     }
-
+    
     TLBaseServiceErrorCode errorCode;
     sdp = [self decryptWithPeerConnection:peerConnection sdp:sdp errorCode:&errorCode];
     if (!sdp) {
         return errorCode;
     }
-
+    
     NSString *sdpContent = [sdp sdp];
     if (!sdpContent) {
         return TLBaseServiceErrorCodeBadRequest;
@@ -1080,10 +1170,11 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 /// @param sessionId the P2P session id.
 /// @param updateType whether this is an offer or an answer.
 /// @param sdp the sdp content (clear text | compressed | encrypted).
+/// @param sequenceId a sequence ID for the session-update SDP.
 /// @return SUCCESS or ITEM_NOT_FOUND if the session id is not known.
-- (TLBaseServiceErrorCode)onSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId updateType:(RTCSdpType)updateType sdp:(nonnull TLSdp *)sdp {
-    DDLogVerbose(@"%@ onSessionUpdateWithSessionId: %@ type: %d sdp: %@", LOG_TAG, sessionId, (int)updateType, sdp);
-
+- (TLBaseServiceErrorCode)onSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId updateType:(RTCSdpType)updateType sdp:(nonnull TLSdp *)sdp sequenceId:(int64_t)sequenceId {
+    DDLogVerbose(@"%@ onSessionUpdateWithSessionId: %@ type: %d sdp: %@ sequenceId: %lld", LOG_TAG, sessionId, (int)updateType, sdp, sequenceId);
+    
     TLPeerConnection *peerConnection;
     @synchronized (self) {
         peerConnection = self.peerConnections[sessionId];
@@ -1095,13 +1186,18 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         }
         return TLBaseServiceErrorCodeSuccess;
     }
-
+    
+    // Ignore this SDP if it was already received (we can receive it from the signaling server or from the data channel).
+    if ([peerConnection wasReceivedWithSequenceId:sequenceId]) {
+        return TLBaseServiceErrorCodeSuccess;
+    }
+    
     TLBaseServiceErrorCode errorCode;
     sdp = [self decryptWithPeerConnection:peerConnection sdp:sdp errorCode:&errorCode];
     if (!sdp) {
         return errorCode;
     }
-
+    
     NSString *sdpContent = [sdp sdp];
     if (!sdpContent) {
         return TLBaseServiceErrorCodeBadRequest;
@@ -1222,42 +1318,42 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     return dispatch_get_specific(self.executorQueueTag) != nil;
 }
 
-- (nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)getPeerConnectionFactoryWithMedia:(BOOL)withMedia {
+- (nonnull TLPeerConnectionFactory *)getPeerConnectionFactoryWithMedia:(BOOL)withMedia {
     DDLogVerbose(@"%@: getPeerConnectionFactoryWithMedia: %d", LOG_TAG, withMedia);
-
+    
     if (withMedia && [self isAudioVideoEnabled]) {
         @synchronized (self) {
             if (self.mediaConnectionFactory) {
                 [self.mediaConnectionFactory incrementUseCounter];
-                return self.mediaConnectionFactory;
+                return [[TLPeerConnectionFactory alloc] initWithFactory:self.mediaConnectionFactory configuration:self.peerMediaConnectionConfiguration];
             }
         }
         id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)> videoEncoderFactory = [[RTC_OBJC_TYPE(RTCDefaultVideoEncoderFactory) alloc] init];
         id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> videoDecoderFactory = [[RTC_OBJC_TYPE(RTCDefaultVideoDecoderFactory) alloc] init];
-        RTC_OBJC_TYPE(RTCPeerConnectionFactory) *newFactory = [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] initWithEncoderFactory:videoEncoderFactory decoderFactory:videoDecoderFactory hostnames:self.peerConnectionConfiguration.hostnames];
+        RTC_OBJC_TYPE(RTCPeerConnectionFactory) *newFactory = [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] initWithEncoderFactory:videoEncoderFactory decoderFactory:videoDecoderFactory hostnames:self.peerMediaConnectionConfiguration.hostnames];
         @synchronized (self) {
             if (!self.mediaConnectionFactory) {
                 self.mediaConnectionFactory = newFactory;
                 atomic_fetch_add(&_mediaFactoryCreateCount, 1);
             }
             [self.mediaConnectionFactory incrementUseCounter];
-            return self.mediaConnectionFactory;
+            return [[TLPeerConnectionFactory alloc] initWithFactory:self.mediaConnectionFactory configuration:self.peerMediaConnectionConfiguration];
         }
     } else {
         @synchronized (self) {
             if (self.dataConnectionFactory) {
                 [self.dataConnectionFactory incrementUseCounter];
-                return self.dataConnectionFactory;
+                return [[TLPeerConnectionFactory alloc] initWithFactory:self.dataConnectionFactory configuration:self.peerDataConnectionConfiguration];
             }
         }
-        RTC_OBJC_TYPE(RTCPeerConnectionFactory) *newFactory = [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] initWithHostnames:self.peerConnectionConfiguration.hostnames];
+        RTC_OBJC_TYPE(RTCPeerConnectionFactory) *newFactory = [[RTC_OBJC_TYPE(RTCPeerConnectionFactory) alloc] initWithHostnames:self.peerDataConnectionConfiguration.hostnames];
         @synchronized (self) {
             if (!self.dataConnectionFactory) {
                 self.dataConnectionFactory = newFactory;
                 atomic_fetch_add(&_dataFactoryCreateCount, 1);
             }
             [self.dataConnectionFactory incrementUseCounter];
-            return self.dataConnectionFactory;
+            return [[TLPeerConnectionFactory alloc] initWithFactory:self.dataConnectionFactory configuration:self.peerDataConnectionConfiguration];
         }
     }
 }
@@ -1292,7 +1388,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 
 - (nullable RTC_OBJC_TYPE(RTCVideoTrack) *)createVideoTrackWithPeerConnectionFactory:(nonnull RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)peerConnectionFactory {
     DDLogVerbose(@"%@: createVideoTrackWithPeerConnectionFactory", LOG_TAG);
-
+    
     RTC_OBJC_TYPE(RTCVideoTrack) *videoTrack;
     @synchronized (self) {
         if (self.videoCapturer && self.videoTrack) {
@@ -1477,14 +1573,14 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 /// @param block the completion handler executed when the server sends us its response.
 - (void)sessionInitiateWithPeerConnection:(nonnull TLPeerConnection *)peerConnection sdp:(nonnull TLSdp *)sdp offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive notificationContent:(nonnull TLNotificationContent *)notificationContent withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
     DDLogVerbose(@"%@ sessionInitiateWithPeerConnection: %@ sdp: %@", LOG_TAG, peerConnection, sdp);
-
+    
     TLBaseServiceErrorCode errorCode;
     sdp = [self encryptWithPeerConnection:peerConnection sdp:sdp errorCode:&errorCode];
     if (!sdp) {
         block(errorCode, nil);
         return;
     }
-
+    
     [self.peerCallService sessionInitiateWithSessionId:peerConnection.uuid to:peerConnection.peerId sdp:sdp offer:offer offerToReceive:offerToReceive maxReceivedFrameSize:self.configuration.maxReceivedFrameSize maxReceivedFrameRate:self.configuration.maxReceivedFrameRate notificationContent:notificationContent withBlock:block];
 }
 
@@ -1499,7 +1595,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 /// @param block the completion handler executed when the server sends us its response.
 - (void)sessionAcceptWithPeerConnection:(nonnull TLPeerConnection *)peerConnection sdp:(nonnull TLSdp *)sdp offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive maxReceivedFrameSize:(int)maxReceivedFrameSize maxReceivedFrameRate:(int)maxReceivedFrameRate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
     DDLogVerbose(@"%@ sessionInitiateWithPeerConnection: %@ sdp: %@", LOG_TAG, peerConnection, sdp);
-
+    
     TLBaseServiceErrorCode errorCode;
     sdp = [self encryptWithPeerConnection:peerConnection sdp:sdp errorCode:&errorCode];
     if (!sdp) {
@@ -1508,7 +1604,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(errorCode, nil);
         return;
     }
-
+    
     [self.peerCallService sessionAcceptWithSessionId:peerConnection.uuid to:peerConnection.peerId sdp:sdp offer:offer offerToReceive:offerToReceive maxReceivedFrameSize:self.configuration.maxReceivedFrameSize maxReceivedFrameRate:self.configuration.maxReceivedFrameRate withBlock:block];
 }
 
@@ -1520,7 +1616,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 /// @param block the completion handler executed when the server sends us its response.
 - (void)sessionUpdateWithPeerConnection:(nonnull TLPeerConnection *)peerConnection type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
     DDLogVerbose(@"%@ sessionUpdateWithPeerConnection: %@ sdp: %@", LOG_TAG, peerConnection, sdp);
-
+    
     TLBaseServiceErrorCode errorCode;
     sdp = [self encryptWithPeerConnection:peerConnection sdp:sdp errorCode:&errorCode];
     if (!sdp) {
@@ -1529,8 +1625,17 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(errorCode, nil);
         return;
     }
-
-    [self.peerCallService sessionUpdateWithSessionId:peerConnection.uuid to:peerConnection.peerId type:type sdp:sdp withBlock:block];
+    
+    // For session-update, we need a sequence ID to handle duplicates.
+    int sequenceId = [peerConnection allocateSequenceId];
+    if (![peerConnection isSignalingSupported]) {
+        [self.peerCallService sessionUpdateWithSessionId:peerConnection.uuid to:peerConnection.peerId type:type sdp:sdp sequenceId:sequenceId withBlock:block];
+        return;
+    }
+    
+    // Send the session-update through the WebRTC data-channel when it is opened and supported by the peer.
+    TLSessionUpdateIQ *updateIQ = [self.peerCallService createSessionUpdateWithSessionId:peerConnection.uuid to:peerConnection.peerId type:type sdp:sdp sequenceId:sequenceId];
+    [self sendSdpDataChannelWithPeerConnection:peerConnection iq:updateIQ statType:TLPeerConnectionServiceStatTypeIqSetSdpSessionUpdate withBlock:block];
 }
 
 /// Send the transport info for the P2P session to the peer.
@@ -1560,8 +1665,62 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         block(errorCode, reqId);
         return;
     }
+    
+    if (![peerConnection isSignalingSupported]) {
+        [self.peerCallService transportInfoWithRequestId:requestId sessionId:peerConnection.uuid to:peerConnection.peerId sdp:sdp withBlock:block];
+        return;
+    }
 
-    [self.peerCallService transportInfoWithRequestId:requestId sessionId:peerConnection.uuid to:peerConnection.peerId sdp:sdp withBlock:block];
+    // Send the transport-info through the WebRTC data-channel when it is opened and supported by the peer.
+    TLTransportInfoIQ *transportInfoIQ = [self.peerCallService createTransportInfoWithRequestId:requestId sessionId:peerConnection.uuid to:peerConnection.peerId sdp:sdp];
+    [self sendSdpDataChannelWithPeerConnection:peerConnection iq:transportInfoIQ statType:TLPeerConnectionServiceStatTypeIqSetSdpTransportInfo withBlock:block];
+}
+
+- (void)sendSdpDataChannelWithPeerConnection:(nonnull TLPeerConnection *)peerConnection iq:(nonnull TLBinaryPacketIQ *)iq statType:(TLPeerConnectionServiceStatType)statType withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
+    DDLogVerbose(@"%@ sendSdpDataChannelWithPeerConnection: %@ iq: %@", LOG_TAG, peerConnection, iq);
+
+    TLSdpPendingRequest *pendingRequest = [[TLSdpPendingRequest alloc] initWithSessionId:peerConnection.uuid iq:iq withBlock:block];
+    @synchronized (self) {
+        [self.pendingRequests setObject:pendingRequest forKey:[NSNumber numberWithLongLong:iq.requestId]];
+    }
+    [peerConnection sendPacketWithIQ:iq statType:statType];
+
+    __weak TLSdpPendingRequest *weakRequest = pendingRequest;
+    int64_t delay = 300 * NSEC_PER_MSEC;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delay), self.executorQueue, ^{
+        __strong TLSdpPendingRequest *strongRequest = weakRequest;
+        if (strongRequest) {
+            [self onResendTimeoutWithRequest:strongRequest];
+        }
+    });
+}
+
+- (void)onResendTimeoutWithRequest:(nonnull TLSdpPendingRequest *)pendingRequest {
+    DDLogVerbose(@"%@ onResendTimeoutWithRequest: %@ requestId: %lld", LOG_TAG, pendingRequest.sessionId, pendingRequest.iq.requestId);
+
+    TLPeerConnection *peerConnection;
+    @synchronized (self) {
+        [self.pendingRequests removeObjectForKey:[NSNumber numberWithLongLong:pendingRequest.iq.requestId]];
+        peerConnection = self.peerConnections[pendingRequest.sessionId];
+    }
+
+    if (peerConnection) {
+        [self.peerCallService sendPacketWithSessionId:pendingRequest.sessionId iq:pendingRequest.iq withBlock:pendingRequest.consumer];
+    }
+}
+
+- (void)ackPacketWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId requestId:(int64_t)requestId {
+    DDLogVerbose(@"%@ ackPacketWithPeerConnectionId: %@ requestId: %lld", LOG_TAG, peerConnectionId, requestId);
+
+    TLPeerConnection *peerConnection;
+    NSNumber *reqId = [NSNumber numberWithLongLong:requestId];
+    @synchronized (self) {
+        [self.pendingRequests removeObjectForKey:reqId];
+        peerConnection = self.peerConnections[peerConnectionId];
+    }
+    if (peerConnection) {
+        [peerConnection ackTransportWithRequestId:requestId];
+    }
 }
 
 - (void)terminateWithPeerConnection:(nonnull TLPeerConnection *)peerConnection errorCode:(TLBaseServiceErrorCode)errorCode {

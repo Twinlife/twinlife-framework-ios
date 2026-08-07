@@ -64,8 +64,8 @@ static const int64_t RESTART_ICE_DELAY = 2500; // ms delay to wait before restar
 static const int64_t RESTART_DATA_ICE_DELAY = 5000; // ms delay to wait before restarting ICE after a disconnect.
 
 static const int STATS_REPORT_VERSION = 2;
-static const int CONNECT_REPORT_VERSION = 2;
-static const int IQ_REPORT_VERSION = 6;
+static const int CONNECT_REPORT_VERSION = 3;
+static const int IQ_REPORT_VERSION = 7;
 static const int AUDIO_REPORT_VERSION = 2;
 static const int VIDEO_REPORT_VERSION = 2;
 
@@ -87,6 +87,10 @@ static const TLPeerConnectionServiceStatType SET_STAT_LIST[] = {
     TLPeerConnectionServiceStatTypeIqSetSynchronize,
     TLPeerConnectionServiceStatTypeIqSetSignatureInfo,
     TLPeerConnectionServiceStatTypeIqSetPushPoll,
+    TLPeerConnectionServiceStatTypeIqSetPushContactShare,
+    TLPeerConnectionServiceStatTypeIqSetAnswerContactShare,
+    TLPeerConnectionServiceStatTypeIqSetSdpSessionUpdate,
+    TLPeerConnectionServiceStatTypeIqSetSdpTransportInfo,
     TLPeerConnectionServiceStatTypeIqError
 };
 static const int SET_STAT_LIST_COUNT = sizeof(SET_STAT_LIST) / sizeof(SET_STAT_LIST[0]);
@@ -108,7 +112,11 @@ static const TLPeerConnectionServiceStatType RESULT_STAT_LIST[] = {
     TLPeerConnectionServiceStatTypeIqResultPushTwincode,
     TLPeerConnectionServiceStatTypeIqResultSynchronize,
     TLPeerConnectionServiceStatTypeIqResultSignatureInfo,
-    TLPeerConnectionServiceStatTypeIqResultPushPoll
+    TLPeerConnectionServiceStatTypeIqResultPushPoll,
+    TLPeerConnectionServiceStatTypeIqResultPushContactShare,
+    TLPeerConnectionServiceStatTypeIqResultAnswerContactShare,
+    TLPeerConnectionServiceStatTypeIqResultSdpSessionUpdate,
+    TLPeerConnectionServiceStatTypeIqResultSdpTransportInfo
 };
 static const int RESULT_STAT_LIST_COUNT = sizeof(RESULT_STAT_LIST) / sizeof(RESULT_STAT_LIST[0]);
 
@@ -243,8 +251,6 @@ typedef enum {
 
 #define DATA_CHANNEL_LABEL @"twinlife:data:conversation"
 
-static NSArray<RTC_OBJC_TYPE(RTCHostname) *> *sHostnames = nil;
-
 static int MAX_FRAME_SIZE = 128 * 1024;
 
 /*
@@ -371,7 +377,10 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property int peerMinorVersion;
 @property (nullable) dispatch_source_t flushCandidatesTimer;
 @property atomic_bool flushCandidatesActive;
+@property (nullable) dispatch_source_t failedIceTimer;
 @property (nullable) NSMutableArray<TLSdp *> *pendingSdp;
+@property int64_t lastSequenceId;
+@property atomic_int sequenceId;
 
 @property (readonly, nonnull) TLPeerConnectionRTCPeerConnectionDelegate *peerConnectionRTCPeerConnectionDelegate;
 @property (readonly, nonnull) TLPeerConnectionRTCSessionDescriptionDelegate *peerConnectionRTCSessionDescriptionDelegate;
@@ -592,6 +601,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     _peerMinorVersion = 0;
     _statCounters = (int*) calloc(TLPeerConnectionServiceStatTypeIqLast, sizeof(int));
     _pendingCandidates = [[TLTransportCandidateList alloc] init];
+    _sequenceId = 0;
+    _lastSequenceId = 0;
 
     // Setup timer to flush the ICE candidates.
     _flushCandidatesActive = NO;
@@ -654,6 +665,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     _peerMinorVersion = 0;
     _statCounters = (int*) calloc(TLPeerConnectionServiceStatTypeIqLast, sizeof(int));
     _pendingCandidates = [[TLTransportCandidateList alloc] init];
+    _sequenceId = 0;
+    _lastSequenceId = 0;
 
     // Setup timer to flush the ICE candidates.
     _flushCandidatesActive = NO;
@@ -698,8 +711,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     return self.peerMajorVersion > 1 || (self.peerMajorVersion == 1 && self.peerMinorVersion > 2);
 }
 
-- (void)createIncomingPeerConnectionWithConfiguration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration sessionDescription:(nullable RTC_OBJC_TYPE(RTCSessionDescription) *)sessionDescription dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
-    DDLogVerbose(@"%@ createIncomingPeerConnectionWithConfiguration: %@ sessionDescription: %@", LOG_TAG, configuration, sessionDescription);
+- (void)createIncomingPeerConnectionWithSessionDescription:(nullable RTC_OBJC_TYPE(RTCSessionDescription) *)sessionDescription dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
+    DDLogVerbose(@"%@ createIncomingPeerConnectionWithSessionDescription: %@", LOG_TAG, sessionDescription);
     DDLogInfo(@"%@ create-incoming for %@", LOG_TAG, self.uuid);
 
     self.delegate = delegate;
@@ -707,7 +720,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         if (sessionDescription) {
             self.remoteSessionDescription = sessionDescription;
         }
-        if ([self createPeerConnectionInternalWithConfiguration:configuration dataChannelDelegate:dataChannelDelegate]) {
+        if ([self createPeerConnectionInternalWithDataChannelDelegate:dataChannelDelegate]) {
             block(TLBaseServiceErrorCodeSuccess, self.uuid);
         } else {
             block(TLBaseServiceErrorCodeWebrtcError, nil);
@@ -715,12 +728,12 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     });
 }
 
-- (void)createOutgoingPeerConnectionWithConfiguration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
-    DDLogVerbose(@"%@ createOutgoingPeerConnectionWithConfiguration: %@", LOG_TAG, configuration);
+- (void)createOutgoingPeerConnectionWithDataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
+    DDLogVerbose(@"%@ createOutgoingPeerConnectionWithDataChannelDelegate: %@", LOG_TAG, dataChannelDelegate);
     DDLogInfo(@"%@ create-outgoing for %@", LOG_TAG, self.uuid);
 
     dispatch_async(self.executorQueue, ^{
-        if ([self createPeerConnectionInternalWithConfiguration:configuration dataChannelDelegate:dataChannelDelegate]) {
+        if ([self createPeerConnectionInternalWithDataChannelDelegate:dataChannelDelegate]) {
             block(TLBaseServiceErrorCodeSuccess, self.uuid);
         } else {
             block(TLBaseServiceErrorCodeWebrtcError, nil);
@@ -751,6 +764,30 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             return self.pendingSdp ? TLPeerConnectionServiceSdpEncryptionStatusEncrypted : TLPeerConnectionServiceSdpEncryptionStatusNone;
         }
     }
+}
+
+- (BOOL)isSignalingSupported {
+    
+    return self.state == RTCIceConnectionStateConnected && self.dataChannelState == RTCDataChannelStateOpen
+                    && self.peerOffer && self.peerOffer.version
+                    && (self.peerOffer.version.major >= 3 || (self.peerOffer.version.major == 2 && self.peerOffer.version.minor >= 3));
+}
+
+- (BOOL)wasReceivedWithSequenceId:(int64_t)sequenceId {
+    DDLogVerbose(@"%@ wasReceivedWithSequenceId: %lld", LOG_TAG, sequenceId);
+
+    @synchronized (self) {
+        if (self.lastSequenceId >= sequenceId) {
+            return YES;
+        }
+        self.lastSequenceId = sequenceId;
+        return NO;
+    }
+}
+
+- (int)allocateSequenceId {
+    
+    return atomic_fetch_add(&_sequenceId, 1);
 }
 
 - (BOOL)queueWithSdp:(nonnull TLSdp *)sdp {
@@ -923,8 +960,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
 #pragma mark - Private methods
 
-- (BOOL)createPeerConnectionInternalWithConfiguration:(nonnull RTC_OBJC_TYPE(RTCConfiguration) *)configuration dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate {
-    DDLogVerbose(@"%@ createPeerConnectionInternalWithConfiguration: %@", LOG_TAG, configuration);
+- (BOOL)createPeerConnectionInternalWithDataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate {
+    DDLogVerbose(@"%@ createPeerConnectionInternalWithDataChannelDelegate: %@", LOG_TAG, dataChannelDelegate);
     
     NSAssert([self.peerConnectionService isExecutorQueue], @"must be executed from the P2P executor Queue");
 
@@ -936,16 +973,16 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     // Use a data only peer connection factory if this is a data-channel only connection.
     // We avoid the creation and initialization of audio threads, audio devices, codecs and WebRTC media engine.
     // However, if the media aware peer connection factory is available, we are going to use it.
-    RTC_OBJC_TYPE(RTCPeerConnectionFactory) *peerConnectionFactory;
+    TLPeerConnectionFactory *peerConnectionFactory;
     self.withMedia = (self.offer.audio || self.offer.video || self.offer.videoBell);
     peerConnectionFactory = [self.peerConnectionService getPeerConnectionFactoryWithMedia:self.withMedia];
-    self.peerConnectionFactory = peerConnectionFactory;
+    self.peerConnectionFactory = peerConnectionFactory.factory;
 
     NSDictionary *optionalConstraints = @{
         @"DtlsSrtpKeyAgreement" : @"YES"
     };
     RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil optionalConstraints:optionalConstraints];
-    self.peerConnection = [peerConnectionFactory peerConnectionWithConfiguration:configuration constraints:mediaConstraints delegate:self.peerConnectionRTCPeerConnectionDelegate];
+    self.peerConnection = [self.peerConnectionFactory peerConnectionWithConfiguration:peerConnectionFactory.configuration constraints:mediaConstraints delegate:self.peerConnectionRTCPeerConnectionDelegate];
     if (!self.peerConnection) {
         [self.twinlife assertionWithAssertPoint:[TLPeerConnectionAssertPoint CREATE_PEER_CONNECTION], [TLAssertValue initWithPeerConnectionId:self.uuid], nil];
         return NO;
@@ -1155,8 +1192,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     // Handle renegotiation only when:
     // - we have sent the session-initiate,
     // - the WebRTC observer peerConnectionShouldNegotiate() was called.
+    // - the signaling state is stable.
     int updatedCounter = atomic_fetch_sub(&_renegotiationNeeded, counter) - counter;
-    if (updatedCounter > 0) {
+    if (updatedCounter > 0 && [self.peerConnection signalingState] == RTCSignalingStateStable) {
         // We can handle the renegotiation only if there is nothing in progress.
         // Check and update the pending counter as it will be used to decrement
         // the renegotationNeeded when we have sent our session-update.
@@ -1234,7 +1272,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     // so it is safe to chain it on our Operations Chain now.
     RTCSignalingState state = [self.peerConnection signalingState];
     BOOL isOffer = sessionDescription.type == RTCSdpTypeOffer;
-    BOOL readyForOffer = atomic_load(&_renegotationPending) == 0 && (state == RTCSignalingStateStable || self.isSettingRemoteAnswerPending);
+    BOOL readyForOffer = atomic_load(&_renegotationPending) == 0 && (state == RTCSignalingStateStable || state == RTCSignalingStateHaveLocalOffer || self.isSettingRemoteAnswerPending);
     BOOL offerCollision = isOffer && !readyForOffer;
 
     self.ignoreOffer = !self.initiator && offerCollision;
@@ -1273,9 +1311,15 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
 - (void)onSetRemoteSessionDescriptionInternalWithError:(nullable NSError *)error {
     DDLogVerbose(@"%@ onSetRemoteSessionDescriptionInternalWithError: %@", LOG_TAG, error);
+
+    if (atomic_load(&_terminated)) {
+        return;
+    }
     
     self.isSettingRemoteAnswerPending = NO;
     if (error) {
+        [self.twinlife assertionWithAssertPoint:[TLPeerConnectionAssertPoint SET_REMOTE_FAILURE], [TLAssertValue initWithPeerConnectionId:self.uuid], [TLAssertValue initWithNSError:error], [TLAssertValue initWithNumber:(int)[self.peerConnection signalingState]], nil];
+
         DDLogError(@"Failed to create Session Description with error: %@", error.description);
         return;
     }
@@ -1306,6 +1350,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             return;
         }
     }
+
+    // We have some new ICE to check and we can clear the failed ICE timer if it is set.
+    [self invalidateFailedIceTimer];
 
     NSUUID *sessionId = self.uuid;
     NSMutableArray<RTC_OBJC_TYPE(RTCIceCandidate) *> *removeList = nil;
@@ -1444,6 +1491,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     }
     
     if (error) {
+        [self.twinlife assertionWithAssertPoint:[TLPeerConnectionAssertPoint SET_LOCAL_FAILURE], [TLAssertValue initWithPeerConnectionId:self.uuid], [TLAssertValue initWithNSError:error], [TLAssertValue initWithNumber:(int)[self.peerConnection signalingState]], nil];
+
         DDLogError(@"Failed to create Session Description with error: %@", error.description);
         return;
     }
@@ -1571,6 +1620,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     }
 
     if (error) {
+        [self.twinlife assertionWithAssertPoint:[TLPeerConnectionAssertPoint OFFER_FAILURE], [TLAssertValue initWithPeerConnectionId:self.uuid], [TLAssertValue initWithNSError:error], [TLAssertValue initWithNumber:(int)[self.peerConnection signalingState]], nil];
+
         DDLogError(@"Failed to create Session Description with error: %@", error.description);
         return;
     }
@@ -1733,7 +1784,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             }
             break;
             
-        case RTCIceConnectionStateChecking:
+        case RTCIceConnectionStateChecking: {
             if (delegate) {
                 dispatch_async(self.executorQueue, ^{
                     __strong typeof(self) strongSelf = weakSelf;
@@ -1743,8 +1794,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 });
             }
             break;
+        }
             
-        case RTCIceConnectionStateConnected:
+        case RTCIceConnectionStateConnected: {
             if (self.connectedTimestamp == 0) {
                 self.connectedTimestamp = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
             }
@@ -1752,6 +1804,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 dispatch_async(self.executorQueue, ^{
                     __strong typeof(self) strongSelf = weakSelf;
                     if (strongSelf) {
+                        // We are now connected, invalidate failed ICE timer in case it is set.
+                        [strongSelf invalidateFailedIceTimer];
                         [delegate onChangeConnectionStateWithPeerConnectionId:strongSelf.uuid state:TLPeerConnectionServiceConnectionStateConnected];
                     }
                 });
@@ -1765,6 +1819,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 self.videoTrack.isEnabled = self.videoSourceOn;
             }
             break;
+        }
             
         case RTCIceConnectionStateDisconnected:
         case RTCIceConnectionStateFailed: {
@@ -1784,12 +1839,30 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                     return;
                 }
             }
+
+            // We are running from the WebRTC signaling thread...
+            // If the ICE failed, setup the failed ICE timer to give some time for the peer to give us more ICEs.
             dispatch_async(self.executorQueue, ^{
                 __strong typeof(self) strongSelf = weakSelf;
-                if (strongSelf) {
-                    TLPeerConnectionServiceTerminateReason terminateReason = iceConnectionState == RTCIceConnectionStateDisconnected ? TLPeerConnectionServiceTerminateReasonDisconnected : TLPeerConnectionServiceTerminateReasonConnectivityError;
-                    [strongSelf terminatePeerConnectionInternalWithTerminateReason:terminateReason notifyPeer:YES];
+                if (!strongSelf) {
+                    return;
                 }
+                if (iceConnectionState == RTCIceConnectionStateDisconnected) {
+                    [strongSelf terminatePeerConnectionInternalWithTerminateReason:TLPeerConnectionServiceTerminateReasonDisconnected notifyPeer:YES];
+                } else if (!strongSelf.failedIceTimer) {
+                    strongSelf.failedIceTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, strongSelf.executorQueue);
+                    dispatch_source_set_event_handler(strongSelf.failedIceTimer, ^{
+                        __strong TLPeerConnection *strongSelf = weakSelf;
+                        if (strongSelf) {
+                            [strongSelf failedIceTimer];
+                        }
+                    });
+                    
+                    dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15.0 * NSEC_PER_SEC));
+                    dispatch_source_set_timer(strongSelf.failedIceTimer, tt, DISPATCH_TIME_FOREVER, 0);
+                    dispatch_resume(strongSelf.failedIceTimer);
+                }
+                return;
             });
             break;
         }
@@ -2008,6 +2081,39 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             [self onSendServerWithErrorCode:errorCode requestId:requestId];
         }
     }];
+}
+
+- (void)invalidateFailedIceTimer {
+    DDLogVerbose(@"%@: invalidateFailedIceTimer", LOG_TAG);
+
+    if (self.failedIceTimer) {
+        dispatch_source_cancel(self.failedIceTimer);
+        self.failedIceTimer = nil;
+    }
+}
+
+- (void)failedIceHandler {
+    DDLogVerbose(@"%@: failedIceHandler", LOG_TAG);
+
+    if (atomic_load(&_terminated)) {
+        return;
+    }
+
+    [self invalidateFailedIceTimer];
+
+    @synchronized(self) {
+        if (self.state == RTCIceConnectionStateConnected) {
+            return;
+        }
+    }
+
+    // The failed ICE timer fired and we are not connected, report the connectivity failure.
+    [self terminatePeerConnectionWithTerminateReason:TLPeerConnectionServiceTerminateReasonConnectivityError notifyPeer:YES];
+}
+
+- (void)ackTransportWithRequestId:(int64_t)requestId {
+
+    [self.pendingCandidates removeWithRequestId:requestId];
 }
 
 - (void)restartIce {
@@ -2519,14 +2625,21 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         self.flushCandidatesTimer = nil;
     }
    
+    if (self.failedIceTimer) {
+        dispatch_source_cancel(self.failedIceTimer);
+        self.failedIceTimer = nil;
+    }
+
     NSString *report = [self getStatsReport];
     // Report with connection time information
     NSMutableString *connectReport = [NSMutableString stringWithCapacity:256];
     [connectReport appendFormat:@"%d::connect:", CONNECT_REPORT_VERSION];
     if (self.connectedTimestamp != 0 && self.acceptedTimestamp != 0) {
-        [connectReport appendFormat:@"%lld:", NS_TO_MSEC(self.connectedTimestamp - self.acceptedTimestamp)];
+        [connectReport appendFormat:@"%lld", NS_TO_MSEC(self.connectedTimestamp - self.acceptedTimestamp)];
+        [connectReport appendFormat:@"::duration:%lld:", NS_TO_MSEC(self.stopTimestamp - self.connectedTimestamp)];
     } else if (self.connectedTimestamp != 0) {
-        [connectReport appendFormat:@"%lld:", NS_TO_MSEC(self.connectedTimestamp - self.startTimestamp)];
+        [connectReport appendFormat:@"%lld", NS_TO_MSEC(self.connectedTimestamp - self.startTimestamp)];
+        [connectReport appendFormat:@"::duration:%lld:", NS_TO_MSEC(self.stopTimestamp - self.connectedTimestamp)];
     } else {
         [connectReport appendFormat:@"%lld:", NS_TO_MSEC(self.stopTimestamp - self.startTimestamp)];
     }
@@ -2573,7 +2686,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             // Note: URL is not available if this is a host <-> host connection and we are on the same network.
             if (value) {
                 [connectReport appendFormat:@":%@", value];
-                NSArray<RTC_OBJC_TYPE(RTCHostname) *> *hostnames = sHostnames;
+                NSArray<RTC_OBJC_TYPE(RTCHostname) *> *hostnames = self.peerConnectionService.peerDataConnectionConfiguration.hostnames;
                 if (hostnames) {
                     for (RTC_OBJC_TYPE(RTCHostname) *host in hostnames) {
                         if ([value containsString:host.hostname]) {

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -328,8 +328,7 @@ static NSMutableDictionary<NSUUID *, TLConfigIdentifier *> *configRegistry;
 
     NSUserDefaults *sharedUserDefaults = [TLTwinlife getAppSharedUserDefaults];
 
-    id object = [sharedUserDefaults objectForKey:self.name];
-    BOOL result = object ? [object boolValue] : self.defaultValue;
+    BOOL result = [sharedUserDefaults objectForKey:self.name] ? [sharedUserDefaults boolForKey:self.name] : self.defaultValue;
     DDLogVerbose(@"%@ boolValue.%@=%@", LOG_TAG, self.name, result ? @"YES" : @"NO");
     return result;
 }
@@ -388,10 +387,9 @@ static NSMutableDictionary<NSUUID *, TLConfigIdentifier *> *configRegistry;
 
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
 
-    id object = [userDefaults objectForKey:self.name];
-    int result = object ? (int)[object integerValue] : self.defaultValue;
-    DDLogVerbose(@"%@ intValue.%@=%d", LOG_TAG, self.name, result);
-    return result;
+    NSInteger result = [userDefaults objectForKey:self.name] ? [userDefaults integerForKey:self.name] : self.defaultValue;
+    DDLogVerbose(@"%@ intValue.%@=%ld", LOG_TAG, self.name, result);
+    return (int)result;
 }
 
 - (void)setIntValue:(int)value {
@@ -406,9 +404,8 @@ static NSMutableDictionary<NSUUID *, TLConfigIdentifier *> *configRegistry;
 
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
 
-    id object = [userDefaults objectForKey:self.name];
-    int64_t result = object ? [object longLongValue] : self.defaultValue;
-    DDLogVerbose(@"%@ intValue.%@=%lld", LOG_TAG, self.name, result);
+    NSUInteger result = [userDefaults objectForKey:self.name] ? [userDefaults integerForKey:self.name] : self.defaultValue;
+    DDLogVerbose(@"%@ longValue.%@=%ld", LOG_TAG, self.name, result);
     return result;
 }
 
@@ -418,6 +415,104 @@ static NSMutableDictionary<NSUUID *, TLConfigIdentifier *> *configRegistry;
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
     [userDefaults setObject:[NSNumber numberWithLongLong:value] forKey:self.name];
     [userDefaults synchronize];
+}
+
+@end
+
+#undef LOG_TAG
+#define LOG_TAG @"TLEnumConfigIdentifier"
+
+@implementation TLEnumConfigIdentifier
+
+- (nonnull instancetype)initWithName:(nonnull NSString *)name defaultValue:(NSUInteger)defaultValue {
+
+    self = [super initWithName:name];
+    if (self) {
+        _defaultValue = defaultValue;
+    }
+    return self;
+}
+
+- (nonnull instancetype)initWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(NSUInteger)defaultValue {
+
+    self = [super initWithName:name uuid:uuid];
+    if (self) {
+        _defaultValue = defaultValue;
+    }
+    return self;
+}
+
++ (nonnull TLEnumConfigIdentifier *)defineWithName:(nonnull NSString *)name defaultValue:(NSUInteger)defaultValue {
+    DDLogVerbose(@"%@ defineWithName: %@ defaultValue: %lu", LOG_TAG, name, (unsigned long)defaultValue);
+
+    return [[TLEnumConfigIdentifier alloc] initWithName:name defaultValue:defaultValue];
+}
+
++ (nonnull TLEnumConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(NSUInteger)defaultValue {
+    DDLogVerbose(@"%@ defineWithName: %@ uuid: %@ defaultValue: %lu", LOG_TAG, name, uuid, (unsigned long)defaultValue);
+
+    return [[TLEnumConfigIdentifier alloc] initWithName:name uuid:uuid defaultValue:defaultValue];
+}
+
+- (NSUInteger)enumValue {
+
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+
+    NSUInteger result = [userDefaults objectForKey:self.name] ? [userDefaults integerForKey:self.name] : self.defaultValue;
+    DDLogVerbose(@"%@ enumValue.%@=%lu", LOG_TAG, self.name, (unsigned long)result);
+    return result;
+}
+
+- (void)setEnumValue:(NSUInteger)value {
+    DDLogVerbose(@"%@ setEnumValue: %@ value: %lu", LOG_TAG, self.name, (unsigned long)value);
+
+    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+    [userDefaults setObject:[NSNumber numberWithUnsignedInteger:value] forKey:self.name];
+    [userDefaults synchronize];
+}
+
+@end
+
+#undef LOG_TAG
+#define LOG_TAG @"TLEnumSharedConfigIdentifier"
+
+@implementation TLEnumSharedConfigIdentifier
+
+- (nonnull instancetype)initWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(NSUInteger)defaultValue {
+
+    self = [super initWithName:name uuid:uuid];
+    if (self) {
+        _defaultValue = defaultValue;
+    }
+    return self;
+}
+
++ (nonnull TLEnumSharedConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid defaultValue:(NSUInteger)defaultValue {
+    DDLogVerbose(@"%@ defineWithName: %@ uuid: %@ defaultValue: %lu", LOG_TAG, name, uuid, (unsigned long)defaultValue);
+
+    return [[TLEnumSharedConfigIdentifier alloc] initWithName:name uuid:uuid defaultValue:defaultValue];
+}
+
+- (NSUInteger)enumValue {
+
+    NSUserDefaults *sharedUserDefaults = [TLTwinlife getAppSharedUserDefaults];
+
+    NSUInteger result = [sharedUserDefaults objectForKey:self.name] ? [sharedUserDefaults integerForKey:self.name] : self.defaultValue;
+    DDLogVerbose(@"%@ enumValue.%@=%lu", LOG_TAG, self.name, (unsigned long)result);
+    return result;
+}
+
+- (void)setEnumValue:(NSUInteger)value {
+    DDLogVerbose(@"%@ setEnumValue: %@ value: %lu", LOG_TAG, self.name, (unsigned long)value);
+
+    NSUserDefaults *sharedUserDefaults = [TLTwinlife getAppSharedUserDefaults];
+    [sharedUserDefaults setObject:[NSNumber numberWithUnsignedInteger:value] forKey:self.name];
+    [sharedUserDefaults synchronize];
+}
+
+- (BOOL)isShared {
+    
+    return YES;
 }
 
 @end

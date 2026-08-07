@@ -580,9 +580,11 @@ static const int ddLogLevel = DDLogLevelWarning;
     for (id delegate in self.delegates) {
         if ([delegate respondsToSelector:@selector(onTwinlifeSuspend)]) {
             id<TLTwinlifeContextDelegate> lDelegate = delegate;
-            dispatch_async([self.twinlife twinlifeQueue], ^{
-                [lDelegate onTwinlifeSuspend];
-            });
+            // For the onTwinlifeSuspend, execute the handler synchronously
+            // to make sure that every service is now in a suspended state
+            // when we return.  The onTwinlifeResume must continue using
+            // the dispatch_async.
+            [lDelegate onTwinlifeSuspend];
         }
     }
 }

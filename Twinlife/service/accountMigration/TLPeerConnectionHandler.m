@@ -4,6 +4,7 @@
  *
  *  Contributors:
  *   Romain Kolb (romain.kolb@skyrock.com)
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 #import <CocoaLumberjack.h>
 
@@ -67,7 +68,6 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 @property (nonatomic, readonly) BOOL padding;
 @property (nonatomic) BOOL isOnline;
-@property (nonatomic, readonly, nonnull) NSMutableDictionary<TLSerializerKey *, TLBinaryPacketListener> *binaryPacketListeners;
 @property (nonatomic, readonly, nonnull) NSMutableSet<NSNumber *> *pendingRequests;
 
 @property (nonatomic, nullable) NSUUID *incomingPeerConnectionId;
@@ -82,7 +82,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 @property (nonatomic, nullable) dispatch_queue_t processQueue;
 
 - (void)startOutgoingConnection;
-- (void) onOpenTimeout;
+- (void)onOpenTimeout;
 @end
 
 //
@@ -125,6 +125,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     
     [self.peerConnectionHandler startOutgoingConnection];
 }
+
 @end
 
 //
@@ -138,6 +139,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (nonnull instancetype)initWithPeerConnectionHandler:(nonnull TLPeerConnectionHandler *)peerConnectionHandler;
 
 - (void)runJob;
+
 @end
 
 //
@@ -167,8 +169,6 @@ static const int ddLogLevel = DDLogLevelWarning;
     [self.peerConnectionHandler onOpenTimeout];
 }
 
-
-
 @end
 
 
@@ -178,21 +178,17 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 @implementation TLPeerConnectionHandler
 
-
 - (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife peerId:(nonnull NSString *)peerId {
     DDLogVerbose(@"%@ initWithTwinlife", LOG_TAG);
     
-    self = [super init];
+    self = [super initWithPeerConnectionService:twinlife.peerConnectionService];
     if (self) {
         _twinlife = twinlife;
         _peerId = peerId;
-        _peerConnectionService = twinlife.peerConnectionService;
-        _serializerFactory = twinlife.serializerFactory;
-        _binaryPacketListeners = [[NSMutableDictionary alloc] init];
         _padding = NO;
         _isOnline = twinlife.accountService.isTwinlifeOnline;
         _pendingRequests = [[NSMutableSet alloc] init];
-        [_peerConnectionService addDelegate:self];
+        [twinlife.peerConnectionService addDelegate:self];
         
         _processQueueTag = &_processQueueTag;
         dispatch_queue_attr_t attr;
@@ -201,14 +197,6 @@ static const int ddLogLevel = DDLogLevelWarning;
         dispatch_queue_set_specific(_processQueue, _processQueueTag, _processQueueTag, NULL);
     }
     return self;
-}
-
-- (void)addPacketListener:(nonnull TLBinaryPacketIQSerializer *)serializer listener:(nonnull TLBinaryPacketListener)listener {
-    DDLogVerbose(@"%@ addPacketListener: %@", LOG_TAG, serializer);
-    
-    TLSerializerKey *key = [[TLSerializerKey alloc] initWithSchemaId:serializer.schemaId schemaVersion:serializer.schemaVersion];
-    self.binaryPacketListeners[key] = listener;
-    [self.serializerFactory addSerializer:serializer];
 }
 
 - (void)startOutgoingConnection {
@@ -477,55 +465,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     [self terminatePeerConnectionWithPeerConnectionId:peerConnectionId terminateReason:TLPeerConnectionServiceTerminateReasonConnectivityError];
 }
 
-- (void)onDataChannelMessageWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId data:(nonnull NSData *)data leadingPadding:(BOOL)leadingPadding {
-    DDLogVerbose(@"%@ onDataChannelMessageWithPeerConnectionId: %@", LOG_TAG, peerConnectionId);
-    
-    NSUUID *schemaId;
-    int schemaVersion;
-    @try {
-        TLBinaryDecoder *binaryDecoder;
-        if (leadingPadding) {
-            binaryDecoder = [[TLBinaryDecoder alloc] initWithData:data];
-        } else {
-            binaryDecoder = [[TLBinaryCompactDecoder alloc] initWithData:data];
-        }
-        schemaId = [binaryDecoder readUUID];
-        schemaVersion = [binaryDecoder readInt];
-        TLSerializerKey *key = [[TLSerializerKey alloc] initWithSchemaId:schemaId schemaVersion:schemaVersion];
-        TLSerializer *serializer = [self.serializerFactory getSerializerWithSchemaId:schemaId schemaVersion:schemaVersion];
-        TLBinaryPacketListener listener = self.binaryPacketListeners[key];
-
-        if (!listener || !serializer) {
-            DDLogWarn(@"%@ onDataChannelMessageWithPeerConnectionId: schema unsupported: %@.%d", LOG_TAG, schemaId, schemaVersion);
-        } else {
-            NSObject *object = [serializer deserializeWithSerializerFactory:self.serializerFactory decoder:binaryDecoder];
-            if (![object isKindOfClass:[TLBinaryPacketIQ class]]) {
-                DDLogError(@"%@ onDataChannelMessageWithPeerConnectionId: invalid packet", LOG_TAG);
-            } else {
-                TLBinaryPacketIQ *iq = (TLBinaryPacketIQ *)object;
-                listener(iq);
-            }
-        }
-    }
-    @catch(NSException *lException) {
-        DDLogError(@"%@ onDataChannelMessageWithPeerConnectionId: exception: %@ schemaId: %@", LOG_TAG, lException, schemaId);
-    }
-}
-
-- (BOOL)sendMessageWithIQ:(nonnull TLBinaryPacketIQ *)iq statType:(TLPeerConnectionServiceStatType)statType {
-    DDLogVerbose(@"%@ sendMessageWithIQ: %@ statType: %d", LOG_TAG, iq, statType);
-    
-    NSUUID *peerConnectionId = self.peerConnectionId;
-    if (!peerConnectionId) {
-        return NO;
-    }
-    
-    [self.peerConnectionService sendPacketWithPeerConnectionId:peerConnectionId statType:statType iq:iq];
-    
-    return YES;
-}
-
-- (void) onOpenTimeout {
+- (void)onOpenTimeout {
     DDLogVerbose(@"%@ onOpenTimeout", LOG_TAG);
 
     NSUUID *peerConnectionId = nil;
@@ -569,7 +509,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     DDLogVerbose(@"%@ onTerminateWithTerminateReason:%d", LOG_TAG, terminateReason);
 }
 
-- (BOOL) checkPeerVersionWithVersion:(nullable NSString *)peerVersion {
+- (BOOL)checkPeerVersionWithVersion:(nullable NSString *)peerVersion {
     DDLogVerbose(@"%@ checkPeerVersionWithVersion: %@", LOG_TAG, peerVersion);
     
     if (!peerVersion) {
@@ -596,7 +536,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     return YES;
 }
 
-- (void) terminatePeerConnectionWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId terminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason {
+- (void)terminatePeerConnectionWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId terminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason {
     DDLogVerbose(@"%@ terminatePeerConnectionWithPeerConnectionId: %@ terminateReason: %d", LOG_TAG, peerConnectionId, terminateReason);
 
     [self.peerConnectionService terminatePeerConnectionWithPeerConnectionId:peerConnectionId terminateReason:terminateReason];
@@ -605,13 +545,13 @@ static const int ddLogLevel = DDLogLevelWarning;
     
 }
 
-- (void) scheduleReconnectJob {
+- (void)scheduleReconnectJob {
     TLReconnectTimeoutHandler *handler = [[TLReconnectTimeoutHandler alloc] initWithPeerConnectionHandler:self];
     
     self.reconnectTimeoutJobId = [[self.twinlife getJobService] scheduleWithJob:handler delay:RECONNECT_TIMEOUT priority:TLJobPriorityMessage];
 }
 
-- (void) scheduleOpenTimeoutJob {
+- (void)scheduleOpenTimeoutJob {
     TLOpenTimeoutHandler *handler = [[TLOpenTimeoutHandler alloc] initWithPeerConnectionHandler:self];
     
     self.openTimeoutJobId = [[self.twinlife getJobService] scheduleWithJob:handler delay:CONNECT_TIMEOUT priority:TLJobPriorityMessage];

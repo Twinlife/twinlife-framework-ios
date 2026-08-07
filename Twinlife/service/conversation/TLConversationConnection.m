@@ -56,6 +56,7 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
         _serializerFactory = twinlife.serializerFactory;
         _peerConnectionService = [twinlife getPeerConnectionService];
         _conversationService = [twinlife getConversationService];
+        _imageService = [twinlife getImageService];
         _withLeadingPadding = YES;
         if (incoming) {
             _incomingState = TLConversationStateCreating;
@@ -134,6 +135,13 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
     TLTwincodeOutbound *peerTwincode = connection.conversation.peerTwincodeOutbound;
     return memberTwincode && peerTwincode ? [[self.conversationService.twinlife getCryptoService] getSignatureInfoIQWithTwincode:memberTwincode peerTwincode:peerTwincode renew:NO] : nil;
 }
+
+- (nullable TLImageInfo *)getImageInfoWithImageId:(nonnull TLImageId *)imageId {
+    DDLogVerbose(@"%@ getImageInfoWithImageId:%@", LOG_TAG, imageId);
+    
+    return [self.imageService getImageInfoWithImageId:imageId];
+}
+
 
 - (nullable TLDescriptor *)loadDescriptorWithId:(int64_t)descriptorId {
     

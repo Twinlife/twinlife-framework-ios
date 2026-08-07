@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -7,6 +7,7 @@
  */
 
 #import "TLBinaryPacketIQ.h"
+#import <WebRTC/RTCSessionDescription.h>
 
 @class TLSdp;
 
@@ -38,5 +39,9 @@
 ///
 /// @return the sdp instance.
 - (nonnull TLSdp *)makeSdp;
+
+- (int64_t)sequenceId;
+
+- (RTCSdpType)type;
 
 @end

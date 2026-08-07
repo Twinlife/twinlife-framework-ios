@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2024 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -18,6 +18,8 @@
 @class TLTransportCandidate;
 @class TLSdp;
 @class TLVersion;
+@class TLSessionUpdateIQ;
+@class TLTransportInfoIQ;
 
 //
 // Protocol: TLPeerSignalingDelegate
@@ -54,8 +56,9 @@
 /// @param sessionId the P2P session id.
 /// @param updateType whether this is an offer or an answer.
 /// @param sdp the sdp content (clear text | compressed | encrypted).
+/// @param sequenceId a sequence ID for the session-update SDP.
 /// @return SUCCESS or ITEM_NOT_FOUND if the session id is not known.
-- (TLBaseServiceErrorCode)onSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId updateType:(RTCSdpType)updateType sdp:(nonnull TLSdp *)sdp;
+- (TLBaseServiceErrorCode)onSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId updateType:(RTCSdpType)updateType sdp:(nonnull TLSdp *)sdp sequenceId:(int64_t)sequenceId;
 
 /// Called when a transport-info IQ is received with a list of candidates.
 ///
@@ -124,6 +127,14 @@ typedef void (^TLSessionConsumer) (TLBaseServiceErrorCode status, NSNumber * _Nu
 
 + (void)initialize;
 
++ (nonnull TLBinaryPacketIQSerializer *)IQ_SESSION_UPDATE_SERIALIZER;
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_TRANSPORT_INFO_SERIALIZER;
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_ON_SESSION_UPDATE_SERIALIZER;
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_ON_TRANSPORT_INFO_SERIALIZER;
+
 /// Send the session-initiate to start a P2P connection with the peer.
 ///
 /// @param sessionId the P2P session id.
@@ -155,8 +166,11 @@ typedef void (^TLSessionConsumer) (TLBaseServiceErrorCode status, NSNumber * _Nu
 /// @param to the peer identification string.
 /// @param sdp the sdp to send.
 /// @param type the update type to indicate whether this is an offer or answer.
+/// @param sequenceId a sequence ID for the session-update SDP.
 /// @param block the completion handler executed when the server sends us its response.
-- (void)sessionUpdateWithSessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block;
+- (void)sessionUpdateWithSessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp sequenceId:(int)sequenceId withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block;
+
+- (nonnull TLSessionUpdateIQ *)createSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp sequenceId:(int)sequenceId;
 
 /// Send the transport info for the P2P session to the peer.
 ///
@@ -166,6 +180,10 @@ typedef void (^TLSessionConsumer) (TLBaseServiceErrorCode status, NSNumber * _Nu
 /// @param sdp the SDP with the list of candidates.
 /// @param block the completion handler executed when the server sends us its response.
 - (void)transportInfoWithRequestId:(int64_t)requestId sessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to sdp:(nonnull TLSdp *)sdp withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block;
+
+- (nullable TLTransportInfoIQ *)createTransportInfoWithRequestId:(int64_t)requestId sessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to sdp:(nonnull TLSdp *)sdp;
+
+- (void)sendPacketWithSessionId:(nonnull NSUUID *)sessionId iq:(nonnull TLBinaryPacketIQ *)iq withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block;
 
 /// Send a session-ping with the session id and peer identification string.  The server will check the
 /// validity of our session and return SUCCESS or EXPIRED.

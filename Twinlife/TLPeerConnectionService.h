@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2025 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -15,12 +15,35 @@
 #import "TLBaseService.h"
 #import "TLVersion.h"
 
+// 2026-07-08: version 2.3 added support for session-update and transport-info sent through data-channel.
+// 2024-09-24: version 2.2 added support for SDP encryption.
+// 2022-06-29: version 2.1 added support for group call.
 #define PEER_CONNECTION_MAJOR_VERSION 2
-#define PEER_CONNECTION_MINOR_VERSION 2
+#define PEER_CONNECTION_MINOR_VERSION 3
 
 @protocol TLRepositoryObject;
 @class TLTwincodeOutbound;
 @class TLBinaryPacketIQ;
+
+typedef NS_ENUM(NSUInteger, TLPeerConnectionServiceIceTransportMode) {
+    // Configure WebRTC to maximize connectivity setup by using (Optimize):
+    // - STUN if available (faster than TURNS),
+    // - Direct WebRTC connection (or relayed through TURN router)
+    // The IP address of the device may be exposed but this provides
+    // a faster WebRTC connection set up.
+    TLPeerConnectionServiceIceTransportModeAll = 0,
+
+    // Same as ALL but restrict to TURNS for port negotiation:
+    // - use TURNS for port allocation,
+    // - Direct WebRTC connection (or relayed through TURN router)
+    TLPeerConnectionServiceIceTransportModeTurns = 1,
+
+    // Hide as much as possible the IP address of the device:
+    // - use TURNS for port allocation,
+    // - force to relay the traffic to the TURN router.
+    // Due to TURN router relay, this may impact latency.
+    TLPeerConnectionServiceIceTransportModeRelay = 2
+};
 
 typedef enum {
     TLPeerConnectionServiceTerminateReasonBusy,
@@ -94,8 +117,12 @@ typedef enum {
     TLPeerConnectionServiceStatTypeIqSetPushGeolocation,
     TLPeerConnectionServiceStatTypeIqSetPushTwincode,
     TLPeerConnectionServiceStatTypeIqSetPushPoll,
+    TLPeerConnectionServiceStatTypeIqSetPushContactShare,
+    TLPeerConnectionServiceStatTypeIqSetAnswerContactShare,
     TLPeerConnectionServiceStatTypeIqSetSynchronize,
     TLPeerConnectionServiceStatTypeIqSetSignatureInfo,
+    TLPeerConnectionServiceStatTypeIqSetSdpTransportInfo,
+    TLPeerConnectionServiceStatTypeIqSetSdpSessionUpdate,
     TLPeerConnectionServiceStatTypeIqError,
     
     TLPeerConnectionServiceStatTypeIqResultPushObject,
@@ -112,8 +139,12 @@ typedef enum {
     TLPeerConnectionServiceStatTypeIqResultPushGeolocation,
     TLPeerConnectionServiceStatTypeIqResultPushTwincode,
     TLPeerConnectionServiceStatTypeIqResultPushPoll,
+    TLPeerConnectionServiceStatTypeIqResultPushContactShare,
+    TLPeerConnectionServiceStatTypeIqResultAnswerContactShare,
     TLPeerConnectionServiceStatTypeIqResultSynchronize,
     TLPeerConnectionServiceStatTypeIqResultSignatureInfo,
+    TLPeerConnectionServiceStatTypeIqResultSdpTransportInfo,
+    TLPeerConnectionServiceStatTypeIqResultSdpSessionUpdate,
 
     TLPeerConnectionServiceStatTypeIqReceiveCount,
     TLPeerConnectionServiceStatTypeIqReceiveSetCount,
@@ -290,6 +321,9 @@ typedef enum {
 - (BOOL)isAudioVideoEnabled;
 
 - (TLBaseServiceErrorCode)listenWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId delegate:(nonnull id<TLPeerConnectionDelegate>)delegate;
+
+/// Set the ICE transport configuration when creating a WebRTC connection.
+- (void)setIceTransportModeWithMode:(TLPeerConnectionServiceIceTransportMode)mode;
 
 - (void)createIncomingPeerConnectionWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId offer:(nonnull TLOffer *)offer offerToReceive:(nonnull TLOfferToReceive *)offerToReceive dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block;
 

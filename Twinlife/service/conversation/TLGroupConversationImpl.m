@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2018-2024 twinlife SA.
+ *  Copyright (c) 2018-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -373,13 +373,10 @@ static int GROUP_CONVERSATION_SCHEMA_VERSION = 2;
             return NO;
         }
         
-        // If we are already joined, keep the current permissions.
-        if ((self.flags & FLAG_JOINED) == 0) {
-            self.flags |= FLAG_JOINED;
-            self.permissions = permissions;
-            self.joinPermissions = permissions;
-            self.incomingConversation.permissions = permissions;
-        }
+        self.flags |= FLAG_JOINED;
+        self.permissions = permissions;
+        self.joinPermissions = permissions;
+        self.incomingConversation.permissions = permissions;
     }
     return YES;
 }

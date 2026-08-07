@@ -16,6 +16,7 @@
 #import "TLTwincode.h"
 #import "TLRepositoryServiceImpl.h"
 #import "TLTwincodeOutboundServiceImpl.h"
+#import "TLPeerConnectionServiceImpl.h"
 #import "TLAttributeNameValue.h"
 #import "TLBinaryCompactDecoder.h"
 #import "TLBinaryCompactEncoder.h"
@@ -1166,14 +1167,22 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 
 - (void)saveSecretKeyWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound keyIndex:(int)keyIndex secretKey:(nonnull NSData *)secretKey {
     DDLogVerbose(@"%@ saveSecretKeyWithTwincode: %@ peerTwincodeOutbound: %@ keyIndex: %d secretKey: %@", LOG_TAG, twincodeOutbound, peerTwincodeOutbound, keyIndex, secretKey);
-
+    
     [self.serviceProvider saveSecretKeyWithTwincode:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound keyIndex:keyIndex secretKey:secretKey];
+
+    // If we have existing P2P connections, we must refresh the session secrets so that when we receive an encrypted SDP
+    // we can decrypt it, if it is encrypted by using a new encryption key (same issue for validateSecrets()).
+    [[self.twinlife getPeerConnectionService] refreshSecretsWithTwincodeOutbound:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound];
 }
 
 - (void)validateSecretWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound {
     DDLogVerbose(@"%@ validateSecretWithTwincode: %@ peerTwincodeOutbound: %@", LOG_TAG, twincodeOutbound, peerTwincodeOutbound);
-
+    
     [self.serviceProvider validateSecretWithTwincode:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound];
+
+    // If we have existing P2P connections, we must refresh the session secrets so that when we receive an encrypted SDP
+    // we can decrypt it, if it is encrypted by using a new encryption key (same issue for validateSecrets()).
+    [[self.twinlife getPeerConnectionService] refreshSecretsWithTwincodeOutbound:twincodeOutbound peerTwincodeOutbound:peerTwincodeOutbound];
 }
 
 - (TLBaseServiceErrorCode)createKeyPairWithSessionId:(nonnull NSUUID *)sessionId twincodeOutbound:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nullable TLTwincodeOutbound *)peerTwincodeOutbound keyPair:(id<TLSessionKeyPair> _Nullable *_Nullable)keyPair strict:(BOOL)strict {

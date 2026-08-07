@@ -56,6 +56,9 @@
 #import "TLUpdateDescriptorOperation.h"
 #import "TLPollDescriptorImpl.h"
 #import "TLPushPollOperation.h"
+#import "TLContactShareDescriptorImpl.h"
+#import "TLPushContactShareOperation.h"
+#import "TLAnswerContactShareOperation.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -1517,8 +1520,11 @@ static const int ddLogLevel = DDLogLevelWarning;
  
         case 14: // Poll descriptor
            return [[TLPollDescriptor alloc] initWithDescriptorId:descriptorId conversationId:cid creationDate:creationDate sendDate:sendDate receiveDate:receiveDate readDate:readDate updateDate:updateDate peerDeleteDate:peerDeleteDate deleteDate:deleteDate expireTimeout:expireTimeout flags:flags content:content];
-
-         default:
+      
+        case 15: // Contact Share descriptor
+           return [[TLContactShareDescriptor alloc] initWithDescriptorId:descriptorId conversationId:cid creationDate:creationDate sendDate:sendDate receiveDate:receiveDate readDate:readDate updateDate:updateDate peerDeleteDate:peerDeleteDate deleteDate:deleteDate expireTimeout:expireTimeout flags:flags content:content value:value];
+        
+        default:
              return nil;
      }
 }
@@ -1713,6 +1719,10 @@ static const int ddLogLevel = DDLogLevelWarning;
         [transaction executeUpdate:@"UPDATE descriptor SET content=?, value=?, sendDate=?, receiveDate=?, readDate=?, updateDate=?, deleteDate=?, peerDeleteDate=?, flags=? WHERE id=?", content, [NSNumber numberWithLongLong:[descriptor value]], [NSNumber numberWithLongLong:descriptor.sentTimestamp], [NSNumber numberWithLongLong:descriptor.receivedTimestamp], [NSNumber numberWithLongLong:descriptor.readTimestamp], [NSNumber numberWithLongLong:descriptor.updatedTimestamp], [NSNumber numberWithLongLong:descriptor.deletedTimestamp], [NSNumber numberWithLongLong:descriptor.peerDeletedTimestamp], [NSNumber numberWithInt:descriptor.flags], [NSNumber numberWithLongLong:descriptor.descriptorId.id]];
         [transaction commit];
     }];
+    
+    @synchronized (self) {
+        [self.descriptorCache setObject:descriptor forKey:descriptor.descriptorId];
+    }
 }
 
 - (void)acceptInvitationWithDescriptor:(nonnull TLInvitationDescriptor *)descriptor groupConversation:(nonnull TLGroupConversationImpl *)groupConversation {
@@ -1730,6 +1740,10 @@ static const int ddLogLevel = DDLogLevelWarning;
         }
         [transaction commit];
     }];
+    
+    @synchronized (self) {
+        [self.descriptorCache setObject:descriptor forKey:descriptor.descriptorId];
+    }
 }
 
 - (void)updateDescriptorTimestamps:(nonnull TLDescriptor *)descriptor {
@@ -1746,6 +1760,10 @@ static const int ddLogLevel = DDLogLevelWarning;
         [transaction executeUpdate:@"UPDATE descriptor SET sendDate=?, receiveDate=?, readDate=?, updateDate=?, deleteDate=?, peerDeleteDate=? WHERE id=?", [NSNumber numberWithLongLong:descriptor.sentTimestamp], [NSNumber numberWithLongLong:descriptor.receivedTimestamp], [NSNumber numberWithLongLong:descriptor.readTimestamp], [NSNumber numberWithLongLong:descriptor.updatedTimestamp], [NSNumber numberWithLongLong:descriptor.deletedTimestamp], [NSNumber numberWithLongLong:descriptor.peerDeletedTimestamp], [NSNumber numberWithLongLong:descriptor.descriptorId.id]];
         [transaction commit];
     }];
+    
+    @synchronized (self) {
+        [self.descriptorCache setObject:descriptor forKey:descriptor.descriptorId];
+    }
 }
 
 - (BOOL)deleteDescriptorsWithMap:(nonnull NSDictionary<NSUUID *, TLDescriptorId *> *)descriptorList conversation:(nonnull id<TLConversation>)conversation keepMediaMessages:(BOOL)keepMediaMessages  deletedOperations:(nonnull NSMutableArray<NSNumber *> *)deletedOperations {
@@ -2471,6 +2489,14 @@ static const int ddLogLevel = DDLogLevelWarning;
                         operation = [[TLGroupJoinOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeInvokeRosterRemove conversationId:conversationId creationDate:creationDate descriptorId:descriptorId content:[resultSet dataForColumnIndex:6]];
                         break;
                     
+                    case 21: // Added 2026-07-10
+                        operation = [[TLPushContactShareOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypePushContactShare conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
+                    case 22: // Added 2026-07-10
+                        operation = [[TLAnswerContactShareOperation alloc] initWithId:operationId type:TLConversationServiceOperationTypeAnswerContactShare conversationId:conversationId creationDate:creationDate descriptorId:descriptorId];
+                        break;
+                        
                     case 3:  // Transient operation should never be saved!
                     case 13: // Push command
                     default:
@@ -2614,6 +2640,9 @@ static const int ddLogLevel = DDLogLevelWarning;
         
         case TLDescriptorTypePollDescriptor:
             return 14;
+            
+        case TLDescriptorTypeContactShareDescriptor:
+            return 15;
     }
     
     return 0;
@@ -2721,6 +2750,10 @@ static const int ddLogLevel = DDLogLevelWarning;
             return 19;
         case TLConversationServiceOperationTypeInvokeRosterRemove: // Added 2026-04-09
             return 20;
+        case TLConversationServiceOperationTypePushContactShare: // Added 2026-07-10
+            return 21;
+        case TLConversationServiceOperationTypeAnswerContactShare: // Added 2026-07-10
+            return 22;
     }
     return 0;
 }

@@ -779,9 +779,9 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (void)updateObjectWithStat:(nonnull TLObjectStatImpl *)stats {
     DDLogVerbose(@"%@ updateObjectWithStat: %@", LOG_TAG, stats);
     
-    TLDataOutputStream *dataOutputStream = [[TLDataOutputStream alloc] init];
-    [stats serialize:dataOutputStream];
-    NSData *content = [dataOutputStream getData];
+    NSMutableData *content = [NSMutableData data];
+    TLBinaryEncoder *encoder = [[TLBinaryEncoder alloc] initWithData:content];
+    [stats serialize:encoder];
     [self inTransaction:^(TLTransaction *transaction) {
         [transaction executeUpdate:@"UPDATE repository SET stats=? WHERE id=?", content, [stats.databaseId identifierNumber]];
         [transaction commit];
@@ -793,9 +793,9 @@ static const int ddLogLevel = DDLogLevelWarning;
 
     [self inTransaction:^(TLTransaction *transaction) {
         for (TLObjectStatImpl *stat in stats) {
-            TLDataOutputStream *dataOutputStream = [[TLDataOutputStream alloc] init];
-            [stat serialize:dataOutputStream];
-            NSData *content = [dataOutputStream getData];
+            NSMutableData *content = [NSMutableData data];
+            TLBinaryEncoder *encoder = [[TLBinaryEncoder alloc] initWithData:content];
+            [stat serialize:encoder];
             [transaction executeUpdate:@"UPDATE repository SET stats=? WHERE id=?", content, [stat.databaseId identifierNumber]];
         }
         [transaction commit];

@@ -11,6 +11,7 @@
 #import "TLImageId.h"
 
 @class TLImageInfo;
+@class TLContactShareDescriptor;
 
 /// Maximum dimension for the normal image, above that we consider this is a large image.
 #define TL_NORMAL_IMAGE_WIDTH  1280
@@ -95,5 +96,7 @@ typedef enum {
 - (nullable TLExportedImageId *)publicWithImageId:(nonnull TLImageId *)imageId;
 
 - (nullable TLExportedImageId *)imageWithPublicId:(nonnull NSUUID *)publicId;
+
+- (nullable NSData *)getImageDataWithImage:(nonnull UIImage *)image;
 
 @end

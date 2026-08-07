@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2025 twinlife SA.
+ *  Copyright (c) 2020-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -191,10 +191,15 @@ static const int ddLogLevel = DDLogLevelWarning;
 
     __block TLExportedImageId *result = nil;
     [self inTransaction:^(TLTransaction *transaction) {
+        // If the copiedImageId is itself a copy of an image, get the id of the original image.
+        // Note: we assume that in that case, it is the real original and not another copy.
+        long copiedId = [transaction longForQuery:@"SELECT img.copiedFrom FROM image AS img WHERE img.id=?",
+                         [NSNumber numberWithLongLong:copiedFromImageId.localId]];
+
         int64_t localId = [transaction allocateIdWithTable:TLDatabaseTableImage];
         int64_t creationDate = [[NSDate date] timeIntervalSince1970] * 1000;
         [transaction executeUpdate:@"INSERT INTO image (id, uuid, creationDate, flags, copiedFrom)"
-         " VALUES(?, ?, ?, ?, ?)", [NSNumber numberWithLongLong:localId], [TLDatabaseService toObjectWithUUID:imageId], [NSNumber numberWithLongLong:creationDate], [self fromImageStatusType:TLImageStatusTypeOwner], [NSNumber numberWithLongLong:copiedFromImageId.localId]];
+         " VALUES(?, ?, ?, ?, ?)", [NSNumber numberWithLongLong:localId], [TLDatabaseService toObjectWithUUID:imageId], [NSNumber numberWithLongLong:creationDate], [self fromImageStatusType:TLImageStatusTypeOwner], [NSNumber numberWithLongLong:copiedId > 0 ? copiedId : copiedFromImageId.localId]];
         [transaction commit];
         result = [[TLExportedImageId alloc] initWithPublicId:imageId localId:localId];
     }];
@@ -204,11 +209,16 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (nullable TLImageInfo *)loadImageWithImageId:(nonnull TLImageId *)imageId {
     DDLogVerbose(@"%@ loadImageWithImageId: %@", LOG_TAG, imageId);
 
+    // In some situations, we can have an image that was created as a copy of another copy.
+    // The join on `origin2` is here to retrieve such copy.  With the fix made in copyImage(),
+    // we should not have this situation very often but we must be ready for it.
     __block TLImageInfo *result = nil;
     [self inDatabase:^(FMDatabase *database) {
         FMResultSet *resultSet = [database executeQuery:@"SELECT img.uuid, img.flags, img.thumbnail,"
-                " origin.flags AS origFlags, origin.thumbnail AS originThumbnail, origin.uuid AS originUuid FROM image AS img"
+                " origin.flags AS origFlags, origin.thumbnail AS originThumbnail, origin.uuid AS originUuid,"
+                " origin2.flags AS orig2Flags, origin2.thumbnail AS origin2Thumbnail, origin2.uuid AS origin2Uuid FROM image AS img"
                 " LEFT JOIN image AS origin ON img.copiedFrom = origin.id"
+                                  " LEFT JOIN image AS origin2 ON origin.copiedFrom = origin2.id"
                                   " WHERE img.id=?", [NSNumber numberWithLongLong:imageId.localId]];
         if (!resultSet) {
             [self.service onDatabaseErrorWithError:[database lastError] line:__LINE__];
@@ -227,9 +237,14 @@ static const int ddLogLevel = DDLogLevelWarning;
                     status = [self toImageStatusType:[resultSet intForColumnIndex:1]];
                 }
                 result = [[TLImageInfo alloc] initWithData:thumbnail publicId:publicId status:status copiedImageId:nil];
+            } else if (![resultSet columnIndexIsNull:6]) {
+                // This image is a copy of a copy.
+                status = [self toImageStatusType:[resultSet intForColumnIndex:6]];
+                thumbnail = [resultSet dataForColumnIndex:7];
+                result = [[TLImageInfo alloc] initWithData:thumbnail publicId:publicId status:status copiedImageId:[resultSet uuidForColumnIndex:8]];
             } else {
-                thumbnail = [resultSet dataForColumnIndex:4];
                 status = [self toImageStatusType:[resultSet intForColumnIndex:3]];
+                thumbnail = [resultSet dataForColumnIndex:4];
                 result = [[TLImageInfo alloc] initWithData:thumbnail publicId:publicId status:status copiedImageId:[resultSet uuidForColumnIndex:5]];
             }
         }

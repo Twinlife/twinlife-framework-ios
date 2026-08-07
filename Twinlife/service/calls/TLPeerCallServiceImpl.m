@@ -67,7 +67,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define PEER_CALL_SERVICE_VERSION @"1.5.1"
+#define PEER_CALL_SERVICE_VERSION @"1.6.1"
 
 static TLBinaryPacketIQSerializer *IQ_CREATE_CALL_ROOM_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_CREATE_CALL_ROOM_SERIALIZER = nil;
@@ -268,6 +268,26 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     IQ_ON_SESSION_PING_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_SESSION_PING_SCHEMA_ID schemaVersion:1];
     IQ_ON_SESSION_TERMINATE_SERIALIZER = [[TLBinaryPacketIQSerializer alloc] initWithSchema:ON_SESSION_TERMINATE_SCHEMA_ID schemaVersion:1];
 
+}
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_SESSION_UPDATE_SERIALIZER {
+    
+    return IQ_SESSION_UPDATE_SERIALIZER;
+}
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_TRANSPORT_INFO_SERIALIZER {
+    
+    return IQ_TRANSPORT_INFO_SERIALIZER;
+}
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_ON_SESSION_UPDATE_SERIALIZER {
+    
+    return IQ_ON_SESSION_UPDATE_SERIALIZER;
+}
+
++ (nonnull TLBinaryPacketIQSerializer *)IQ_ON_TRANSPORT_INFO_SERIALIZER {
+    
+    return IQ_ON_TRANSPORT_INFO_SERIALIZER;
 }
 
 + (nonnull NSString *)VERSION {
@@ -625,9 +645,22 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
 /// @param to the peer identification string.
 /// @param sdp the sdp to send.
 /// @param type the update type to indicate whether this is an offer or answer.
+/// @param sequenceId a sequence ID for the session-update SDP.
 /// @param block the completion handler executed when the server sends us its response.
-- (void)sessionUpdateWithSessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
+- (void)sessionUpdateWithSessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp sequenceId:(int)sequenceId withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
     DDLogVerbose(@"%@ sessionUpdateWithSessionId: %@ to: %@ sdp: %@", LOG_TAG, sessionId, to, sdp);
+
+    TLSessionUpdateIQ *sessionUpdateIQ = [self createSessionUpdateWithSessionId:sessionId to:to type:type sdp:sdp sequenceId:sequenceId];
+    
+    TLSessionPendingRequest *pendingRequest = [[TLSessionPendingRequest alloc] initWithSessionId:sessionId withBlock:block];
+    @synchronized (self) {
+        self.pendingRequests[[NSNumber numberWithLongLong:sessionUpdateIQ.requestId]] = pendingRequest;
+    }
+    [self sendBinaryIQ:sessionUpdateIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+}
+
+- (nonnull TLSessionUpdateIQ *)createSessionUpdateWithSessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to type:(RTCSdpType)type sdp:(nonnull TLSdp *)sdp sequenceId:(int)sequenceId {
+    DDLogVerbose(@"%@ createSessionUpdateWithSessionId: %@ to: %@ sdp: %@ sequenceId: %d", LOG_TAG, sessionId, to, sdp, sequenceId);
 
     int64_t expirationDeadline = [[NSDate date] timeIntervalSince1970] * 1000 + DEFAULT_EXPIRATION_TIMEOUT;
     int64_t requestId = [TLTwinlife newRequestId];
@@ -638,13 +671,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     if ([sdp isEncrypted]) {
         mode |= ([sdp getKeyIndex] << OFFER_ENCRYPT_SHIFT) & OFFER_ENCRYPT_MASK;
     }
-    TLSessionUpdateIQ *sessionUpdateIQ = [[TLSessionUpdateIQ alloc] initWithSerializer:IQ_SESSION_UPDATE_SERIALIZER requestId:requestId to:to sessionId:sessionId expirationDeadline:expirationDeadline updateType:mode sdp:[sdp data]];
-    
-    TLSessionPendingRequest *pendingRequest = [[TLSessionPendingRequest alloc] initWithSessionId:sessionId withBlock:block];
-    @synchronized (self) {
-        self.pendingRequests[[NSNumber numberWithLongLong:requestId]] = pendingRequest;
-    }
-    [self sendBinaryIQ:sessionUpdateIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+    mode |= sequenceId << OFFER_SEQUENCE_SHIFT;
+    return [[TLSessionUpdateIQ alloc] initWithSerializer:IQ_SESSION_UPDATE_SERIALIZER requestId:requestId to:to sessionId:sessionId expirationDeadline:expirationDeadline updateType:mode sdp:[sdp data]];
 }
 
 /// Send the transport info for the P2P session to the peer.
@@ -677,6 +705,34 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
         self.pendingRequests[reqId] = pendingRequest;
     }
     [self sendBinaryIQ:transportInfoIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
+}
+
+- (nullable TLTransportInfoIQ *)createTransportInfoWithRequestId:(int64_t)requestId sessionId:(nonnull NSUUID *)sessionId to:(nonnull NSString *)to sdp:(nonnull TLSdp *)sdp {
+    DDLogVerbose(@"%@ createTransportInfoWithRequestId: %@ to: %@ sdp: %@", LOG_TAG, sessionId, to, sdp);
+
+    // The SDP can be empty if all candidates are already sent in a previous SDP transport info.
+    NSData *data = [sdp data];
+    if (data.length == 0) {
+        return nil;
+    }
+
+    int64_t expirationDeadline = [[NSDate date] timeIntervalSince1970] * 1000 + DEFAULT_EXPIRATION_TIMEOUT;
+    int mode = [sdp isCompressed] ? OFFER_COMPRESSED : 0;
+    if ([sdp isEncrypted]) {
+        mode |= ([sdp getKeyIndex] << OFFER_ENCRYPT_SHIFT) & OFFER_ENCRYPT_MASK;
+    }
+    return [[TLTransportInfoIQ alloc] initWithSerializer:IQ_TRANSPORT_INFO_SERIALIZER requestId:requestId to:to sessionId:sessionId expirationDeadline:expirationDeadline mode:mode sdp:data next:nil];
+}
+
+- (void)sendPacketWithSessionId:(nonnull NSUUID *)sessionId iq:(nonnull TLBinaryPacketIQ *)iq withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSNumber *_Nullable requestId))block {
+    DDLogVerbose(@"%@ sendPacketWithSessionId: %@ iq: %@", LOG_TAG, sessionId, iq);
+    
+    NSNumber *reqId = [NSNumber numberWithLongLong:iq.requestId];
+    TLSessionPendingRequest *pendingRequest = [[TLSessionPendingRequest alloc] initWithSessionId:sessionId withBlock:block];
+    @synchronized (self) {
+        self.pendingRequests[reqId] = pendingRequest;
+    }
+    [self sendBinaryIQ:iq factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
 }
 
 /// Send a session-ping with the session id and peer identification string.  The server will check the
@@ -1051,8 +1107,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_SESSION_TERMINATE_SERIALIZER = nil;
     TLSessionUpdateIQ *sessionUpdateIQ = (TLSessionUpdateIQ *)iq;
     RTCSdpType type = (sessionUpdateIQ.updateType & OFFER_ANSWER) ? RTCSdpTypeAnswer : RTCSdpTypeOffer;
     TLSdp *sdp = [sessionUpdateIQ makeSdp];
+    int64_t sequenceId = [sessionUpdateIQ sequenceId];
     
-    TLBaseServiceErrorCode result = [self.peerSignalingDelegate onSessionUpdateWithSessionId:sessionUpdateIQ.sessionId updateType:type sdp:sdp];
+    TLBaseServiceErrorCode result = [self.peerSignalingDelegate onSessionUpdateWithSessionId:sessionUpdateIQ.sessionId updateType:type sdp:sdp sequenceId:sequenceId];
 
     TLBinaryErrorPacketIQ *responseIQ = [[TLBinaryErrorPacketIQ alloc] initWithSerializer:IQ_ON_SESSION_UPDATE_SERIALIZER requestId:sessionUpdateIQ.requestId errorCode:result];
 

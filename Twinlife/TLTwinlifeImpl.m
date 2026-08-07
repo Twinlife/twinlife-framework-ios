@@ -17,6 +17,8 @@
 
 #define SQLITE_HAS_CODEC // Get access to the sqlite3_key() function.
 #import <sqlite3.h>
+#import <CommonCrypto/CommonDigest.h>
+#import <CommonCrypto/CommonCryptor.h>
 
 #import <CocoaLumberjack.h>
 
@@ -339,6 +341,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 #undef LOG_TAG
 #define LOG_TAG @"TLTwinlifeConfiguration"
 
+#define IV_LENGTH_BYTES  16
+#define KEY_LENGTH_BYTES 32
+
 @implementation TLTwinlifeConfiguration
 
 - (instancetype)initWithName:(NSString *)applicationName applicationVersion:(NSString *)applicationVersion serializers:(NSArray<TLSerializer *> *)serializers enableSetup:(BOOL)enableSetup enableCaches:(BOOL)enableCaches factories:(nonnull NSArray<id<TLRepositoryObjectFactory>> *)factories {
@@ -372,14 +377,64 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 
         NSString* path = [[NSBundle mainBundle] pathForResource:@"tool" ofType:@"cfg"];
         NSData *data = [NSData dataWithContentsOfFile:path];
-        data = [TLKeyChain decryptWithData:data];
-        if (!data) {
+
+        int length = (int)[data length];
+        long seed = 539107351;
+        NSMutableData *keystream = [NSMutableData dataWithLength:length];
+        unsigned char *keystreamBytes = (unsigned char *)[keystream mutableBytes];
+        const unsigned char *dataBytes = (const unsigned char *)[data bytes];
+
+        // Generate first 48 bytes of keystream
+        for (int i = 0; i < 48; i++) {
+            keystreamBytes[i] = (unsigned char)seed;
+            seed = seed * 31 + (dataBytes[i] ^ keystreamBytes[i]);
+        }
+
+        // Generate remaining keystream bytes using LCG
+        for (int i = 48; i < length; i++) {
+            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+            keystreamBytes[i] = (unsigned char)seed;
+        }
+
+        // XOR data with keystream to get plainBytes
+        NSMutableData *plainBytes = [NSMutableData dataWithLength:length];
+        unsigned char *plainBytesPtr = (unsigned char *)[plainBytes mutableBytes];
+        for (int i = 0; i < length; i++) {
+            plainBytesPtr[i] = dataBytes[i] ^ keystreamBytes[i];
+        }
+
+        unsigned char key[KEY_LENGTH_BYTES];
+        memcpy(key, plainBytesPtr, KEY_LENGTH_BYTES);
+
+        unsigned char iv[IV_LENGTH_BYTES];
+        memcpy(iv, plainBytesPtr + KEY_LENGTH_BYTES, IV_LENGTH_BYTES);
+
+        // Extract mode length (byte at position key.length + iv.length = 32)
+        size_t modeLengthPos = KEY_LENGTH_BYTES + IV_LENGTH_BYTES;
+        unsigned char modeLength = plainBytesPtr[modeLengthPos];
+
+        // Extract encrypted data
+        size_t encryptedDataOffset = modeLengthPos + 1 + modeLength;
+        size_t encryptedDataLength = length - encryptedDataOffset;
+        const unsigned char *encryptedData = plainBytesPtr + encryptedDataOffset;
+
+        // Prepare output buffer
+        size_t outputBufferSize = encryptedDataLength + kCCBlockSizeAES128;
+        NSMutableData *outputBuffer = [NSMutableData dataWithLength:outputBufferSize];
+        unsigned char *outputBufferPtr = (unsigned char *)[outputBuffer mutableBytes];
+
+        // Perform decryption
+        size_t numBytesDecrypted = 0;
+        CCCryptorStatus cryptorStatus = CCCrypt(kCCDecrypt, kCCAlgorithmAES, kCCOptionPKCS7Padding, (void *)key, KEY_LENGTH_BYTES, iv, encryptedData, encryptedDataLength, outputBufferPtr, outputBufferSize, &numBytesDecrypted);
+        if (cryptorStatus != kCCSuccess) {
             DDLogError(@"%@ invalid application configuration %@", LOG_TAG, path);
 #if defined(DEBUG) && DEBUG == 1
             DDLogError(@"%@ the configuration file 'Twinme/Resources/<app>/tool.cfg' is probably missing or cannot be loaded", LOG_TAG);
 #endif
             return self;
         }
+        data = [NSData dataWithBytes:outputBufferPtr length:numBytesDecrypted];
+
         TLBinaryDecoder *binaryDecoder = [[TLBinaryCompactDecoder alloc] initWithData:data];
         _applicationId = [binaryDecoder readUUID];
         _serviceId = [binaryDecoder readUUID];
@@ -1203,6 +1258,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 - (void)disconnect {
     DDLogInfo(@"%@ disconnect connectionStatus: %d status: %d", LOG_TAG, [self.serverConnection connectionStatus], [self status]);
 
+    self.online = NO;
     [self unlockServerConnection];
     if ([self.serverConnection disconnect] && [self status] == TLTwinlifeStatusSuspending) {
         // If we are suspending, close the database to enter in the final TLTwinlifeStatusSuspended state.
@@ -1213,9 +1269,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
 - (BOOL)isTwinlifeOnline {
     DDLogVerbose(@"%@ isTwinlifeOnline %d", LOG_TAG, self.online);
     
-    // If we started to disconnect, we don't want to start any new conversation.
-    // Also take the opportunity to verify the websocket connection.
-    return self.online; // SCz && ![self isDisconnecting] && [self isConnected];
+    return self.online;
 }
 
 - (TLConnectionStatus)connectionStatus {
@@ -1701,6 +1755,7 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
 - (void)onDisconnectWithError:(TLConnectionError)error {
     DDLogVerbose(@"%@ onDisconnectWithError: %ld", LOG_TAG, error);
     
+    self.online = NO;
     [self unlockServerConnection];
     
     for (TLBaseService *service in self.twinlifeServices) {

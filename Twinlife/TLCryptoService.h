@@ -96,6 +96,9 @@
 
 - (nullable TLSdp *)decryptWithSdp:(nonnull TLSdp *)sdp errorCode:(nonnull TLBaseServiceErrorCode *)errorCode;
 
+/// Check if this session key pair is for the given twincode association.
+- (BOOL)isAssociationWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound;
+
 @end
 
 //

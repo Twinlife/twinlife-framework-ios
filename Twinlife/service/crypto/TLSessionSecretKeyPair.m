@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -11,6 +11,7 @@
 #import <WebRTC/TLCryptoBox.h>
 #import "TLSessionSecretKeyPair.h"
 #import "TLCryptoServiceImpl.h"
+#import "TLTwincodeOutboundService.h"
 #import "TLBinaryCompactDecoder.h"
 #import "TLBinaryCompactEncoder.h"
 #import "TLSdp.h"
@@ -181,6 +182,12 @@ static const int ddLogLevel = DDLogLevelWarning;
 - (int64_t)sequenceCount { 
     
     return self.sequenceCounter;
+}
+
+- (BOOL)isAssociationWithTwincode:(nonnull TLTwincodeOutbound *)twincodeOutbound peerTwincodeOutbound:(nonnull TLTwincodeOutbound *)peerTwincodeOutbound {
+    DDLogVerbose(@"%@ isAssociationWithTwincode: %@ peerTwincodeOutbound: %@", LOG_TAG, twincodeOutbound, peerTwincodeOutbound);
+
+    return [self.twincodeOutbound.uuid isEqual:twincodeOutbound.uuid] && [self.peerTwincodeOutbound.uuid isEqual:peerTwincodeOutbound.uuid];
 }
 
 @end

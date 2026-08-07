@@ -1,24 +1,29 @@
 /*
- *  Copyright (c) 2024-2026 twinlife SA.
+ *  Copyright (c) 2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
- *   Romain Kolb (romain.kolb@skyrock.com)
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
-#import "TLPeerConnectionServiceImpl.h"
-#import "TLTwinlifeImpl.h"
+#import "TLPeerConnectionService.h"
+#import "TLAssertion.h"
 
-@interface TLPeerConnectionHandler : NSObject <TLPeerConnectionDataChannelDelegate, TLPeerConnectionServiceDelegate, TLPeerConnectionDelegate>
+@class TLBinaryDecoder;
+@class TLBinaryPacketIQSerializer;
+typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 
-@property (nonatomic, readonly, nonnull) TLTwinlife *twinlife;
+//
+// Interface: TLConversationHandler
+//
+
+@interface TLDataChannelHandler : NSObject <TLPeerConnectionDataChannelDelegate>
 
 @property (nonatomic, readonly, nonnull) TLPeerConnectionService *peerConnectionService;
 @property (nonatomic, nullable) NSUUID *peerConnectionId;
 @property (nonatomic, readonly, nonnull) TLSerializerFactory *serializerFactory;
-@property (nonatomic, nullable) TLVersion *peerVersion;
 
-- (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife peerId:(nonnull NSString *)peerId;
+- (nonnull instancetype)initWithPeerConnectionService:(nonnull TLPeerConnectionService *)peerConnectionService;
 
 - (void)addPacketListener:(nonnull TLBinaryPacketIQSerializer *)serializer listener:(nonnull TLBinaryPacketListener)listener;
 
@@ -30,21 +35,7 @@
 
 - (BOOL)sendMessageWithIQ:(nonnull TLBinaryPacketIQ *)iq statType:(TLPeerConnectionServiceStatType)statType;
 
-- (void)onTerminateWithTerminateReason:(TLPeerConnectionServiceTerminateReason)terminateReason;
+/// Check and process the IQ if it corresponds to one of our SDP data channel handler.  Returns YES if the IQ was recognized.
++ (BOOL)processSdpPacketWithPeerConnectionService:(nonnull TLPeerConnectionService *)peerConnectionService key:(nonnull TLSerializerKey *)key peerConnectionId:(nonnull NSUUID *)peerConnectionId binaryDecoder:(nonnull TLBinaryDecoder *)binaryDecoder;
 
-- (void)finish;
-
-- (void)closeConnection;
-
-- (void)onTwinlifeOnline; 
-
-- (void)onDisconnect;
-
-- (void)onDataChannelOpen;
-
-- (void)onTimeout;
-
-- (void)startOutgoingConnection;
-
-- (void)startIncomingConnectionWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId;
 @end

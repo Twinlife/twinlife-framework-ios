@@ -29,7 +29,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define ACCOUNT_MIGRATION_SERVICE_VERSION @"2.1.1"
+#define ACCOUNT_MIGRATION_SERVICE_VERSION @"2.1.2"
 
 @implementation TLAccountMigrationStatus
 
@@ -194,6 +194,11 @@ static const int ddLogLevel = DDLogLevelWarning;
     [self.databaseService syncDatabase];
     @synchronized (self) {
         if (self.currentAccountMigration) {
+            // If the `incomingStartMigrationWithPeerConnectionId` was faster, we can have a current account
+            // migration, we can ignore the outgoingStart if this is the same instance.
+            if ([accountMigrationId isEqual:self.activeMigrationId] && [accountMigrationId isEqual:self.currentAccountMigration.accountMigrationId]) {
+                return;
+            }
             accountMigration = nil;
         } else {
             NSURL *dbUrl = [[NSURL alloc] initFileURLWithPath:self.databasePath];

@@ -59,6 +59,7 @@
 #import "TLTwincodeDescriptorImpl.h"
 #import "TLGeolocationDescriptorImpl.h"
 #import "TLCallDescriptorImpl.h"
+#import "TLContactShareDescriptorImpl.h"
 #import "TLPushGeolocationOperation.h"
 #import "TLUpdateAnnotationsOperation.h"
 #import "TLOnUpdateAnnotationsIQ.h"
@@ -70,6 +71,8 @@
 #import "TLPushObjectIQ.h"
 #import "TLPushTwincodeIQ.h"
 #import "TLPushPollIQ.h"
+#import "TLPushContactShareIQ.h"
+#import "TLAnswerContactShareIQ.h"
 #import "TLResetConversationIQ.h"
 #import "TLInviteGroupIQ.h"
 #import "TLOnInviteGroupIQ.h"
@@ -79,6 +82,8 @@
 #import "TLOnPushTwincodeIQ.h"
 #import "TLOnPushGeolocationIQ.h"
 #import "TLOnPushPollIQ.h"
+#import "TLOnPushContactShareIQ.h"
+#import "TLOnAnswerContactShareIQ.h"
 #import "TLOnResetConversationIQ.h"
 #import "TLSignatureInfoIQ.h"
 #import "TLIQ.h"
@@ -107,6 +112,8 @@
 #import "TLOnUpdateDescriptorIQ.h"
 #import "TLUpdateDescriptorOperation.h"
 #import "TLPushPollOperation.h"
+#import "TLPushContactShareOperation.h"
+#import "TLAnswerContactShareOperation.h"
 
 #if 0
 static const int ddLogLevel = DDLogLevelVerbose;
@@ -115,7 +122,7 @@ static const int ddLogLevel = DDLogLevelVerbose;
 static const int ddLogLevel = DDLogLevelWarning;
 #endif
 
-#define CONVERSATION_SERVICE_VERSION @"2.21.1" // MUST ALSO UPDATE MAX_MAJOR_VERSION, MAX_MINOR_VERSION_2
+#define CONVERSATION_SERVICE_VERSION @"2.22.1" // MUST ALSO UPDATE MAX_MAJOR_VERSION, MAX_MINOR_VERSION_2
 
 #define ENABLE_HARD_RESET (NO)
 
@@ -474,7 +481,6 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
 @interface TLConversationHandler ()
 
 @property (nonatomic, readonly) BOOL padding;
-@property (nonatomic, readonly, nonnull) NSMutableDictionary<TLSerializerKey *, TLBinaryPacketListener> *binaryPacketListeners;
 @property (nonatomic, readonly, nonnull) NSMutableDictionary<NSNumber *, TLDescriptor *> *requests;
 @property (nonatomic, nullable) TLGeolocationDescriptor *geolocationDescriptor;
 
@@ -554,11 +560,8 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
 - (nonnull instancetype)initWithPeerConnectionService:(nonnull TLPeerConnectionService *)peerConnectionService {
     DDLogVerbose(@"%@ initWithPeerConnectionService", LOG_TAG);
     
-    self = [super init];
+    self = [super initWithPeerConnectionService:peerConnectionService];
     if (self) {
-        _peerConnectionService = peerConnectionService;
-        _serializerFactory = peerConnectionService.twinlife.serializerFactory;
-        _binaryPacketListeners = [[NSMutableDictionary alloc] init];
         _requests = [[NSMutableDictionary alloc] init];
         _padding = NO;
         
@@ -570,7 +573,7 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
         [self addPacketListener:[TLOnPushObjectIQ SERIALIZER_3] listener:^(TLBinaryPacketIQ * iq) {
             [handler onOnPushWithIQ:iq];
         }];
-
+        
         [self addPacketListener:[TLPushTwincodeIQ SERIALIZER_3] listener:^(TLBinaryPacketIQ * iq) {
             [handler onPushTwincodeWithIQ:iq];
         }];
@@ -580,7 +583,7 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
         [self addPacketListener:[TLOnPushTwincodeIQ SERIALIZER_2] listener:^(TLBinaryPacketIQ * iq) {
             [handler onOnPushWithIQ:iq];
         }];
-
+        
         [self addPacketListener:[TLPushGeolocationIQ SERIALIZER_3] listener:^(TLBinaryPacketIQ * iq) {
             [handler onPushGeolocationWithIQ:iq];
         }];
@@ -613,75 +616,10 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
     return self;
 }
 
-- (void)addPacketListener:(nonnull TLBinaryPacketIQSerializer *)serializer listener:(nonnull TLBinaryPacketListener)listener {
-    DDLogVerbose(@"%@ addPacketListener: %@", LOG_TAG, serializer);
-    
-    TLSerializerKey *key = [[TLSerializerKey alloc] initWithSchemaId:serializer.schemaId schemaVersion:serializer.schemaVersion];
-    self.binaryPacketListeners[key] = listener;
-    [self.serializerFactory addSerializer:serializer];
-}
-
 - (nonnull TLPeerConnectionDataChannelConfiguration *)configurationWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId sdpEncryptionStatus:(TLPeerConnectionServiceSdpEncryptionStatus)sdpEncryptionStatus {
     DDLogVerbose(@"%@ configurationWithPeerConnectionId: %@", LOG_TAG, peerConnectionId);
-
+    
     return [[TLPeerConnectionDataChannelConfiguration alloc] initWithVersion:TLConversationService.VERSION leadingPadding:NO];
-}
-
-- (void)onDataChannelOpenWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId peerVersion:(nonnull NSString *)peerVersion leadingPadding:(BOOL)leadingPadding {
-    DDLogVerbose(@"%@ onDataChannelOpenWithPeerConnectionId: %@", LOG_TAG, peerConnectionId);
-    
-}
-
-- (void)onDataChannelClosedWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId {
-    DDLogVerbose(@"%@ onDataChannelClosedWithPeerConnectionId: %@", LOG_TAG, peerConnectionId);
-    
-}
-
-- (void)onDataChannelMessageWithPeerConnectionId:(nonnull NSUUID *)peerConnectionId data:(nonnull NSData *)data leadingPadding:(BOOL)leadingPadding {
-    DDLogVerbose(@"%@ onDataChannelMessageWithPeerConnectionId: %@", LOG_TAG, peerConnectionId);
-    
-    NSUUID *schemaId;
-    int schemaVersion;
-    @try {
-        TLBinaryDecoder *binaryDecoder;
-        if (leadingPadding) {
-            binaryDecoder = [[TLBinaryDecoder alloc] initWithData:data];
-        } else {
-            binaryDecoder = [[TLBinaryCompactDecoder alloc] initWithData:data];
-        }
-        schemaId = [binaryDecoder readUUID];
-        schemaVersion = [binaryDecoder readInt];
-        TLSerializerKey *key = [[TLSerializerKey alloc] initWithSchemaId:schemaId schemaVersion:schemaVersion];
-        TLSerializer *serializer = [self.serializerFactory getSerializerWithSchemaId:schemaId schemaVersion:schemaVersion];
-        TLBinaryPacketListener listener = self.binaryPacketListeners[key];
-
-        if (!listener || !serializer) {
-            DDLogWarn(@"%@ onDataChannelMessageWithPeerConnectionId: schema unsupported: %@.%d", LOG_TAG, schemaId, schemaVersion);
-        } else {
-            NSObject *object = [serializer deserializeWithSerializerFactory:self.serializerFactory decoder:binaryDecoder];
-            if (![object isKindOfClass:[TLBinaryPacketIQ class]]) {
-                DDLogError(@"%@ onDataChannelMessageWithPeerConnectionId: invalid packet", LOG_TAG);
-            } else {
-                TLBinaryPacketIQ *iq = (TLBinaryPacketIQ *)object;
-                listener(iq);
-            }
-        }
-    }
-    @catch(NSException *lException) {
-        DDLogError(@"%@ onDataChannelMessageWithPeerConnectionId: exception: %@ schemaId: %@", LOG_TAG, lException, schemaId);
-    }
-}
-
-- (BOOL)sendMessageWithIQ:(nonnull TLBinaryPacketIQ *)iq statType:(TLPeerConnectionServiceStatType)statType {
-    DDLogVerbose(@"%@ sendMessageWithIQ: %@ statType: %d", LOG_TAG, iq, statType);
-    
-    NSUUID *peerConnectionId = self.peerConnectionId;
-    if (!peerConnectionId) {
-        return NO;
-    }
-    
-    [self.peerConnectionService sendPacketWithPeerConnectionId:peerConnectionId statType:statType iq:iq];
-    return YES;
 }
 
 - (BOOL)sendWithDescriptor:(nonnull TLDescriptor *)descriptor {
@@ -692,28 +630,28 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
     @synchronized (self.requests) {
         self.requests[lRequestId] = descriptor;
     }
-
+    
     BOOL sent;
     if ([descriptor isKindOfClass:[TLObjectDescriptor class]]) {
         TLPushObjectIQ *pushObjectIQ = [[TLPushObjectIQ alloc] initWithSerializer:[TLPushObjectIQ SERIALIZER_5] requestId:requestId objectDescriptor:(TLObjectDescriptor *)descriptor];
         sent = [self sendMessageWithIQ:pushObjectIQ statType:TLPeerConnectionServiceStatTypeIqSetPushObject];
-    
+        
     } else if ([descriptor isKindOfClass:[TLTwincodeDescriptor class]]) {
         TLPushTwincodeIQ *pushTwincodeIQ = [[TLPushTwincodeIQ alloc] initWithSerializer:[TLPushTwincodeIQ SERIALIZER_2] requestId:requestId twincodeDescriptor:(TLTwincodeDescriptor *)descriptor];
         sent = [self sendMessageWithIQ:pushTwincodeIQ statType:TLPeerConnectionServiceStatTypeIqSetPushTwincode];
-
+        
     } else if ([descriptor isKindOfClass:[TLGeolocationDescriptor class]]) {
         TLPushGeolocationIQ *pushGeolocationIQ = [[TLPushGeolocationIQ alloc] initWithSerializer:[TLPushGeolocationIQ SERIALIZER_2] requestId:requestId geolocationDescriptor:(TLGeolocationDescriptor *)descriptor];
         sent = [self sendMessageWithIQ:pushGeolocationIQ statType:TLPeerConnectionServiceStatTypeIqSetPushGeolocation];
-
+        
     } else if ([descriptor isKindOfClass:[TLPollDescriptor class]]) {
         TLPushPollIQ *pushPollIQ = [[TLPushPollIQ alloc] initWithSerializer:[TLPushPollIQ SERIALIZER_1] requestId:requestId pollDescriptor:(TLPollDescriptor *)descriptor];
         sent = [self sendMessageWithIQ:pushPollIQ statType:TLPeerConnectionServiceStatTypeIqSetPushPoll];
-
+        
     } else {
         sent = NO;
     }
-
+    
     if (!sent) {
         @synchronized (self.requests) {
             [self.requests removeObjectForKey:lRequestId];
@@ -735,14 +673,14 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
     @synchronized (self.requests) {
         self.requests[lRequestId] = descriptor;
     }
-
+    
     int64_t updatedTimestamp = [[NSDate date] timeIntervalSince1970] * 1000;
     descriptor.longitude = longitude;
     descriptor.latitude = latitude;
     descriptor.altitude = altitude;
     descriptor.mapLatitudeDelta = mapLatitudeDelta;
     descriptor.mapLongitudeDelta = mapLongitudeDelta;
-
+    
     TLUpdateGeolocationIQ *updateGeolocationIQ = [[TLUpdateGeolocationIQ alloc] initWithSerializer:[TLUpdateGeolocationIQ SERIALIZER_1] requestId:requestId updatedTimestamp:updatedTimestamp longitude:longitude latitude:latitude altitude:altitude mapLongitudeDelta:mapLongitudeDelta mapLatitudeDelta:mapLatitudeDelta];
     return [self sendMessageWithIQ:updateGeolocationIQ statType:TLPeerConnectionServiceStatTypeIqSetPushGeolocation];
 }
@@ -756,14 +694,14 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
         self.requests[lRequestId] = descriptor;
     }
     int64_t timestamp = [[NSDate date] timeIntervalSince1970] * 1000;
-
+    
     TLUpdateTimestampIQ *updateTimestampIQ = [[TLUpdateTimestampIQ alloc] initWithSerializer:[TLUpdateTimestampIQ SERIALIZER_2] requestId:requestId descriptorId:descriptor.descriptorId timestampType:TLUpdateDescriptorTimestampTypeDelete timestamp:timestamp];
     return [self sendMessageWithIQ:updateTimestampIQ statType:TLPeerConnectionServiceStatTypeIqSetUpdateObject];
 }
 
 + (BOOL)markReadWithDescriptor:(nonnull TLDescriptor *)descriptor {
     DDLogVerbose(@"%@ markReadWithDescriptor: %@", LOG_TAG, descriptor);
-
+    
     if (descriptor.readTimestamp <= 0) {
         descriptor.readTimestamp = [[NSDate date] timeIntervalSince1970] * 1000;
         return YES;
@@ -780,7 +718,7 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
 
 - (nullable TLGeolocationDescriptor *)currentGeolocation {
     DDLogVerbose(@"%@ currentGeolocation: %@", LOG_TAG, self.geolocationDescriptor);
-
+    
     return self.geolocationDescriptor;
 }
 
@@ -893,13 +831,13 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
         self.geolocationDescriptor.altitude = updateGeolocationIQ.altitude;
         self.geolocationDescriptor.mapLatitudeDelta = updateGeolocationIQ.mapLatitudeDelta;
         self.geolocationDescriptor.mapLongitudeDelta = updateGeolocationIQ.mapLongitudeDelta;
-
+        
         self.geolocationDescriptor.receivedTimestamp = receivedTimestamp;
         [self onUpdateGeolocationWithDescriptor:self.geolocationDescriptor];
     } else {
         receivedTimestamp = -1L;
     }
-
+    
     int deviceState = 2;
     TLOnPushIQ *onUpdateGeolocationIQ = [[TLOnPushIQ alloc] initWithSerializer:[TLOnUpdateGeolocationIQ SERIALIZER_1] requestId:iq.requestId deviceState:deviceState receivedTimestamp:receivedTimestamp];
     [self sendMessageWithIQ:onUpdateGeolocationIQ statType:TLPeerConnectionServiceStatTypeIqResultPushGeolocation];
@@ -917,21 +855,21 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
         case TLUpdateDescriptorTimestampTypeRead:
             [self onReadWithDescriptorId:updateTimestampIQ.descriptorId timestamp:updateTimestampIQ.timestamp];
             break;
-
+            
         case TLUpdateDescriptorTimestampTypeDelete:
             if (self.geolocationDescriptor && [self.geolocationDescriptor.descriptorId isEqual:updateTimestampIQ.descriptorId]) {
                 self.geolocationDescriptor = nil;
             }
             [self onDeleteWithDescriptorId:updateTimestampIQ.descriptorId];
             break;
-
+            
         case TLUpdateDescriptorTimestampTypePeerDelete:
             break;
-
+            
         default:
             break;
     }
-
+    
     int deviceState = 2;
     TLOnPushIQ *onUpdateTimestampIQ = [[TLOnPushIQ alloc] initWithSerializer:[TLOnUpdateTimestampIQ SERIALIZER_2] requestId:iq.requestId deviceState:deviceState receivedTimestamp:[[NSDate date] timeIntervalSince1970] * 1000];
     [self sendMessageWithIQ:onUpdateTimestampIQ statType:TLPeerConnectionServiceStatTypeIqResultUpdateObject];
@@ -939,7 +877,7 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
 
 - (void)onOnPushWithIQ:(nonnull TLBinaryPacketIQ *)iq {
     DDLogVerbose(@"%@ onOnPushWithIQ: %@", LOG_TAG, iq);
-
+    
     NSNumber *lRequestId = [NSNumber numberWithLongLong:iq.requestId];
     TLDescriptor *descriptor;
     @synchronized (self.requests) {
@@ -1257,7 +1195,23 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
         [self addPacketListener:[TLOnPushPollIQ SERIALIZER_1] listener:^(TLConversationConnection *connection, TLBinaryPacketIQ * iq) {
             [handler processOnPushPollIQWithConnection:connection iq:(TLOnPushIQ *)iq];
         }];
+        
+        // Push ContactShare
+        [self addPacketListener:[TLPushContactShareIQ SERIALIZER_1] listener:^(TLConversationConnection *connection, TLBinaryPacketIQ * iq) {
+            [handler processPushContactShareIQWithConnection:connection iq:(TLPushContactShareIQ *)iq];
+        }];
+        [self addPacketListener:[TLOnPushContactShareIQ SERIALIZER_1] listener:^(TLConversationConnection *connection, TLBinaryPacketIQ * iq) {
+            [handler processOnPushContactShareIQWithConnection:connection iq:(TLOnPushIQ *)iq];
+        }];
 
+        // Answer ContactShare
+        [self addPacketListener:[TLAnswerContactShareIQ SERIALIZER_1] listener:^(TLConversationConnection *connection, TLBinaryPacketIQ * iq) {
+            [handler processAnswerContactShareIQWithConnection:connection iq:(TLAnswerContactShareIQ *)iq];
+        }];
+        [self addPacketListener:[TLOnAnswerContactShareIQ SERIALIZER_1] listener:^(TLConversationConnection *connection, TLBinaryPacketIQ * iq) {
+            [handler processOnAnswerContactShareIQWithConnection:connection iq:(TLOnPushIQ *)iq];
+        }];
+        
         // Update timestamps
         [self addPacketListener:[TLUpdateTimestampIQ SERIALIZER_2] listener:^(TLConversationConnection *connection, TLBinaryPacketIQ * iq) {
             [handler processUpdateTimestampIQWithConnection:connection iq:(TLUpdateTimestampIQ *)iq];
@@ -2796,6 +2750,122 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
     [self setAnnotationWithDescriptorId:descriptorId type:TLDescriptorAnnotationTypePoll value:value];
 }
 
+- (void)pushContactShareWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation name:(nonnull NSString *)name avatar:(nonnull NSData *)avatar contactId:(nonnull NSUUID *)contactId expireTimeout:(int64_t)expireTimeout {
+    DDLogVerbose(@"%@ pushContactShareWithRequestId: %lld conversation: %@ name:%@", LOG_TAG, requestId, conversation, name);
+    
+    if (!self.serviceOn) {
+        return;
+    }
+    
+    if (![conversation hasPermissionWithPermission:TLPermissionTypeSendTwincode]) {
+        [self onErrorWithRequestId:requestId errorCode:TLBaseServiceErrorCodeNoPermission errorParameter:nil];
+        return;
+    }
+    
+    NSMutableArray<TLConversationImpl *> *conversations = [TLConversationService getConversations:conversation sendTo:nil];
+    TLContactShareDescriptor *contactShareDescriptor = (TLContactShareDescriptor *)[self.serviceProvider createDescriptorWithConversation:conversation createBlock:^(int64_t descriptorId, int64_t cid, int64_t sequenceId) {
+        TLDescriptorId *did = [[TLDescriptorId alloc] initWithId:descriptorId twincodeOutboundId:conversation.twincodeOutboundId sequenceId:sequenceId];
+
+        // Create one poll descriptor for the conversation.
+        TLContactShareDescriptor *result = [[TLContactShareDescriptor alloc] initWithDescriptorId:did conversationId:cid expireTimeout:expireTimeout name:name contactId:contactId];
+        // If we try to send on a group with no peer, mark a send failure (ie, we are the only one in the group!).
+        if (!conversations || [conversations count] == 0) {
+            result.readTimestamp = -1;
+            result.sentTimestamp = -1;
+            result.receivedTimestamp = -1;
+        }
+        return result;
+    }];
+    
+    if (!contactShareDescriptor) {
+        [self onErrorWithRequestId:requestId errorCode:TLBaseServiceErrorCodeNoStorageSpace errorParameter:nil];
+        return;
+    }
+    
+    [contactShareDescriptor saveAvatarWithData:avatar];
+    
+    if (conversations && conversations.count > 0) {
+        // Send the object to each peer.
+        NSMapTable<TLConversationImpl *, NSObject *> *pendingOperations = [[NSMapTable alloc] init];
+        for (TLConversationImpl *conversationImpl in conversations) {
+            [conversationImpl touch];
+            conversationImpl.isActive = YES;
+            
+            TLPushContactShareOperation *pushContactShareOperation = [[TLPushContactShareOperation alloc] initWithConversation:conversationImpl contactShareDescriptor:contactShareDescriptor avatar:avatar];
+            [pendingOperations setObject:pushContactShareOperation forKey:conversationImpl];
+        }
+        [self addOperationsWithMap:pendingOperations];
+    }
+    
+    // Notify push operation was queued.
+    for (id delegate in self.delegates) {
+        if ([delegate respondsToSelector:@selector(onPushDescriptorRequestId:conversation:descriptor:)]) {
+            id<TLConversationServiceDelegate> lDelegate = delegate;
+            dispatch_async([self.twinlife twinlifeQueue], ^{
+                [lDelegate onPushDescriptorRequestId:requestId conversation:conversation descriptor:contactShareDescriptor];
+            });
+        }
+    }
+}
+
+- (void)answerContactShareWithConversation:(nonnull id<TLConversation>)conversation contactShareDescriptor:(nonnull TLContactShareDescriptor *)contactShareDescriptor status:(TLInvitationDescriptorStatusType)status autoAnswer:(BOOL)autoAnswer invitationTwincodeOutboundId:(nullable NSUUID *)invitationTwincodeOutboundId invitationPublicKey:(nullable NSString *)invitationPublicKey block:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLContactShareDescriptor * _Nullable descriptor))block {
+    DDLogVerbose(@"%@ answerContactShareWithConversation:%@ contactShareDescriptor: %@ status:%d autoAnswer:%@ invitationTwincodeOutboundId:%@ invitationPublicKey:%@", LOG_TAG, conversation, contactShareDescriptor, status, autoAnswer ? @"YES":@"NO", invitationTwincodeOutboundId.UUIDString, invitationPublicKey);
+    
+    if (!self.serviceOn) {
+        return;
+    }
+    
+    if (![conversation hasPermissionWithPermission:TLPermissionTypeSendTwincode]) {
+        block(TLBaseServiceErrorCodeNoPermission, contactShareDescriptor);
+        return;
+    }
+        
+    if (contactShareDescriptor.status != TLInvitationDescriptorStatusTypePending) {
+        // Contact share must be pending to be able to answer.
+        block(TLBaseServiceErrorCodeNoPermission, contactShareDescriptor);
+        return;
+    }
+    
+    contactShareDescriptor.status = status;
+    contactShareDescriptor.autoAnswer = autoAnswer;
+    
+    if (status == TLInvitationDescriptorStatusTypeAccepted) {
+        contactShareDescriptor.invitationTwincodeOutboundId = invitationTwincodeOutboundId;
+        contactShareDescriptor.invitationTwincodeOutboundPubkey = invitationPublicKey;
+    }
+    
+    [self.serviceProvider updateWithDescriptor:contactShareDescriptor];
+    
+    NSMutableArray<TLConversationImpl *> *conversations = [TLConversationService getConversations:conversation sendTo:nil];
+    
+    if (conversations && conversations.count > 0) {
+        // Send the object to each peer.
+        NSMapTable<TLConversationImpl *, NSObject *> *pendingOperations = [[NSMapTable alloc] init];
+        for (TLConversationImpl *conversationImpl in conversations) {
+            [conversationImpl touch];
+            conversationImpl.isActive = YES;
+            
+            TLAnswerContactShareOperation *answerContactShareOperation = [[TLAnswerContactShareOperation alloc] initWithConversation:conversation contactShareDescriptor:contactShareDescriptor];
+            
+            [pendingOperations setObject:answerContactShareOperation forKey:conversationImpl];
+        }
+        [self addOperationsWithMap:pendingOperations];
+    }
+    
+    // Notify update operation was queued.
+    for (id delegate in self.delegates) {
+        if ([delegate respondsToSelector:@selector(onUpdateDescriptorWithRequestId:conversation:descriptor:updateType:)]) {
+            id<TLConversationServiceDelegate> lDelegate = delegate;
+            dispatch_async([self.twinlife twinlifeQueue], ^{
+                [lDelegate onUpdateDescriptorWithRequestId:TLBaseService.DEFAULT_REQUEST_ID conversation:conversation descriptor:contactShareDescriptor updateType:TLConversationServiceUpdateTypeContent];
+            });
+        }
+    }
+    
+    block(TLBaseServiceErrorCodeSuccess, contactShareDescriptor);
+}
+
+
 - (void)acceptPushTwincodeWithSchemaId:(NSUUID *)schemaId {
     DDLogVerbose(@"%@ acceptPushTwincodeWithSchemaId: %@", LOG_TAG, schemaId);
     
@@ -3695,6 +3765,11 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
                     [self.twinlife exceptionWithAssertPoint:[TLConversationServiceAssertPoint EXCEPTION] exception:lException, [TLAssertValue initWithPeerConnectionId:peerConnectionId], [TLAssertValue initWithSubject:connection.conversation.subject], [TLAssertValue initWithSchemaId:schemaId], [TLAssertValue initWithSchemaVersion:schemaVersion], [TLAssertValue initWithLine:__LINE__], nil];
                 }
             });
+            return;
+        }
+
+        // Check if the IQ can be processed by one of our SDP data channel handler.
+        if ([TLDataChannelHandler processSdpPacketWithPeerConnectionService:self.peerConnectionService key:key peerConnectionId:peerConnectionId binaryDecoder:binaryDecoder]) {
             return;
         }
 
@@ -5857,6 +5932,64 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
     [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqResultPushPoll iq:onPushIQ];
 }
 
+- (void)processPushContactShareIQWithConnection:(nonnull TLConversationConnection *)connection iq:(nonnull TLPushContactShareIQ *)iq {
+    DDLogVerbose(@"%@ processPushContactShareIQWithConnection: %@ iq: %@", LOG_TAG, connection, iq);
+
+    TLContactShareDescriptor *contactShareDescriptor = iq.contactShareDescriptor;
+    TLConversationImpl *conversationImpl = connection.conversation;
+        
+    // Verify that the user can send us messages.
+    if ([conversationImpl hasPermissionWithPermission:TLPermissionTypeSendMessage]) {
+        [contactShareDescriptor saveAvatarWithData:iq.avatar];
+        [self popWithDescriptor:contactShareDescriptor connection:connection];
+    } else {
+        // Send him back a receive failure.
+        contactShareDescriptor.receivedTimestamp = -1;
+    }
+    
+    int deviceState = [self getDeviceStateWithConnection:connection];
+    TLOnPushIQ *onPushIQ = [[TLOnPushIQ alloc] initWithSerializer:[TLOnPushContactShareIQ SERIALIZER_1] requestId:iq.requestId deviceState:deviceState receivedTimestamp:contactShareDescriptor.receivedTimestamp];
+
+    [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqResultPushContactShare iq:onPushIQ];
+}
+
+- (void)processAnswerContactShareIQWithConnection:(nonnull TLConversationConnection *)connection iq:(nonnull TLAnswerContactShareIQ *)iq {
+    DDLogVerbose(@"%@ processAnswerContactShareIQWithConnection: %@ iq: %@", LOG_TAG, connection, iq);
+
+    TLDescriptorId *contactShareDescriptorId = iq.contactShareDescriptorId;
+
+    TLDescriptor *descriptor = [self getDescriptorWithDescriptorId:contactShareDescriptorId];
+    
+    if (![descriptor isKindOfClass:TLContactShareDescriptor.class]) {
+        TLOnPushIQ *onAnswerContactShareIq = [[TLOnPushIQ alloc] initWithSerializer:TLOnAnswerContactShareIQ.SERIALIZER_1 iq:iq];
+        [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqResultAnswerContactShare iq:onAnswerContactShareIq];
+    }
+    
+    TLContactShareDescriptor *contactShareDescriptor = (TLContactShareDescriptor *)descriptor;
+    
+    contactShareDescriptor.autoAnswer = iq.autoAnswer;
+    contactShareDescriptor.status = iq.status;
+    contactShareDescriptor.invitationTwincodeOutboundId = iq.invitationTwincodeOutboundId;
+    contactShareDescriptor.invitationTwincodeOutboundPubkey = iq.invitationTwincodeOutboundPubkey;
+    
+    [self.serviceProvider updateWithDescriptor:contactShareDescriptor];
+    
+    connection.conversation.isActive = YES;
+    
+    for (id delegate in self.delegates) {
+        if ([delegate respondsToSelector:@selector(onUpdateDescriptorWithRequestId:conversation:descriptor:updateType:)]) {
+            id<TLConversationServiceDelegate> lDelegate = delegate;
+            dispatch_async([self.twinlife twinlifeQueue], ^{
+                [lDelegate onUpdateDescriptorWithRequestId:TLBaseService.DEFAULT_REQUEST_ID conversation:connection.conversation descriptor:descriptor updateType:TLConversationServiceUpdateTypeContent];
+            });
+        }
+    }
+    
+    int deviceState = [self getDeviceStateWithConnection:connection];
+    TLOnPushIQ *onPushIQ = [[TLOnPushIQ alloc] initWithSerializer:[TLOnAnswerContactShareIQ SERIALIZER_1] requestId:iq.requestId deviceState:deviceState receivedTimestamp:contactShareDescriptor.receivedTimestamp];
+
+    [connection sendPacketWithStatType:TLPeerConnectionServiceStatTypeIqResultAnswerContactShare iq:onPushIQ];
+}
 
 - (void)processUpdateAnnotationsIQWithConnection:(nonnull TLConversationConnection *)connection iq:(nonnull TLUpdateAnnotationsIQ *)iq {
     DDLogVerbose(@"%@ processUpdateAnnotationsIQWithConnection: %@ iq: %@", LOG_TAG, connection, iq);
@@ -6072,7 +6205,7 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
                     }
 
                     int deviceState = [self getDeviceStateWithConnection:connection];
-                    TLSignatureInfoIQ *signatureInfo = joinResult && joinResult.inviterMemberTwincode ? [[self.twinlife getCryptoService] getSignatureInfoIQWithTwincode:joinResult.inviterMemberTwincode peerTwincode:twincodeOutbound renew:NO] : nil;
+                    TLSignatureInfoIQ *signatureInfo = errorCode == TLBaseServiceErrorCodeSuccess && joinResult && joinResult.inviterMemberTwincode ? [[self.twinlife getCryptoService] getSignatureInfoIQWithTwincode:joinResult.inviterMemberTwincode peerTwincode:twincodeOutbound renew:NO] : nil;
 
                     TLOnJoinGroupIQ *onJoinGroupIQ;
                     if (signatureInfo) {
@@ -6700,6 +6833,64 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
                     
                 }
                 [self setTimestampAnnotationWithDescriptor:pollDescriptor conversation:conversationImpl annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
+            }
+        }
+    }
+    
+    [self.scheduler finishOperation:operation connection:connection];
+}
+
+- (void)processOnPushContactShareIQWithConnection:(nonnull TLConversationConnection *)connection iq:(nonnull TLOnPushIQ *)iq {
+    DDLogVerbose(@"%@ processOnPushContactShareIQWithConnection: %@ iq: %@", LOG_TAG, connection, iq);
+
+    connection.peerDeviceState = (iq.deviceState & DEVICE_STATE_MASK) | DEVICE_STATE_VALID;
+
+    TLConversationImpl *conversationImpl = connection.conversation;
+    TLConversationServiceOperation *operation = [self.scheduler getOperationWithConversation:conversationImpl requestId:iq.requestId];
+    if (operation) {
+        if ([operation isKindOfClass:[TLPushContactShareOperation class]])  {
+            TLPushContactShareOperation *pushContactShareOperation = (TLPushContactShareOperation *)operation;
+            TLContactShareDescriptor *contactShareDescriptor = pushContactShareOperation.contactShareDescriptor;
+            if (contactShareDescriptor) {
+                int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
+                // Update the received timestamp only the first time.
+                if (contactShareDescriptor.receivedTimestamp <= 0) {
+                    [contactShareDescriptor setReceivedTimestamp:timestamp];
+                    
+                    [self updateWithDescriptor:contactShareDescriptor conversation:conversationImpl];
+                    
+                }
+                [self setTimestampAnnotationWithDescriptor:contactShareDescriptor conversation:conversationImpl annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
+            }
+        }
+    }
+    
+    [self.scheduler finishOperation:operation connection:connection];
+}
+
+
+- (void)processOnAnswerContactShareIQWithConnection:(nonnull TLConversationConnection *)connection iq:(nonnull TLOnPushIQ *)iq {
+    DDLogVerbose(@"%@ processOnAnswerContactShareIQWithConnection: %@ iq: %@", LOG_TAG, connection, iq);
+
+    connection.peerDeviceState = (iq.deviceState & DEVICE_STATE_MASK) | DEVICE_STATE_VALID;
+
+    TLConversationServiceOperation *operation = [self.scheduler getOperationWithConversation:connection.conversation requestId:iq.requestId];
+    if (operation) {
+        
+        if ([operation isKindOfClass:[TLAnswerContactShareOperation class]]) {
+            TLAnswerContactShareOperation *answerContactShareOperation = (TLAnswerContactShareOperation *)operation;
+            TLContactShareDescriptor *contactShareDescriptor = answerContactShareOperation.contactShareDescriptor;
+            
+            int64_t timestamp = [connection adjustedTimeWithTimestamp:iq.receivedTimestamp];
+            
+            // Update the received timestamp only the first time.
+            if (contactShareDescriptor) {
+                if (contactShareDescriptor.receivedTimestamp <= 0) {
+                    [contactShareDescriptor setUpdatedTimestamp:timestamp];
+                    [self updateWithDescriptor:contactShareDescriptor conversation:connection.conversation];
+                }
+                
+                [self setTimestampAnnotationWithDescriptor:contactShareDescriptor conversation:connection.conversation annotationType:TLDescriptorAnnotationTypeReceived timestamp:timestamp];
             }
         }
     }
@@ -7531,6 +7722,79 @@ TL_CREATE_ASSERT_POINT(SIGNATURE, 109)
     [peerAnnotations addObject:[[TLDescriptorAnnotation alloc] initWithType:annotationType value:timestamp]];
     
     [self.serviceProvider setAnnotationsWithDescriptor:descriptor peerTwincodeOutboundId:peerTwincodeOutbound.uuid annotations:peerAnnotations updatedAnnotations:[NSMutableDictionary dictionary]];
+}
+
+- (TLBaseServiceErrorCode)updateContactShareDescriptorWithDescriptor:(nonnull TLContactShareDescriptor *)descriptor status:(TLInvitationDescriptorStatusType)status {
+    DDLogVerbose(@"%@ updateContactShareDescriptorWithDescriptor: %@", LOG_TAG, descriptor);
+    
+    if (!self.serviceOn) {
+        return TLBaseServiceErrorCodeServiceUnavailable;
+    }
+    
+    if (descriptor.status == status) {
+        DDLogVerbose(@"%@ descriptor %@ already has status %d, nothing to do.", LOG_TAG, descriptor.descriptorId, status);
+        return TLBaseServiceErrorCodeSuccess;
+    }
+    
+    descriptor.status = status;
+    
+    [self.serviceProvider updateWithDescriptor:descriptor];
+    
+    TLConversationImpl *conversation = [self.serviceProvider loadConversationWithId:descriptor.conversationId];
+    
+    if (!conversation) {
+        DDLogError(@"%@ Couldn't find conversation for descriptor: %@", LOG_TAG, descriptor);
+        return TLBaseServiceErrorCodeLibraryError;
+    }
+    
+    NSMutableArray<TLConversationImpl *> *conversations = [TLConversationService getConversations:conversation sendTo:nil];
+    
+    if (conversations && conversations.count > 0) {
+        // Send the object to each peer.
+        NSMapTable<TLConversationImpl *, NSObject *> *pendingOperations = [[NSMapTable alloc] init];
+        for (TLConversationImpl *conversationImpl in conversations) {
+            [conversationImpl touch];
+            conversationImpl.isActive = YES;
+            
+            TLAnswerContactShareOperation *answerContactShareOperation = [[TLAnswerContactShareOperation alloc] initWithConversation:conversation contactShareDescriptor:descriptor];
+            
+            [pendingOperations setObject:answerContactShareOperation forKey:conversationImpl];
+        }
+        [self addOperationsWithMap:pendingOperations];
+    }
+    
+    return TLBaseServiceErrorCodeSuccess;
+}
+
+- (void)cleanupContactShareWithDescriptor:(nonnull TLContactShareDescriptor *)descriptor targetConversation:(nullable id<TLConversation>)targetConversation {
+    DDLogVerbose(@"%@ cleanupContactShareWithDescriptor:%@ targetConversation:%@", LOG_TAG, descriptor, targetConversation);
+    
+    NSUUID *invitationTwincodeOutboundId = descriptor.invitationTwincodeOutboundId;
+    
+    if (invitationTwincodeOutboundId) {
+        if (targetConversation) {
+            // Find and delete the invitation twincodeOutbound's TLTwincodeDescriptor.
+            NSArray<TLDescriptor *> *twincodeDescriptors = [self.serviceProvider listDescriptorWithConversation:targetConversation types:@[@(TLDescriptorTypeTwincodeDescriptor)] callsMode:TLDisplayCallsModeNone beforeTimestamp:INT64_MAX maxDescriptors:10];
+            
+            for (TLDescriptor *descriptor in twincodeDescriptors) {
+                TLTwincodeDescriptor *twincodeDescriptor = (TLTwincodeDescriptor *)descriptor;
+                
+                if ([twincodeDescriptor.twincodeId isEqual:invitationTwincodeOutboundId]) {
+                    [self.serviceProvider deleteDescriptorWithDescriptor:twincodeDescriptor conversation:targetConversation];
+                    break;
+                }
+            }
+        }
+        
+        // Delete the invitation twincodeOutbound.
+        [self.twincodeOutboundService evictTwincode:invitationTwincodeOutboundId];
+    }
+    
+    // Clean up the descriptor.
+    descriptor.invitationTwincodeOutboundId = nil;
+    descriptor.invitationTwincodeOutboundPubkey = nil;
+    
+    [self.serviceProvider updateWithDescriptor:descriptor];
 }
 
 @end

@@ -41,7 +41,6 @@ targetTemplates:
           - "TLManagementService.h"
           - "TLNotificationService.h"
           - "TLPeerCallService.h"
-          - "service/TLPeerConnectionHandler.h"
           - "TLPeerConnectionService.h"
           - "TLPrimitiveData.h"
           - "TLQueue.h"
@@ -72,3 +71,4 @@ targetTemplates:
           - "TLRestoreContent.h"
           - "TLVerifyReport.h"
           - "TLPermissions.h"
+          - "TLDataChannelHandler.h"

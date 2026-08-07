@@ -343,7 +343,8 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
             case TLConversationServiceOperationTypePushGeolocation:
             case TLConversationServiceOperationTypeInviteGroup:
             case TLConversationServiceOperationTypeWithdrawInviteGroup:
-            case TLConversationServiceOperationTypePushPoll: {
+            case TLConversationServiceOperationTypePushPoll:
+            case TLConversationServiceOperationTypePushContactShare: {
                 
                 [self expireOperationWithOperation:operation];
                 break;
@@ -363,6 +364,7 @@ static const int64_t EXPIRATION_DELAY = 14 * 24 * 3600 * 1000; // ms (14 days)
             case TLConversationServiceOperationTypeInvokeAddMember:
             case TLConversationServiceOperationTypeInvokeRosterRemove:
             case TLConversationServiceOperationTypeUpdateObject:
+            case TLConversationServiceOperationTypeAnswerContactShare:
                 // No descriptor to update.
                 break;
         }

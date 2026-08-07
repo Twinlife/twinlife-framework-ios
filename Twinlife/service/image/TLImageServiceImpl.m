@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2025 twinlife SA.
+ *  Copyright (c) 2020-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -25,6 +25,7 @@
 #import "TLOnGetImageIQ.h"
 #import "TLOnPutImageIQ.h"
 #import "TLBinaryErrorPacketIQ.h"
+#import "TLConversationService.h"
 
 #define COPY_IMAGE_SCHEMA_ID       @"6c2a932e-3dc6-47f2-b253-6975818d3a3c"
 #define CREATE_IMAGE_SCHEMA_ID     @"ea6b4372-3c7d-4ce8-92d8-87a589906a01"
@@ -153,6 +154,16 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
 #define LOG_TAG @"TLImageId"
 
 @implementation TLImageId
+
++ (nullable instancetype)fromString:(nonnull NSString *)string {
+    if(![string hasPrefix:@"IMG-"] || string.length == 4) {
+        return nil;
+    }
+    
+    NSString *localId = [string substringFromIndex:@"IMG-".length];
+    
+    return [[TLImageId alloc] initWithLocalId:localId.longLongValue];
+}
 
 - (nonnull instancetype)initWithLocalId:(int64_t)localId {
     
@@ -720,7 +731,6 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
     return [NSData dataWithContentsOfFile:[self getCachedImagePathWithImageId:info.publicId kind:TLImageServiceKindNormal]];
 }
 
-
 - (void)createImageWithImage:(nullable UIImage *)image thumbnail:(nonnull UIImage *)thumbnail withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, TLExportedImageId *_Nullable imageId))block {
     DDLogVerbose(@"%@ createImageWithImage: %@ thumbnail: %@", LOG_TAG, image, thumbnail);
     
@@ -954,7 +964,11 @@ TL_CREATE_ASSERT_POINT(READ_IMAGE, 201)
     if (info.status == TLImageDeleteStatusTypeLocal) {
         // No copy exist, we can remove the image.
         [self removeCachedImagePathWithImageId:info.publicId];
-        
+
+        NSString *path = [self getLocalImagePathWithImageId:info.publicId];
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        [fileManager removeItemAtPath:path error:nil];
+
         [self.thumbnailCache removeObjectForKey:imageId];
         [self.imageCache removeObjectForKey:imageId];
         

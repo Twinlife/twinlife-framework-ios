@@ -27,6 +27,8 @@ typedef enum {
     TLConversationServiceOperationTypePushTwincode,
     TLConversationServiceOperationTypePushCommand,
     TLConversationServiceOperationTypePushPoll,
+    TLConversationServiceOperationTypePushContactShare,
+    TLConversationServiceOperationTypeAnswerContactShare,
     TLConversationServiceOperationTypeUpdateAnnotations,
     TLConversationServiceOperationTypeUpdateObject,
 

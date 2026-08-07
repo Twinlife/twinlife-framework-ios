@@ -10,6 +10,8 @@
 		000AAD05FDE20BE74110549B /* TLServerConnection.h in Sources */ = {isa = PBXBuildFile; fileRef = 9689F80AEE577867691FD2F7 /* TLServerConnection.h */; };
 		000E10ECC9AD4C0D32C8C1B9 /* TLVideoDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = F14701302499C375C2FBB2AF /* TLVideoDescriptorImpl.h */; };
 		001EED85C1D76324491867F0 /* TLOnPutFileIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = BA21670248794AD81B904213 /* TLOnPutFileIQ.h */; };
+		00478C048F04DE462B4BAC07 /* TLContactShareDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */; };
+		004EE23F4A69D84248BA4F38 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */; };
 		007869F8F57C88493ACF6693 /* TLProxyDescriptor.m in Sources */ = {isa = PBXBuildFile; fileRef = 3BD92554C37F7CD2800751C9 /* TLProxyDescriptor.m */; };
 		008FDC445485BA3A72EDF046 /* TLOnValidateConfigurationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 706AF9BAC0480E86F7A026FB /* TLOnValidateConfigurationIQ.h */; };
 		00B27D3FEF681A3CA3CBE446 /* TLBooleanData.m in Sources */ = {isa = PBXBuildFile; fileRef = 73B84EFCA6115B4C8513CFF9 /* TLBooleanData.m */; };
@@ -22,7 +24,6 @@
 		013BD34FD6DEA7679AE5A3A4 /* TLVerifyReport.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0813C09C7DAC04689F2ED328 /* TLVerifyReport.h */; };
 		013D8AF3E48BB4E6C5AD648A /* TLOnCreateRosterIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = E2F82210D71A45369D016174 /* TLOnCreateRosterIQ.h */; };
 		0157A4A2821A63DAEFE05303 /* TLCreateAccountIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 18EBD46C7BB28C2DE110D77B /* TLCreateAccountIQ.m */; };
-		0157AB6DD867299382D21EF6 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */; };
 		01677926364FDE13C1C04BB9 /* TLOnListFilesIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = D29C01CB2B693554C9400A9F /* TLOnListFilesIQ.h */; };
 		018D5A4B82E00C81AC9FED9D /* TLBaseService.h in Sources */ = {isa = PBXBuildFile; fileRef = 1A402268EA28BE2839896808 /* TLBaseService.h */; };
 		01A6045B1BB4B0D285C271CD /* TLTwinlifeSecuredConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 124F9B47D5487D2CFC64D031 /* TLTwinlifeSecuredConfiguration.m */; };
@@ -130,7 +131,6 @@
 		092F90A5854DE9428B1B6749 /* TLProxyDescriptor.m in Sources */ = {isa = PBXBuildFile; fileRef = 3BD92554C37F7CD2800751C9 /* TLProxyDescriptor.m */; };
 		092FA0D6855713850844C9B0 /* TLConversationConnection.h in Sources */ = {isa = PBXBuildFile; fileRef = 31818BD716EE839B322D4302 /* TLConversationConnection.h */; };
 		093F2977E6D9B19A5484598F /* TLMemberNotificationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 23D0EBCFD454B93586A529F7 /* TLMemberNotificationIQ.m */; };
-		0997B1EED3D40EAD882F7224 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */; };
 		09A5BEDB2350484D2E167EC9 /* TLDataInputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 891DB8A725E4039504C55B99 /* TLDataInputStream.m */; };
 		09A9AB2011D9007AC54EDBBA /* TLTerminateMigrationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B2BCC2D76485BE09B17E32F /* TLTerminateMigrationIQ.m */; };
 		09C833DB8C2DBBCEFCC363EB /* TLInvitationCode.h in Sources */ = {isa = PBXBuildFile; fileRef = A56228F112FC9725B28272AB /* TLInvitationCode.h */; };
@@ -147,7 +147,6 @@
 		0AACF0AF887B561DDBAA02FB /* TLResultIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = C81715957E5C586CBE211609 /* TLResultIQ.m */; };
 		0AAE9D211A112072F493D6F5 /* TLStringData.h in Sources */ = {isa = PBXBuildFile; fileRef = 1477BA41B3CFDC5F837B768A /* TLStringData.h */; };
 		0AB38E74FB75B57C50A9DF60 /* TLOnGetAllBackupsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 45CFDB52895164B137B34401 /* TLOnGetAllBackupsIQ.m */; };
-		0AB47D0DEE5994DE278A3792 /* TLPeerConnectionHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		0AC3D83107E13CCF9606C24F /* TLUpdateAnnotationsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 5E7D99A4C1475D3CC689FBCE /* TLUpdateAnnotationsIQ.h */; };
 		0B03EE58C37ED59B0CE2E896 /* TLBinaryPacketIQ.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5D7DFF36129D6968740BA30E /* TLBinaryPacketIQ.h */; };
 		0B233252BC268498D4C1D9B0 /* TLTerminateMigrationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B2BCC2D76485BE09B17E32F /* TLTerminateMigrationIQ.m */; };
@@ -156,6 +155,7 @@
 		0B567E8A7C75FEBD17A335C6 /* TLOnDeleteImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 72F8FD189A62BE627560871F /* TLOnDeleteImageIQ.h */; };
 		0BA0815F8E003E4D3E7336EF /* TLFilter.m in Sources */ = {isa = PBXBuildFile; fileRef = CD72B9C451717A08080BAB4B /* TLFilter.m */; };
 		0BC750FB70B234BFB42FCAE3 /* TLOnGetObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = A1CCDD067E8A8C7B696789DF /* TLOnGetObjectIQ.m */; };
+		0BD560B649A09324CDEA61E6 /* TLAnswerContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */; };
 		0BE26E8EA9483C97A7140C36 /* TLGroupLeaveOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 6325AB88401256C90778D08F /* TLGroupLeaveOperation.h */; };
 		0BE560E4E4CFE962A583EC1C /* TLCryptoServiceProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 62FC95B5576A57F721FC6507 /* TLCryptoServiceProvider.m */; };
 		0C0EEB70D58F144A9718C4A2 /* TLOnPushTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 7DE45BCC890DC1FC72E9059E /* TLOnPushTwincodeIQ.h */; };
@@ -188,6 +188,7 @@
 		0DEAE94C048E76C7879DF508 /* TLTwincodeDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A9F3DEAB702D4A48502CEC8 /* TLTwincodeDescriptorImpl.m */; };
 		0E06CADF7FA1A86B199B2957 /* TLConversationServiceScheduler.m in Sources */ = {isa = PBXBuildFile; fileRef = 51551B87D0C6F994D70033CD /* TLConversationServiceScheduler.m */; };
 		0E0CE8F47C0166436837EC3A /* TLConversationProtocol.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = AF82A0ACB5E80A774FA72A68 /* TLConversationProtocol.h */; };
+		0E21B9B822C304CB628A4354 /* TLDataChannelHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */; };
 		0E279EFC6BA24E9993471583 /* TLUpdateGeolocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 01C8FF8A0E098DE7537055DE /* TLUpdateGeolocationIQ.h */; };
 		0E3FB40556DFC72649D8FB36 /* TLTwincodeInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 8345EC63E2A58717F311952F /* TLTwincodeInfo.m */; };
 		0E6A5659B7660D8118D89432 /* TLConversationImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4290FE7F4C56017533634 /* TLConversationImpl.h */; };
@@ -212,11 +213,11 @@
 		0FD81423C655530190B06E70 /* TLOnCreateRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 91874F5B189CF74430486E7A /* TLOnCreateRosterIQ.m */; };
 		0FDEECD02CE5EBE45D11B9BF /* TLSerializerFactoryImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = E1720462ECFD7C2865B0F178 /* TLSerializerFactoryImpl.m */; };
 		0FE2F63AD69045280E57B65F /* TLCDATAData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1001D1C0E2CAC9886F58C34B /* TLCDATAData.h */; };
-		0FE77E4CBDFA1B8D82C2B926 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		0FF5827692F73B481457283E /* TLOnPushObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = FBB5734D94FD6A9187B68C63 /* TLOnPushObjectIQ.h */; };
 		1028377C0401D5825BF16B28 /* TLObjectDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = DB4C9B7927BB1B4BCF0B6AD2 /* TLObjectDescriptorImpl.m */; };
 		1028F97D9B8F0B10B77D9217 /* TLTwincodeInboundService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 38CA6EB10F573ACF3E40CEFF /* TLTwincodeInboundService.h */; };
 		102BDC10F4A8260815A0255E /* TLNamedFileDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 2545B16FB396BC6781906B99 /* TLNamedFileDescriptorImpl.h */; };
+		103324272295B75DADD46646 /* TLPushContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */; };
 		10430C8E0D4BE7B3440C05D4 /* TLProxyDescriptor.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 20ACB5A5DFEF186CB0985CC8 /* TLProxyDescriptor.h */; };
 		104ABB0A8378BD548B459F4C /* TLOnPushGeolocationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 879B3ABD696DD437E6C99286 /* TLOnPushGeolocationIQ.m */; };
 		1068ECE8F0DBCBEBAD784F60 /* TLPushTransientIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B2989DDB2C58F5457609E36 /* TLPushTransientIQ.m */; };
@@ -240,6 +241,7 @@
 		1248666E0BDB33BEB00DC3AE /* TLAccountServiceSecuredConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 08F4CF32BFAED0B3A0F3AFD5 /* TLAccountServiceSecuredConfiguration.m */; };
 		124A31DD407D31D8E4049572 /* TLOnGetObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C560AC4F11D0A8591F19295 /* TLOnGetObjectIQ.h */; };
 		125B05903C8FD655516DDA0B /* TLGroupInviteOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = BED7E0762D921F084B9851E3 /* TLGroupInviteOperation.h */; };
+		1262C4BBE0B6450B453668C4 /* TLOnAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */; };
 		126909826F7149219BDFBA10 /* TLUpdateConfigurationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5990B7365A3A6A66546F3000 /* TLUpdateConfigurationIQ.m */; };
 		128D415BCC634A1339DBFAF2 /* TLStartIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = F90E2CF817725CC22AFD6731 /* TLStartIQ.m */; };
 		128D63056D79E741E7C9DDA4 /* TLCryptoServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 398188C7512FB4761B092C1A /* TLCryptoServiceImpl.m */; };
@@ -276,6 +278,7 @@
 		1560EE3D7CF8582027E430C6 /* TLSecureRosterServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0825FD75D3205A51F41810C2 /* TLSecureRosterServiceImpl.m */; };
 		156BE77BF8BB676A62DA8D8C /* TLCryptoService.h in Sources */ = {isa = PBXBuildFile; fileRef = 2EF22C7777A0096FB936EB05 /* TLCryptoService.h */; };
 		156D50CFAE66672559F91462 /* TLOnJoinGroupIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 33EF5AFFD352025CEE0B94F5 /* TLOnJoinGroupIQ.m */; };
+		15A8A75D5A1594B2C48D8010 /* TLPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */; };
 		15C4869AB25C8623EF078068 /* TLRefreshTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 0104F685D499857856F47667 /* TLRefreshTwincodeIQ.h */; };
 		15D669A29F08E5E265DA480B /* TLTransientObjectDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E4AAA160BE650563CEEA5A /* TLTransientObjectDescriptorImpl.h */; };
 		15F016196A01E470EC44525A /* TLQueryStatsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 3686552D24B61BA1F05ACE67 /* TLQueryStatsIQ.m */; };
@@ -293,10 +296,12 @@
 		16C59175C629019F54F3ABD0 /* TLGetObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74EAD7A78743AFF25D4AE709 /* TLGetObjectIQ.h */; };
 		16C9501073DE57CD1F17B94E /* TLServiceRequestIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = F5AB432697C2E62CDD4EB97C /* TLServiceRequestIQ.m */; };
 		16EA41E1B1247666EE12660A /* TLCreateCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = F0171F3E06C20C47DDB56AC5 /* TLCreateCallRoomIQ.m */; };
+		16F3214486B0842C93088D95 /* TLOnAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */; };
 		16F43ABFBF668C07628A30F3 /* TLPeerConnectionObserver.h in Sources */ = {isa = PBXBuildFile; fileRef = BA7B48950DD30F65738A3A00 /* TLPeerConnectionObserver.h */; };
 		16F47282427599A4B484EF90 /* TLFilter.h in Sources */ = {isa = PBXBuildFile; fileRef = 3464BB20DE5772D71F941702 /* TLFilter.h */; };
 		172C5E1C4A92E79B3BE01C8F /* TLBooleanData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1C8B45AF9A6C805A42DA56B4 /* TLBooleanData.h */; };
 		1734B7F1DD4E612049D56E0A /* TLBackupHeaderInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 667D2E795ADBAED21E986D3E /* TLBackupHeaderInfo.h */; };
+		173692D3BAAD92A873E1C2A1 /* TLPushContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */; };
 		1765B9CA6C81E4D3CB7D6C38 /* TLCancelFeatureIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A93C2451D4F0B6E5BF930CE /* TLCancelFeatureIQ.m */; };
 		17725228658650E45B9EA532 /* TLRecordData.m in Sources */ = {isa = PBXBuildFile; fileRef = 265863FB581753EF70B1F03A /* TLRecordData.m */; };
 		1772A28880B35D9DD3B9F8F2 /* TLFileDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0A71155C5B21201F4538A927 /* TLFileDescriptorImpl.m */; };
@@ -311,6 +316,7 @@
 		185FD7D6251FC4E7E3073C59 /* TLPushTransientIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B2989DDB2C58F5457609E36 /* TLPushTransientIQ.m */; };
 		186B34D737AF5AFF63F5A125 /* TLApplication.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9AE766E719DCA3F1617D127C /* TLApplication.h */; };
 		1874DC2B861CF233B3EC5F50 /* TLRequestIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 9B6777EA128DD751291F0F5A /* TLRequestIQ.h */; };
+		18850CD98C5CEC33E9889DDC /* TLContactShareDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */; };
 		18B6A8524AB287A97EFE37E6 /* TLOnSubscribeFeatureIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0E434FCFC8D6460BA99046E6 /* TLOnSubscribeFeatureIQ.m */; };
 		18CD62F850E8110689B5C197 /* TLSdp.m in Sources */ = {isa = PBXBuildFile; fileRef = 7DB35DFA73170C55E4C2C3FF /* TLSdp.m */; };
 		19167904CBCFC3B3927F4221 /* TLBackupHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 5A9AB4E250D904969F8AF05F /* TLBackupHandler.h */; };
@@ -327,7 +333,6 @@
 		1A1D646E3415ABF2C796515F /* TLRecordData.m in Sources */ = {isa = PBXBuildFile; fileRef = 265863FB581753EF70B1F03A /* TLRecordData.m */; };
 		1A3B088EAC8D880B541A5BB4 /* TLConfigIdentifier.h in Sources */ = {isa = PBXBuildFile; fileRef = E34DF1D9B063AF938AE0E9BD /* TLConfigIdentifier.h */; };
 		1A3B309A22ED4612D63E119D /* TLJoinGroupIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6D04BE83BCC76AD5457C9FAB /* TLJoinGroupIQ.h */; };
-		1A48C7AAAA4810550B324761 /* TLPeerConnectionHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		1A64B75117917F6625C15490 /* TLPushThumbnailIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 462907E25E83DA5F4EEFD185 /* TLPushThumbnailIQ.h */; };
 		1A65E0B1BDF7FBCC3E886FD3 /* TLAssertion.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = D3E37ACAE264E58219D5A39A /* TLAssertion.h */; };
 		1A7151DF104518E78D3F9BC0 /* TLTwinlifeSecuredConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 124F9B47D5487D2CFC64D031 /* TLTwinlifeSecuredConfiguration.m */; };
@@ -336,12 +341,15 @@
 		1A9DED0690AF1A10CE678105 /* TLRepositoryServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 9405D172907295D0F8BD53DA /* TLRepositoryServiceImpl.h */; };
 		1AA0822F2AE90511EBA87484 /* TLOnCreateImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 652C466D766C67BAC186B90B /* TLOnCreateImageIQ.m */; };
 		1AA80457E3638A51A2122B40 /* TLTwincodeInboundServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 44C6B9A75FC45C6817EDD36D /* TLTwincodeInboundServiceImpl.h */; };
+		1AF97F5DC0DEC1A0125B57A8 /* TLPushContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */; };
 		1AFDAD0C8711D41247718908 /* TLListFilesIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7A156AD93D06CCDAE5B39AF0 /* TLListFilesIQ.m */; };
 		1B043E9EF5DB06AAD9A09643 /* TLPeerConnectionServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = E59FEFC57269A703DDB11E1C /* TLPeerConnectionServiceImpl.h */; };
 		1B19DF66EBA831B8838B49C3 /* TLResultIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = C81715957E5C586CBE211609 /* TLResultIQ.m */; };
 		1B36E5E75113594F99F9D1CE /* TLFilter.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3464BB20DE5772D71F941702 /* TLFilter.h */; };
+		1B63910B4D51CEBE0A4E7097 /* TLAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */; };
 		1B79BD38F591146CF10A0A06 /* TLGetTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = A60FF2EFD033A3ABDE22B078 /* TLGetTwincodeIQ.h */; };
 		1B7AA31111B62CB219F9C331 /* TLOnPushTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7933156E8E5CAAAEEA709592 /* TLOnPushTwincodeIQ.m */; };
+		1B8E6C300669A85F7420BAB9 /* TLAnswerContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */; };
 		1B9865B368069465C530FB68 /* TLImageService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 73C8F84964B14C2A358C9684 /* TLImageService.h */; };
 		1BB573A7196ED983FBD482B1 /* TLUpdateDescriptorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 12C3FF553C8E0E145C046619 /* TLUpdateDescriptorIQ.m */; };
 		1BBCFF1F57A7231F023F2E4B /* TLOnGetInvitationCodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 31DB29F3B22771B4F3E7EB6D /* TLOnGetInvitationCodeIQ.m */; };
@@ -421,6 +429,7 @@
 		20875CF14AB9C8F39121C0C9 /* TLPrimitiveData.h in Sources */ = {isa = PBXBuildFile; fileRef = 99E76DC3CA31E86E890C3548 /* TLPrimitiveData.h */; };
 		208865DA0E8555B7C0798954 /* TLStringData.h in Sources */ = {isa = PBXBuildFile; fileRef = 1477BA41B3CFDC5F837B768A /* TLStringData.h */; };
 		20BFCA712956F14BC8A7A699 /* TLDatabaseCheck.h in Sources */ = {isa = PBXBuildFile; fileRef = 0B5C753C71E8A05E609C1167 /* TLDatabaseCheck.h */; };
+		20DFBE639BD62D9817239D3C /* TLPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */; };
 		20DFC23D78912C4C168D7FEE /* TLDeleteTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 26EAF56116C751E8B51E044B /* TLDeleteTwincodeIQ.h */; };
 		20E1825F11DB63E61E25EF7D /* TLUpdateConfigurationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C3858802E5FCAFE7DAE5483 /* TLUpdateConfigurationIQ.h */; };
 		20FB5884FBCD4695632E09AF /* TLOnPushTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7933156E8E5CAAAEEA709592 /* TLOnPushTwincodeIQ.m */; };
@@ -437,6 +446,8 @@
 		2208BEAEA7049549F0448F60 /* TLServiceResultIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 636B2AF4B2B331AE82303B46 /* TLServiceResultIQ.m */; };
 		221364BF4CCB40FE50D3D0FD /* TLVoidData.m in Sources */ = {isa = PBXBuildFile; fileRef = 1754049FD4586C6B9A5D547C /* TLVoidData.m */; };
 		222AF46C5AA413C5835FC187 /* TLCancelFeatureIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A93C2451D4F0B6E5BF930CE /* TLCancelFeatureIQ.m */; };
+		224F3152D43A447B408515B5 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */; };
+		2257599DE62C68E629717504 /* TLOnPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */; };
 		226770DDAE196954371DD51A /* TLTwinlifeImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0167EA10D68EAC62D20E2CE8 /* TLTwinlifeImpl.m */; };
 		226F9CDF31900077E773213A /* TLErrorIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 8EDFB5A71EAFF5B13604A9A6 /* TLErrorIQ.h */; };
 		2278B6A556F78293BA9BF513 /* TLGetTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = A60FF2EFD033A3ABDE22B078 /* TLGetTwincodeIQ.h */; };
@@ -449,8 +460,10 @@
 		232943BF0B2CAE8166E293E5 /* TLFileDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 57E495A02996D9274E133C26 /* TLFileDescriptorImpl.h */; };
 		2330D17AD630E77152B4B1C3 /* TLConversationServiceScheduler.h in Sources */ = {isa = PBXBuildFile; fileRef = E18661C043B407732755F22E /* TLConversationServiceScheduler.h */; };
 		234231801D2C622385DCE986 /* TLBackupHeaderInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 9702A06BDDD34CF8C3FE7510 /* TLBackupHeaderInfo.m */; };
+		2355CE467FEE0D9EF1A02FDF /* TLAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */; };
 		235D13F5625A5D3A9E9AE1EE /* TLUpdateConfigurationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C3858802E5FCAFE7DAE5483 /* TLUpdateConfigurationIQ.h */; };
 		2386E007EDBB65A7880725F9 /* TLBinaryPacketIQ.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5D7DFF36129D6968740BA30E /* TLBinaryPacketIQ.h */; };
+		23CAEEA548D7732B595C8F80 /* TLContactShareDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */; };
 		23CFE40E5AE7421D718558E6 /* TLImageId.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E51FBBDECF994BC2264A7397 /* TLImageId.h */; };
 		23E172F3705BB347BDE058BC /* TLOnListRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E48DC00AE442A84D428C6D02 /* TLOnListRosterIQ.m */; };
 		23F9734A0CE4C189510A2BAE /* TLCryptoDataOutput.h in Sources */ = {isa = PBXBuildFile; fileRef = 32829B1FC47862642E13CACD /* TLCryptoDataOutput.h */; };
@@ -489,6 +502,7 @@
 		270C9BE8B2E17B59B3AE7C0C /* TLInvocationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0DED4976B4F8D730BF3F1C7A /* TLInvocationIQ.m */; };
 		2713BE56CD490022FB3BAED7 /* TLPollDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 71B81142AFB94DAD706EE227 /* TLPollDescriptorImpl.h */; };
 		27398614C32864E3C52EC325 /* TLDatabaseService.m in Sources */ = {isa = PBXBuildFile; fileRef = C7EFFB3A9F12DE6644AC1778 /* TLDatabaseService.m */; };
+		273C455CF9D368FBD7755041 /* TLDataChannelHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		275264E42371E971D41FA783 /* TLDeleteAccountIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B59FA0ED6C871364705C541 /* TLDeleteAccountIQ.m */; };
 		27641A7FB4D8816CF6785423 /* TLOnAuthChallengeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 9B5EDBC1F4CC7A64C7060F81 /* TLOnAuthChallengeIQ.h */; };
 		2779CED3E413F4228269AE28 /* TLLogEventIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E2748F38EADC7FF9F3B7BBB8 /* TLLogEventIQ.m */; };
@@ -497,6 +511,7 @@
 		27E47E7D3A38C46C3ECD6A59 /* TLSecureRosterService.h in Sources */ = {isa = PBXBuildFile; fileRef = E7F4F4C8D9C3C8259227D10F /* TLSecureRosterService.h */; };
 		27E4897E75859EB1DC826116 /* TLDatabaseService.m in Sources */ = {isa = PBXBuildFile; fileRef = C7EFFB3A9F12DE6644AC1778 /* TLDatabaseService.m */; };
 		27E99971583EA41AE6FB1231 /* TLTwincodeDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = F4026E9A5A7BA9CA59F45CFF /* TLTwincodeDescriptorImpl.h */; };
+		28239F548CF55E422BD91ACA /* TLDataChannelHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		28291F1F9B53EA8D7E07D21A /* TLOnCreateRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 91874F5B189CF74430486E7A /* TLOnCreateRosterIQ.m */; };
 		2860454650BE50B142D43F04 /* TLAccountIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 2BED22AC3201D020DE1CFEFD /* TLAccountIQ.h */; };
 		2882BB031039DFDD005E76FF /* TLInviteGroupIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 4FC6610B0140CD619E0FAD1C /* TLInviteGroupIQ.h */; };
@@ -509,6 +524,7 @@
 		28EC5E33034B84454C84CA4E /* TLOnUpdateDescriptorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B3A25AD92D2D3D47E8D2120D /* TLOnUpdateDescriptorIQ.m */; };
 		28ED9BBE27D1F31BBDFCFD35 /* TLOnCreateInvitationCodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = F3A2C7E6B0084694C9CC676D /* TLOnCreateInvitationCodeIQ.h */; };
 		291DF9E0D5AEF3A742A70466 /* TLQueue.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 4C7DC5577DD5F6D8F9745867 /* TLQueue.h */; };
+		292E4821158E5CC32BF18B90 /* TLPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */; };
 		292FBFF8E5BCC3B2F9D155F9 /* TLBaseService.h in Sources */ = {isa = PBXBuildFile; fileRef = 1A402268EA28BE2839896808 /* TLBaseService.h */; };
 		29568DFAFE59FBFA2919A46B /* TLVideoDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0089F8D0298C6FEDF3FB6493 /* TLVideoDescriptorImpl.m */; };
 		29670FC1765F6CF162238038 /* TLConversationImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = CF8F06CAD232F2E7E4673B4B /* TLConversationImpl.m */; };
@@ -539,6 +555,7 @@
 		2B244D1E82CD2E6768CECA0C /* TLAuthChallengeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 022A0A0B989547F4C7970EA3 /* TLAuthChallengeIQ.m */; };
 		2B7097648760485908B42608 /* TLInvocationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0DED4976B4F8D730BF3F1C7A /* TLInvocationIQ.m */; };
 		2BA5F15CE6B79116BE63DC30 /* TLDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 29A88C6E249DAE6D2660E02C /* TLDescriptorImpl.m */; };
+		2BA72914374F58D58392ADFF /* TLOnPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */; };
 		2BB1018B46D19820EDA16457 /* TLVoidData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = FD9BE9AA9378DDFAA29B2805 /* TLVoidData.h */; };
 		2BBD3C4D10367D166B741D0E /* TLOnResetConversationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5E8B44C1A8F816BF6FF21FA2 /* TLOnResetConversationIQ.m */; };
 		2BC65AF303113A1E86BCF375 /* TLConversationServiceIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 3D1DF6F139A91425FDB1CE50 /* TLConversationServiceIQ.h */; };
@@ -621,6 +638,7 @@
 		31B3FFBD68A88D1063E44818 /* TLOnUpdateObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 44ECB70FF893314EE92F89C8 /* TLOnUpdateObjectIQ.m */; };
 		31B49E2C0AB01556A9283E85 /* TLPushThumbnailIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = AC9EE006C41296CBD4CC0174 /* TLPushThumbnailIQ.m */; };
 		31DDDF0A1F8F7B2CB3BFE995 /* TLOnPutImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B68CDD4CAD675049F2347D65 /* TLOnPutImageIQ.m */; };
+		31FD881254D287D1749F8F77 /* TLPushContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */; };
 		3206BA5286D2E26F54A860D8 /* TLListFilesIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7A156AD93D06CCDAE5B39AF0 /* TLListFilesIQ.m */; };
 		320E5D6FF807BAED8B2AA4FB /* TLBackupHeaderHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 0F03829C592D5905C7E52BDE /* TLBackupHeaderHandler.m */; };
 		3258783F87B7A1C2355C56AD /* TLDeleteAccountIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B59FA0ED6C871364705C541 /* TLDeleteAccountIQ.m */; };
@@ -633,6 +651,7 @@
 		32F2560BD5A07D7F353146D0 /* TLConversationServiceProvider.h in Sources */ = {isa = PBXBuildFile; fileRef = AB8C95DA8E4FEB989BA57D45 /* TLConversationServiceProvider.h */; };
 		33002FD0245ECF729A6706B9 /* TLSendingFileInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 304382AE0D85D6521E1DE51E /* TLSendingFileInfo.h */; };
 		331BA6B30C29ED51B5E8932A /* TLPushFileIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = CA80BCD71005BD7F51667FDC /* TLPushFileIQ.m */; };
+		332888672D50EF0E2EE544F6 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */; };
 		3331A30FE066B50FFEC9B305 /* TLPushThumbnailIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 462907E25E83DA5F4EEFD185 /* TLPushThumbnailIQ.h */; };
 		334E7611B680D1CC28EB4AA6 /* TLGroupJoinOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 7C7B07A8514FD206758467F4 /* TLGroupJoinOperation.h */; };
 		3359035CECC4281752054FAD /* TLBinaryDecoder.h in Sources */ = {isa = PBXBuildFile; fileRef = F1A04D49EC75CA8325C70DE7 /* TLBinaryDecoder.h */; };
@@ -666,10 +685,12 @@
 		35D01D09910809007372A196 /* TLOnCopyImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = D690BA63FCF4A705355E108C /* TLOnCopyImageIQ.h */; };
 		35EFCA62D6CA2E6EDFA04E6B /* TLOnPushObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = FBB5734D94FD6A9187B68C63 /* TLOnPushObjectIQ.h */; };
 		36023202AE562818275EFAF2 /* TLAccountService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = BB60C37B539725B7D81E89AB /* TLAccountService.h */; };
+		36033D670365574E53BF9DF6 /* TLDataChannelHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		3616F0E96E777AEA3355AA57 /* TLGeolocationDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 04A326B5CA866F409C4E49AD /* TLGeolocationDescriptorImpl.m */; };
 		362486D43050FBEBE0FEDCC2 /* TLGenerateBackupKeyIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 494C0E301C90CC10E1C583A4 /* TLGenerateBackupKeyIQ.h */; };
 		36509D84A7AB0A5874FF2693 /* TLFeedbackIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 50A551CE05C9E48CE33373A3 /* TLFeedbackIQ.m */; };
 		3655236F7C74C00B6A7A38E3 /* TLOnCreateInvitationCodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = F3A2C7E6B0084694C9CC676D /* TLOnCreateInvitationCodeIQ.h */; };
+		365A4161A260D03C62B1155F /* TLOnPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */; };
 		366B08C9A7012DF8F98B66BD /* TLAccountServiceSecuredConfiguration.h in Sources */ = {isa = PBXBuildFile; fileRef = DF96D63CF89B1327BAB18101 /* TLAccountServiceSecuredConfiguration.h */; };
 		366F04931DE87A2418EF5C26 /* TLJoinGroupIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0A7DE5641C725DA414633A14 /* TLJoinGroupIQ.m */; };
 		3674E2D246F45D626CD4DCD9 /* TLPrimitiveDataImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C228E9252906442F2E1FAD5 /* TLPrimitiveDataImpl.h */; };
@@ -685,12 +706,14 @@
 		372E6AAE681BF29A317058FE /* TLDeleteAccountIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 8099B71D3A7963F2EC27A8A8 /* TLDeleteAccountIQ.h */; };
 		37418E8B754C549892E095B9 /* TLProxyDescriptor.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 20ACB5A5DFEF186CB0985CC8 /* TLProxyDescriptor.h */; };
 		3746AEF40100730199A459AF /* TLConversationServiceIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7FEF215F4550F92EB3C74BF2 /* TLConversationServiceIQ.m */; };
+		37514BF3837F6A20EC49C390 /* TLAnswerContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */; };
 		3768F4E28E52E2CE6908651A /* TLTwinlife.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = BE5D34CB7A88CBA96F654673 /* TLTwinlife.h */; };
 		3790BC653116DDEAE88394D3 /* TLTwincode.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21783A9B3D4EDF1C35BA21AA /* TLTwincode.h */; };
 		37964AF62DB3077241CD776D /* TLOnPushPollIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 4107B347784BD187161A28E9 /* TLOnPushPollIQ.h */; };
 		37A185CDD12CA05728B075A7 /* TLPushFileChunkIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = BD4738549F30DD9339E143ED /* TLPushFileChunkIQ.h */; };
 		37AA957A7CC51F261F80C064 /* TLImageServiceProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 48325717B588F81741F0375D /* TLImageServiceProvider.m */; };
 		37B1BBCB15707F9747C2ED51 /* TLInviteGroupIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = CA1A0ADC377B7430E020D6E7 /* TLInviteGroupIQ.m */; };
+		37BA68D5FA609BB2F0F50CB0 /* TLOnAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */; };
 		37D71D5718CA192C93EBA5DC /* TLResetConversationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 8C7D9EABF788F52C84BF8670 /* TLResetConversationIQ.h */; };
 		37D87CD5B12BB300765B5107 /* TLRestoreContent.h in Sources */ = {isa = PBXBuildFile; fileRef = 8A0802339AEF2BCF2FEA96B1 /* TLRestoreContent.h */; };
 		37EA2448A9271B9F65AADCAF /* TLVoidData.h in Sources */ = {isa = PBXBuildFile; fileRef = FD9BE9AA9378DDFAA29B2805 /* TLVoidData.h */; };
@@ -702,6 +725,7 @@
 		3848C3A5620243EBE5F3B9E0 /* TLSynchronizeConversationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = B4CF881B39AC4578269435D2 /* TLSynchronizeConversationOperation.h */; };
 		38538DB4BC3E688A46EBA74A /* TLSerializerFactory.h in Sources */ = {isa = PBXBuildFile; fileRef = 3A0CAAA7C4FA8F30B7F0F234 /* TLSerializerFactory.h */; };
 		3866B20F03424505B308AB29 /* TLDeviceRingingIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = FDBFD62CB68CDF4CF879B272 /* TLDeviceRingingIQ.m */; };
+		38707750A838C2875AFD9F70 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */; };
 		387142C6B9E182BB1930CEEA /* TLCreateImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6E3F559A17C38BDF0A1B4FAF /* TLCreateImageIQ.h */; };
 		3871A0698101AAEBFCE509EF /* TLPushCommandOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 6B08442BBC2585464645F0BD /* TLPushCommandOperation.h */; };
 		3880238060903EBBEDB15B40 /* NSUUID+Extensions.m in Sources */ = {isa = PBXBuildFile; fileRef = CBB03478328CD1D15A82D092 /* NSUUID+Extensions.m */; };
@@ -717,9 +741,11 @@
 		391C6667CAE4D803AC34C908 /* TLConfigIdentifier.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E34DF1D9B063AF938AE0E9BD /* TLConfigIdentifier.h */; };
 		3955182DC7544CD8697CD550 /* TLConnectivityServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 0C082DCFBF538508FF2F09BC /* TLConnectivityServiceImpl.h */; };
 		3958CA703DE5920B4A83B6E0 /* TLLogEventIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E2748F38EADC7FF9F3B7BBB8 /* TLLogEventIQ.m */; };
+		395A1B702995705303E59545 /* TLOnPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */; };
 		395AAE52D9F734D47EE26D4E /* TLOnTerminateAccountRestoreIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = CDD12F71C56BB1461788C16C /* TLOnTerminateAccountRestoreIQ.h */; };
 		396C8B7155A7C4E26D244E0B /* TLPushTransientObjectOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = DC5B3B7F1890C11E281C5199 /* TLPushTransientObjectOperation.h */; };
 		3982D753BF7C476023D45317 /* TLGeolocationDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = EB6DCD0883ABF89FF33E46DC /* TLGeolocationDescriptorImpl.h */; };
+		3994E7F8511DCCF92741A9DC /* TLPushContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */; };
 		39AE636FE31D726143E4FFF1 /* TLBackupInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 873AC3552086C21242FEBC04 /* TLBackupInfo.h */; };
 		39C07BD71575AC861F7CE37B /* TLRepositoryService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = AC372AFDFDB68CAF04A0AED9 /* TLRepositoryService.h */; };
 		3A0598307866632BB90B3986 /* TLFileDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0A71155C5B21201F4538A927 /* TLFileDescriptorImpl.m */; };
@@ -742,7 +768,6 @@
 		3B230F7E6D6530B48D5F7E4F /* TLRepositoryServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 9405D172907295D0F8BD53DA /* TLRepositoryServiceImpl.h */; };
 		3B24AB4F73F89A5225B43537 /* TLOnPutFileIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 657BA256E5D66DB510D4FCF1 /* TLOnPutFileIQ.m */; };
 		3B34492311DFA37188C49B21 /* TLTransientObjectDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = D2C23367346A8FD54197C9A2 /* TLTransientObjectDescriptorImpl.m */; };
-		3B3ECE6855B8835D692FF445 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */; };
 		3B5D4C9137FF6FB09ABC81AB /* TLSessionSecretKeyPair.m in Sources */ = {isa = PBXBuildFile; fileRef = 059A90AE1571C751B84A29C2 /* TLSessionSecretKeyPair.m */; };
 		3B720F0C76243C779C2F05D7 /* TLAccountServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = F37D8476229E7294518F4D38 /* TLAccountServiceImpl.m */; };
 		3B917D44D0CCAF54C2B0BCF2 /* TLPushTransientObjectOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = DC5B3B7F1890C11E281C5199 /* TLPushTransientObjectOperation.h */; };
@@ -760,6 +785,7 @@
 		3C8C58BEAD2D76F09B2DDD31 /* TLSessionSecretKeyPair.h in Sources */ = {isa = PBXBuildFile; fileRef = 468A7328D2D764F616006430 /* TLSessionSecretKeyPair.h */; };
 		3C95B9B991898F0D9868F0D5 /* TLUpdateGeolocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 01C8FF8A0E098DE7537055DE /* TLUpdateGeolocationIQ.h */; };
 		3C99870989F9A149601FE2D3 /* TLGroupOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C7C5573558904E6886A2EAC9 /* TLGroupOperation.h */; };
+		3CE50D1BE69DE0F9E511823A /* TLPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */; };
 		3CE78E0E9E3BFC3757E38F08 /* TLOnGetObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C560AC4F11D0A8591F19295 /* TLOnGetObjectIQ.h */; };
 		3CE7AE6605D104DE28F7CEFF /* TLImageService.h in Sources */ = {isa = PBXBuildFile; fileRef = 73C8F84964B14C2A358C9684 /* TLImageService.h */; };
 		3CF7319E5718932C5D2B7320 /* TLSynchronizeConversationOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 75C281AF9F3CACFBA3321AFA /* TLSynchronizeConversationOperation.m */; };
@@ -771,6 +797,7 @@
 		3D771D1AE79CAB0AA2313D94 /* TLBooleanData.m in Sources */ = {isa = PBXBuildFile; fileRef = 73B84EFCA6115B4C8513CFF9 /* TLBooleanData.m */; };
 		3D7BAECD8173A680560C0775 /* TLSessionInitiateIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = A9D6F6277ED0108B08850BE2 /* TLSessionInitiateIQ.m */; };
 		3D84E49F0C13232D81C17694 /* TLConnectivityService.h in Sources */ = {isa = PBXBuildFile; fileRef = 57B9CED1C44752E00EF29E63 /* TLConnectivityService.h */; };
+		3DA0B63425F2CCADE81F0AF6 /* TLDataChannelHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		3DACD493DF90F96A13A89D3A /* TLPutImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 98470CDE58E1F25B0E8CB6DA /* TLPutImageIQ.h */; };
 		3DD8A396CF457B566CF43A0A /* TLImageService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 73C8F84964B14C2A358C9684 /* TLImageService.h */; };
 		3DF64584807F1FA39001A4B1 /* TLOnCreateCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 69F20709A31107C8B44C0027 /* TLOnCreateCallRoomIQ.m */; };
@@ -810,6 +837,7 @@
 		402605B5FD41DAAF4AE98293 /* TLSdp.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 93F8955F6AEE7EAAEB171AE8 /* TLSdp.h */; };
 		402858415B6F7473F5E90E86 /* TLTwincodeInboundService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 38CA6EB10F573ACF3E40CEFF /* TLTwincodeInboundService.h */; };
 		404105D28EFFB1657FDD446B /* TLUpdateDescriptorTimestampOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = B9317F317F2E3A83347FB2A7 /* TLUpdateDescriptorTimestampOperation.m */; };
+		40499667C048F318D33886EB /* TLPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */; };
 		4074FFFE4F2804C4696CB2B7 /* TLUpdateAnnotationsOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 82BAE0EC625CAB846C7543CF /* TLUpdateAnnotationsOperation.h */; };
 		407937257EF16A5DCBBC7DF9 /* TLPeerConnectionService.h in Sources */ = {isa = PBXBuildFile; fileRef = CFF25E8B1C87FD7C67D8CC2B /* TLPeerConnectionService.h */; };
 		40A4CA80D732FED531AB37C1 /* TLJoinCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 576BFF7C628C0A75F0BAD5E7 /* TLJoinCallRoomIQ.m */; };
@@ -845,9 +873,11 @@
 		43FEEFE71043644AEE142748 /* TLLeaveCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 19F9CEB277AECF4B60EDBB81 /* TLLeaveCallRoomIQ.m */; };
 		442DA984C9751AC38095E889 /* TLGroupOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 245779060BD3012F734C5B64 /* TLGroupOperation.m */; };
 		443B92F52FFE8321665BDBD5 /* TLReceivingFileInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 7A9AA53FF38F59D13248405D /* TLReceivingFileInfo.h */; };
+		4464D81DE2161C3F29A443BE /* TLAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */; };
 		44766648C5EA94860DA26184 /* TLTwincodeInboundServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 7136A42818BEE94165FDDC02 /* TLTwincodeInboundServiceImpl.m */; };
 		44A6DFB46844BAD0F4ADA164 /* TLRestoreContent.m in Sources */ = {isa = PBXBuildFile; fileRef = 30D20DEA687665AD8D81A682 /* TLRestoreContent.m */; };
 		44AF151399C90FFBADA32831 /* TLFilter.h in Sources */ = {isa = PBXBuildFile; fileRef = 3464BB20DE5772D71F941702 /* TLFilter.h */; };
+		44B5374BA47899D7E1C48EA9 /* TLAnswerContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */; };
 		44C527879CF12AEE89E36408 /* TLOnPushIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 37892D8148798EF3397A44E8 /* TLOnPushIQ.h */; };
 		44D961242E7A3E01E9402612 /* TLRecordData.m in Sources */ = {isa = PBXBuildFile; fileRef = 265863FB581753EF70B1F03A /* TLRecordData.m */; };
 		450666BE80F276CBF82E9B9B /* TLAuthChallengeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 022A0A0B989547F4C7970EA3 /* TLAuthChallengeIQ.m */; };
@@ -861,9 +891,11 @@
 		45BB4200C7A737C0FE4DCF20 /* TLOnListFilesIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = D29C01CB2B693554C9400A9F /* TLOnListFilesIQ.h */; };
 		45CB5E95AAD8629D5EE3D698 /* TLKeyChain.h in Sources */ = {isa = PBXBuildFile; fileRef = CFAFFBF47E6F12E638891106 /* TLKeyChain.h */; };
 		45E4807C8A38F42823E9328A /* TLOnJoinMeetingIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 65ABFCAE9DAE1FC6605952D3 /* TLOnJoinMeetingIQ.h */; };
+		45E53D76EEC3C123A07537F0 /* TLPushContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */; };
 		46057011DF6992EC6D7E61A1 /* TLProxyDescriptor.h in Sources */ = {isa = PBXBuildFile; fileRef = 20ACB5A5DFEF186CB0985CC8 /* TLProxyDescriptor.h */; };
 		461ADC3F2196D6B82FBFC2E5 /* TLImageService.h in Sources */ = {isa = PBXBuildFile; fileRef = 73C8F84964B14C2A358C9684 /* TLImageService.h */; };
 		461B8D77BA6DC1DCC3345393 /* TLBinaryDecoder.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = F1A04D49EC75CA8325C70DE7 /* TLBinaryDecoder.h */; };
+		463C5940A1A6DD5B3678111A /* TLOnAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */; };
 		4642C34BFC966CC778D69A53 /* TLDatabaseService.h in Sources */ = {isa = PBXBuildFile; fileRef = 21F17B4CAABF2DA87747CC6A /* TLDatabaseService.h */; };
 		46457620FCE1DB0F2820C9F8 /* TLListRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 32C9724B12D4683AA2C8B61B /* TLListRosterIQ.m */; };
 		46561FFC844CFF44A98376C9 /* TLPutFileIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5823ECB6FB76B944E2DF6FD6 /* TLPutFileIQ.m */; };
@@ -892,6 +924,7 @@
 		489A0D0FF9468CD85F5C0375 /* TLPushGeolocationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 862C34FC6E64CF5DFCBB30D3 /* TLPushGeolocationOperation.h */; };
 		489ACFDB70A1F186AA747005 /* TLTwinlifeContext.m in Sources */ = {isa = PBXBuildFile; fileRef = A270BE7D6C1A357C09C8FABE /* TLTwinlifeContext.m */; };
 		489CA225B8C8359085C1348D /* TLUpdatePermissionsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8EA38CF66B4EE9134AE88 /* TLUpdatePermissionsIQ.m */; };
+		489D2F40A7D2586F78A4296D /* TLContactShareDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */; };
 		48ABD56E398858F538B47459 /* TLData.h in Sources */ = {isa = PBXBuildFile; fileRef = E45ED68CB0B435CDAC44AFED /* TLData.h */; };
 		48B213DBE1F71A1CB5FF4707 /* TLOnUpdateDescriptorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B3A25AD92D2D3D47E8D2120D /* TLOnUpdateDescriptorIQ.m */; };
 		48EACE2FF1CA40C9DD219FC3 /* TLBinaryEncoder.h in Sources */ = {isa = PBXBuildFile; fileRef = DFDFEB8E5677AD61719B625D /* TLBinaryEncoder.h */; };
@@ -901,6 +934,7 @@
 		4919C91F133626465BDFDEAC /* TLVersion.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 864928D4EDA5C344936F9647 /* TLVersion.h */; };
 		491A4E83C0416E8891A5D1C2 /* TLOnJoinMeetingIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 59AF58AE7A4500A0CCA30E80 /* TLOnJoinMeetingIQ.m */; };
 		491B65CBFF6265C8A5DD3584 /* TLBaseServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 83F10D04CB25F419A3532D36 /* TLBaseServiceImpl.m */; };
+		4920FD77D6C1E2F1368ECA2D /* TLAnswerContactShareOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */; };
 		495EC59E57352EDA5C1B782F /* TLCreateImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6E3F559A17C38BDF0A1B4FAF /* TLCreateImageIQ.h */; };
 		495FCE77E3818B9BD57316EA /* TLDeleteRosterMemberIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 41121B7B82BCBC0B5D6D7374 /* TLDeleteRosterMemberIQ.h */; };
 		497737B3CA7CAC2BA851C853 /* TLMemberNotificationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 23D0EBCFD454B93586A529F7 /* TLMemberNotificationIQ.m */; };
@@ -913,6 +947,7 @@
 		49C92653D65ACF36F2F7D06C /* TLTwincode.h in Sources */ = {isa = PBXBuildFile; fileRef = 21783A9B3D4EDF1C35BA21AA /* TLTwincode.h */; };
 		4A091EB49820949EF469669A /* TLPushObjectOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 2A2259CCDC888394BF3B3496 /* TLPushObjectOperation.h */; };
 		4A3228C18CB4220A059FC7B1 /* TLPeerConnectionServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = A6314AC7BEF609D4EFB96357 /* TLPeerConnectionServiceImpl.m */; };
+		4A36DB6AD66B76530FE77FA5 /* TLOnPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */; };
 		4A7060E66DFAAE4B8DC0F54C /* TLVerifyExecutor.m in Sources */ = {isa = PBXBuildFile; fileRef = F12FF322C73A109745D19107 /* TLVerifyExecutor.m */; };
 		4A7A210C35F3048D75F4FCA4 /* TLRestoreExecutor.h in Sources */ = {isa = PBXBuildFile; fileRef = FBE6DE1CB2290841951C9EC9 /* TLRestoreExecutor.h */; };
 		4A9DE84F22E5D63725C0E0EE /* TLPutImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 98470CDE58E1F25B0E8CB6DA /* TLPutImageIQ.h */; };
@@ -985,6 +1020,7 @@
 		514B948CFC02685EEFD5DF49 /* TLPushFileOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = C76935040FB161ED476406AF /* TLPushFileOperation.m */; };
 		5163C12B6544B0E1512C61E0 /* TLRestoreChallengeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 57909FC808120A7AD3DA31EA /* TLRestoreChallengeIQ.h */; };
 		5177632ADF60821DDC88109F /* TLOnCreateObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = A99F0CC355F7B70545A803EA /* TLOnCreateObjectIQ.m */; };
+		517B55B29715AD3FF64646A6 /* TLDataChannelHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		517BEF03FD74DA2C3361D68D /* TLDeviceInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 84BAF6E0E901D5DFBBF6B07D /* TLDeviceInfo.h */; };
 		517F915EE42CF7241013C693 /* TLPeerCallService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9CDA68C3689E3545C68832E0 /* TLPeerCallService.h */; };
 		51809C5925F4A928B5671197 /* TLRepositoryServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 9405D172907295D0F8BD53DA /* TLRepositoryServiceImpl.h */; };
@@ -1017,6 +1053,7 @@
 		544C7B3EC1355FECA1EE90E2 /* TLOnJoinGroupIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 04AFFF76BF8C8EE69A34261D /* TLOnJoinGroupIQ.h */; };
 		545C7BF6CAB3683D0E4B57DE /* TLTwincodeOutboundHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 350D87BC65CE5F843C5A62D9 /* TLTwincodeOutboundHandler.m */; };
 		5465B3A3551A10CBA531480D /* TLConversationProtocol.h in Sources */ = {isa = PBXBuildFile; fileRef = AF82A0ACB5E80A774FA72A68 /* TLConversationProtocol.h */; };
+		549B8333B2102077BC768C54 /* TLOnAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */; };
 		54A63DADF65BFA306A735B14 /* TLPushGeolocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = EB0BBC6A1FD2027FE19E4CA1 /* TLPushGeolocationIQ.h */; };
 		54B050819DF6FC5D12ED82D2 /* TLTwincodeOutboundHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 350D87BC65CE5F843C5A62D9 /* TLTwincodeOutboundHandler.m */; };
 		54B99302832B3870BED4327E /* TLUpdateAnnotationsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CE815AD53EB0A8CD57EE699 /* TLUpdateAnnotationsIQ.m */; };
@@ -1051,7 +1088,6 @@
 		574A263241FCAC0EED50EC32 /* TLAccountMigrationService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 4B57D6F49DA1035414F6EDFE /* TLAccountMigrationService.h */; };
 		576964B2F93847C83E85BEF8 /* TLUpdateObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 7D7BB8B31521DF6BEAE11373 /* TLUpdateObjectIQ.h */; };
 		576FE985DCB7E9EB2172559C /* TLOnGenerateBackupKeyIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 77680B40F316AD768F1466FB /* TLOnGenerateBackupKeyIQ.m */; };
-		57BFE52B9B5D129087305DA1 /* TLPeerConnectionHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		57C19115509066F73658A6A0 /* TLSessionInitiateIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 8AEB9F9AE79280FD0A1CDDFC /* TLSessionInitiateIQ.h */; };
 		57D0EA5282B2954C2512966E /* TLSessionInitiateIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = A9D6F6277ED0108B08850BE2 /* TLSessionInitiateIQ.m */; };
 		57D862C53EB19B38002014B7 /* TLUpdateAnnotationsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 5E7D99A4C1475D3CC689FBCE /* TLUpdateAnnotationsIQ.h */; };
@@ -1072,6 +1108,7 @@
 		58F924161F400E80902B00CD /* TLOnGetAllTwincodesIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = C8D2DB21AC3AA46F619A8EFB /* TLOnGetAllTwincodesIQ.m */; };
 		5901CA30AC39F1D223FC1D29 /* TLPushPollOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = A5186F46A9D42ABB321F42E3 /* TLPushPollOperation.h */; };
 		59059F8BAEA83C284EA02F60 /* TLUpdateObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 2701D50CB4FD637123C65D71 /* TLUpdateObjectIQ.m */; };
+		591EE2FA29AF88327E1D8E70 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */; };
 		5940A0D39571E6528A16B87A /* TLTwincodeOutboundServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 9D09B363EE6C39A26167D691 /* TLTwincodeOutboundServiceImpl.h */; };
 		5957DCD68813414667AD95F7 /* TLUpdateAnnotationsOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 82BAE0EC625CAB846C7543CF /* TLUpdateAnnotationsOperation.h */; };
 		5961E21A70722BE8BF4151EC /* TLOnListObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6B3CC50B9D83160B4B56788F /* TLOnListObjectIQ.h */; };
@@ -1093,7 +1130,6 @@
 		5AD04DC637A643E06D072C77 /* TLGroupProtocol.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 7BCFD3F98E4860394E6C8251 /* TLGroupProtocol.h */; };
 		5AD68912E2BC6F70CEA99C0E /* TLImageDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 55A3F01833AEB6D76449BE2F /* TLImageDescriptorImpl.m */; };
 		5AF07069716F73A24D6C2A61 /* TLConversationService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9197B369BD170E272E0A9575 /* TLConversationService.h */; };
-		5B1628D7C022AA5AE17574B3 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */; };
 		5B1E5A53046532ED7BE94C62 /* TLErrorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = D2E8C2AB5D27CBB1162E5C67 /* TLErrorIQ.m */; };
 		5B2404CA9E1DA29AF8F48B5B /* TLPrimitiveDataImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = FBA9012ECABDF35383CA82C0 /* TLPrimitiveDataImpl.m */; };
 		5B24E965C6466F0E09808A9C /* TLGroupLeaveOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 6325AB88401256C90778D08F /* TLGroupLeaveOperation.h */; };
@@ -1108,6 +1144,7 @@
 		5BC6983D7952CD2F00EAB3D2 /* TLJoinCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 576BFF7C628C0A75F0BAD5E7 /* TLJoinCallRoomIQ.m */; };
 		5BC97F21F3A67ABCA3AD6562 /* TLOnQueryStatsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = FF5067985D78E2B6C0FF9C6C /* TLOnQueryStatsIQ.m */; };
 		5BD0BA360A4FFFE9611FBA8B /* TLTwincodeInboundServiceProvider.h in Sources */ = {isa = PBXBuildFile; fileRef = 6B7AAC737CE2F1E52010F57C /* TLTwincodeInboundServiceProvider.h */; };
+		5BECDDA07C05B50316CF0D69 /* TLContactShareDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */; };
 		5BF2BE9744205D920240F05D /* TLOnPutImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B68CDD4CAD675049F2347D65 /* TLOnPutImageIQ.m */; };
 		5C0A2C2F7A697D11AC4C529B /* TLTerminateMigrationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B2BCC2D76485BE09B17E32F /* TLTerminateMigrationIQ.m */; };
 		5C146A42876AF68676420732 /* TLTwinlifeContext.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 364909F3817BEF490BBD8FFD /* TLTwinlifeContext.h */; };
@@ -1146,7 +1183,6 @@
 		5E7C4671CB8FDC124763DCEC /* TLBaseServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 4D069E6F59F939595A23C191 /* TLBaseServiceImpl.h */; };
 		5E849C6613F40110303BA496 /* TLKeyChain.m in Sources */ = {isa = PBXBuildFile; fileRef = D447A9ABBF1E0139BEBD2885 /* TLKeyChain.m */; };
 		5E9017F503CA2AF3555C61B6 /* TLResultIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 75AF9C6C7235D585307BD0F5 /* TLResultIQ.h */; };
-		5EB683CE65B137384F52C090 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		5EED2F0F0995DE4F44EDCBF6 /* TLClearDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 7E15BA2DAD9D7644AEE5923F /* TLClearDescriptorImpl.m */; };
 		5EF26BD4F720EBC2C6D0AE96 /* TLOnUpdateDescriptorIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B13D08E613BE403A4E2C1E44 /* TLOnUpdateDescriptorIQ.h */; };
 		5F00B377644A298BB8E4D4B3 /* TLOnGetAllTwincodesIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = C8D2DB21AC3AA46F619A8EFB /* TLOnGetAllTwincodesIQ.m */; };
@@ -1190,6 +1226,7 @@
 		62C3AE86EF70428D834C436B /* TLOnGetImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = FC15604C9E974F62A3F242FD /* TLOnGetImageIQ.m */; };
 		62F5EC347A66EDFBD432027A /* TLRequestIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 92CD93D32F01EA8080D5D6EA /* TLRequestIQ.m */; };
 		63107BB607BC1E1386142E25 /* TLStringData.h in Sources */ = {isa = PBXBuildFile; fileRef = 1477BA41B3CFDC5F837B768A /* TLStringData.h */; };
+		6310C570328CD5F5E036905F /* TLPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */; };
 		63278B1B2F612111D2691357 /* TLConfigIdentifier.h in Sources */ = {isa = PBXBuildFile; fileRef = E34DF1D9B063AF938AE0E9BD /* TLConfigIdentifier.h */; };
 		632B73316175C4E8C0B0C865 /* TLSynchronizeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 4BC062F5A7E75D70A55B9AF0 /* TLSynchronizeIQ.h */; };
 		634B704A6FCA277D48903534 /* TLOnGetAllBackupsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 45CFDB52895164B137B34401 /* TLOnGetAllBackupsIQ.m */; };
@@ -1197,7 +1234,6 @@
 		6366AF4B6E4836E5D9E195F7 /* TLCDATAData.m in Sources */ = {isa = PBXBuildFile; fileRef = A13F2566ABEA3709BC7D97AE /* TLCDATAData.m */; };
 		63895FE6EAD9A1A556855318 /* TLTerminateAccountRestoreIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 30E0EAAC1D6696D5921F15A9 /* TLTerminateAccountRestoreIQ.h */; };
 		63A2D4A772520A441915C802 /* TLLongData.m in Sources */ = {isa = PBXBuildFile; fileRef = 603B210F40922A140F0FC07F /* TLLongData.m */; };
-		63B020D035C7851C7938FB53 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		63BEA7D7736E91DE3BB431A9 /* TLQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 68CB61CFA833860881375EC7 /* TLQueue.m */; };
 		63DEE3FE6A9BB57654B76A8B /* TLOnAuthRequestIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 05324131D9830BF98484E97C /* TLOnAuthRequestIQ.h */; };
 		63E2C5D3DCB2DA572915CAE4 /* TLOnGetObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C560AC4F11D0A8591F19295 /* TLOnGetObjectIQ.h */; };
@@ -1233,6 +1269,7 @@
 		65F12E1992FAAB54B1548D39 /* TLRepositoryService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = AC372AFDFDB68CAF04A0AED9 /* TLRepositoryService.h */; };
 		65F9203B9ADA8A2F2DF1731E /* TLServerConnection.h in Sources */ = {isa = PBXBuildFile; fileRef = 9689F80AEE577867691FD2F7 /* TLServerConnection.h */; };
 		65FE78A769EE3A7346C61BD0 /* TLNamedFileDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = E93BC6D579951EEBCE877AB6 /* TLNamedFileDescriptorImpl.m */; };
+		660C57260A2F7A17D963FA2D /* TLOnAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */; };
 		66142DEEC148CE98DC724FD1 /* TLVerifyExecutor.h in Sources */ = {isa = PBXBuildFile; fileRef = 22F9CA453ACF5AC6DD034CCE /* TLVerifyExecutor.h */; };
 		6614D045E2F8D5F1D5FB3A22 /* TLOnPushIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5F3D2C8608835547B446F450 /* TLOnPushIQ.m */; };
 		6615211CD6501D684C5AC6D0 /* TLTwinlifeSecuredConfiguration.h in Sources */ = {isa = PBXBuildFile; fileRef = F082E9B40D0AD650A833BCED /* TLTwinlifeSecuredConfiguration.h */; };
@@ -1254,6 +1291,7 @@
 		66DC23380E2348EEEDB6112D /* TLInvocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DFF41D4826E2F7069B19DC72 /* TLInvocationIQ.h */; };
 		66EE63E82AC87132D8598E6B /* NSData+Extensions.m in Sources */ = {isa = PBXBuildFile; fileRef = 55DD237400B7460C68C49EB3 /* NSData+Extensions.m */; };
 		66FF3A33DF325006B58D3802 /* TLGroupInviteOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = D1A1A4B18C2784037AE168E4 /* TLGroupInviteOperation.m */; };
+		6703F023C78E67EF94A55A5A /* TLPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */; };
 		671FB4E0C283B936309BF484 /* TLGroupOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C7C5573558904E6886A2EAC9 /* TLGroupOperation.h */; };
 		6727AAD12E8E95449480B127 /* TLVideoDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = F14701302499C375C2FBB2AF /* TLVideoDescriptorImpl.h */; };
 		673A5DE1E68789C61B501708 /* TLCreateRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 62BF202112895830D45D6F57 /* TLCreateRosterIQ.m */; };
@@ -1277,7 +1315,6 @@
 		68AAE7D64BD280E2BCDCE6E9 /* TLUpdateAnnotationsOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = F75A11093435A74A79CCD7E9 /* TLUpdateAnnotationsOperation.m */; };
 		68B253DFBA00E6A20BF5E7B7 /* TLOnListRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E48DC00AE442A84D428C6D02 /* TLOnListRosterIQ.m */; };
 		68B2DCF58D732AC54DD6D9DC /* TLConfigIdentifier.h in Sources */ = {isa = PBXBuildFile; fileRef = E34DF1D9B063AF938AE0E9BD /* TLConfigIdentifier.h */; };
-		68E4E4C8D5AFE21F38D050B6 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */; };
 		68FF527CEADF9C63F5AE0375 /* TLTwincode.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21783A9B3D4EDF1C35BA21AA /* TLTwincode.h */; };
 		6900234202593A36055F75A4 /* TLSecureRosterService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E7F4F4C8D9C3C8259227D10F /* TLSecureRosterService.h */; };
 		6906780413F75DE4F0F26E24 /* TLLogEventIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E2748F38EADC7FF9F3B7BBB8 /* TLLogEventIQ.m */; };
@@ -1311,11 +1348,13 @@
 		6B91E35A17757D6703BD546C /* TLTwinlifeSecuredConfiguration.h in Sources */ = {isa = PBXBuildFile; fileRef = F082E9B40D0AD650A833BCED /* TLTwinlifeSecuredConfiguration.h */; };
 		6BAEB22E8D211D84B3C6761B /* TLCryptoDataInput.h in Sources */ = {isa = PBXBuildFile; fileRef = B708B838EC7985DCAF0F02D2 /* TLCryptoDataInput.h */; };
 		6BBD7F0EFB27F627F6F58531 /* TLPutImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7F04283060CC5F7B5146F589 /* TLPutImageIQ.m */; };
+		6BE4D29443E34859DB3BD4A6 /* TLAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */; };
 		6C0A2797C63E1EB018C09674 /* TLSynchronizeConversationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = B4CF881B39AC4578269435D2 /* TLSynchronizeConversationOperation.h */; };
 		6C137CF157F86DB080572E0B /* TLSecureRosterServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 003B1261F142E6EED5F5875D /* TLSecureRosterServiceImpl.h */; };
 		6C153524D28C752E25360566 /* TLApplication.h in Sources */ = {isa = PBXBuildFile; fileRef = 9AE766E719DCA3F1617D127C /* TLApplication.h */; };
 		6C20B2B1A75B16D8429C3762 /* TLEncoder.h in Sources */ = {isa = PBXBuildFile; fileRef = FA3F7F9A59E3301671E5FF5A /* TLEncoder.h */; };
 		6C391DCCBF18A0A1FFDAA54B /* TLShutdownIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B3ABFCD9590BA130D01D7BD7 /* TLShutdownIQ.h */; };
+		6C3F677FE5A65CC768457637 /* TLAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */; };
 		6C4D34FF87B5D9154AC0C5BF /* TLFileInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 0C3DE9E2308139C36CED3322 /* TLFileInfo.h */; };
 		6C5DAE1C44FC0C1234039368 /* TLStringData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1477BA41B3CFDC5F837B768A /* TLStringData.h */; };
 		6CA609F39E359C8D562503BC /* TLGroupOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C7C5573558904E6886A2EAC9 /* TLGroupOperation.h */; };
@@ -1358,6 +1397,7 @@
 		6EB18DB68D20069797A9E9E9 /* TLPeerConnectionObserver.h in Sources */ = {isa = PBXBuildFile; fileRef = BA7B48950DD30F65738A3A00 /* TLPeerConnectionObserver.h */; };
 		6EBEE09A7F8EE042BFABE564 /* TLConfigIdentifier.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E34DF1D9B063AF938AE0E9BD /* TLConfigIdentifier.h */; };
 		6ED3A25A3B02E78C8ACBC604 /* TLJoinMeetingIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 4DA91E15F23E15142431F77D /* TLJoinMeetingIQ.m */; };
+		6EF21F6E0B6C53631D64D499 /* TLDataChannelHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		6EF4AE415E3DE48AAA6767AD /* TLAttributeNameValue.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5E3ED72A48A5F09D4E9871F4 /* TLAttributeNameValue.h */; };
 		6EFDC67E8AE1D25A53F36498 /* TLIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0123B4ED5FBF08FA87EE7CF2 /* TLIQ.m */; };
 		6F0FB6B4BB3A6EEB81A90F4E /* TLAccountMigrationServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 2636EC4293A4A08FC03CDCBF /* TLAccountMigrationServiceImpl.m */; };
@@ -1608,6 +1648,7 @@
 		83468C8E0E3521C887EE61B7 /* TLBackupHeaderHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = E203469F3AD6CFD5C5361FEA /* TLBackupHeaderHandler.h */; };
 		8355365759BE4F7666DF7CBB /* TLLeaveCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 19F9CEB277AECF4B60EDBB81 /* TLLeaveCallRoomIQ.m */; };
 		8358E08E06AB384364C7D74E /* TLPushGeolocationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 862C34FC6E64CF5DFCBB30D3 /* TLPushGeolocationOperation.h */; };
+		8362AC5F068A00DE59FA55D7 /* TLContactShareDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */; };
 		83678F01707987116A39AD52 /* TLOnPushFileChunkIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 927D3010FFFBEEAB4ADCF191 /* TLOnPushFileChunkIQ.m */; };
 		8378998313504C5525578282 /* TLConversationImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 4DA4290FE7F4C56017533634 /* TLConversationImpl.h */; };
 		8382949E15DEB38C699DDE62 /* TLArrayData.h in Sources */ = {isa = PBXBuildFile; fileRef = E87D9F07DF2F5148C4F5E1B8 /* TLArrayData.h */; };
@@ -1753,6 +1794,7 @@
 		8D5352F08FDCC87549694422 /* TLAccountServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = F37D8476229E7294518F4D38 /* TLAccountServiceImpl.m */; };
 		8D7C5E64AD9E26F39DA7103D /* TLDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 29A88C6E249DAE6D2660E02C /* TLDescriptorImpl.m */; };
 		8D9E44D69DF69005A682E033 /* TLDeleteRosterMemberIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A4FB0D1D2D8626E1191057F /* TLDeleteRosterMemberIQ.m */; };
+		8DA091CE989CA72821036BB9 /* TLPushContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */; };
 		8DA59568619B94A5E5DD97F5 /* TLFeedbackIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = EAA9368004BC1BA69D0459A5 /* TLFeedbackIQ.h */; };
 		8DB3D3200AD28077F2684537 /* TLConversationProtocol.m in Sources */ = {isa = PBXBuildFile; fileRef = 9E5E9B2D3A0CF646CFEB8942 /* TLConversationProtocol.m */; };
 		8DB88C2B67B65843F5E9CBC9 /* TLTwincodeDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A9F3DEAB702D4A48502CEC8 /* TLTwincodeDescriptorImpl.m */; };
@@ -1813,6 +1855,7 @@
 		9179F587511D9D7C2EF290CA /* TLErrorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = D0F0ADB56A5951605D374F12 /* TLErrorIQ.m */; };
 		917E22ADB6937764C5102221 /* TLSendingFileInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = CD0269DFAC21AB99D4AEA611 /* TLSendingFileInfo.m */; };
 		919FEA6E590FA0A5A632C99D /* TLInvocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DFF41D4826E2F7069B19DC72 /* TLInvocationIQ.h */; };
+		91B26E24D2353762BEEC0693 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */; };
 		91B55B7CCE67EF1ED9B18203 /* TLGeolocationDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = EB6DCD0883ABF89FF33E46DC /* TLGeolocationDescriptorImpl.h */; };
 		91E2506193656C3D6AEB5613 /* TLInvocationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0DED4976B4F8D730BF3F1C7A /* TLInvocationIQ.m */; };
 		91E5E5F8229DAB7D4CED96F2 /* TLValidateConfigurationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C1E339C9A0DC8B4D8AD37A0 /* TLValidateConfigurationIQ.h */; };
@@ -1848,6 +1891,7 @@
 		94B921A2B7FD1869B17C0E40 /* TLAccountMigrationExecutor.h in Sources */ = {isa = PBXBuildFile; fileRef = F5732532E0A7A0A52B140439 /* TLAccountMigrationExecutor.h */; };
 		94CB0BB17277F337EC700E44 /* TLUpdateDescriptorOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 249DD6E3DB1B83F38E985794 /* TLUpdateDescriptorOperation.m */; };
 		94CCFEADE916AC632402D7C5 /* TLOnListObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E65CE3C807BC6FC592C13C85 /* TLOnListObjectIQ.m */; };
+		950E5041AB35074A6A0511E1 /* TLAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */; };
 		9518EEC2568E964B4FCCFFCD /* TLKeyChain.h in Sources */ = {isa = PBXBuildFile; fileRef = CFAFFBF47E6F12E638891106 /* TLKeyChain.h */; };
 		953110EFE47B79E1ACA82A21 /* TLTwincodeInboundServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 7136A42818BEE94165FDDC02 /* TLTwincodeInboundServiceImpl.m */; };
 		953ECB17DA72632AC05E3A15 /* TLPermissions.h in Sources */ = {isa = PBXBuildFile; fileRef = 7D2842817D63A2781A67A244 /* TLPermissions.h */; };
@@ -1855,12 +1899,14 @@
 		955C1D78155138CC4D6C5006 /* TLPutFileIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B35630F96BA9FB99AB889AB1 /* TLPutFileIQ.h */; };
 		957C3AB57A0C16F1D46DD32E /* TLSetPushTokenIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 83B86155A8A9BFD81357650D /* TLSetPushTokenIQ.m */; };
 		959A9FF0749923005D8FEF7D /* TLRefreshTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5A0B23C20449FF9F4985E7CD /* TLRefreshTwincodeIQ.m */; };
+		95A446A15B64D028AE39E7BC /* TLAnswerContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */; };
 		95B861CCE7EFB7E282742396 /* TLTwincodeOutboundService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3A59A9B9C7EC2DA336BC2F2D /* TLTwincodeOutboundService.h */; };
 		95F6F6745FFFE99D44A3BF85 /* TLOnValidateConfigurationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 706AF9BAC0480E86F7A026FB /* TLOnValidateConfigurationIQ.h */; };
 		960D1049D75E11F6E2080EC1 /* TLBinaryCompactEncoder.m in Sources */ = {isa = PBXBuildFile; fileRef = F0EEE6C67453C193DFD98F12 /* TLBinaryCompactEncoder.m */; };
 		962DCF689248D75C056E7AA5 /* TLOnCreateImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 652C466D766C67BAC186B90B /* TLOnCreateImageIQ.m */; };
 		9651C27272FA8196BA9B0FE9 /* TLPushTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 0DE6E5F113F022CEE038648B /* TLPushTwincodeIQ.h */; };
 		96606F497B2B411D616E8365 /* TLRepositoryObjectHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 922E465CF506D303817C6A31 /* TLRepositoryObjectHandler.m */; };
+		9672134FDD1D69B1C1701282 /* TLOnAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */; };
 		9682746FF73C5C38CD93139B /* TLPrimitiveDataImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C228E9252906442F2E1FAD5 /* TLPrimitiveDataImpl.h */; };
 		9684C95EB7DE0402B7353329 /* TLPushPollIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 1D23E6C0AA204E061089FF89 /* TLPushPollIQ.h */; };
 		968D6A46AECB54B8738CDDB3 /* TLAccountMigrationServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 2636EC4293A4A08FC03CDCBF /* TLAccountMigrationServiceImpl.m */; };
@@ -1903,6 +1949,7 @@
 		99E848A0B9A989F7376C9013 /* TLAcknowledgeInvocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 112BACF07A6AAC33CC735579 /* TLAcknowledgeInvocationIQ.h */; };
 		99EBA42B6756B45CBC908097 /* TLPeerCallServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 34690C770FF42D18F1CA832F /* TLPeerCallServiceImpl.m */; };
 		99F2F47BFF0C806A09F650BD /* TLTransientObjectDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E4AAA160BE650563CEEA5A /* TLTransientObjectDescriptorImpl.h */; };
+		9A0857BE0EF864E86E27C608 /* TLPushContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */; };
 		9A0A4CF2113FCFBE79D11FBA /* TLAccountMigrationServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 67EF631D9CD3EE3E0894372C /* TLAccountMigrationServiceImpl.h */; };
 		9A19F590628C842594E9D18B /* TLOnJoinMeetingIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 59AF58AE7A4500A0CCA30E80 /* TLOnJoinMeetingIQ.m */; };
 		9A43B6F3EE6CBD54F345B7CB /* TLInvitationCodeImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = C3E78506D09A58A6A27AAA54 /* TLInvitationCodeImpl.m */; };
@@ -1910,6 +1957,7 @@
 		9A7FC8A7BDBD718C32C656FD /* TLStartIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 0797853432EB039834F6F2BC /* TLStartIQ.h */; };
 		9AB3E23248E352A4A7FB911F /* TLInvitationDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 09D978456D8A46F1B65EF790 /* TLInvitationDescriptorImpl.h */; };
 		9AB84154CDDAD1DD5C077C7C /* TLOnGetImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = FC15604C9E974F62A3F242FD /* TLOnGetImageIQ.m */; };
+		9AE8D0A97EF954DF06CF32C0 /* TLOnPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */; };
 		9AFC7C83D8F24B83E78A6C31 /* TLSdp.m in Sources */ = {isa = PBXBuildFile; fileRef = 7DB35DFA73170C55E4C2C3FF /* TLSdp.m */; };
 		9AFED54B8D2B381EAFFA6B15 /* TLCreateImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B5520A41E7F2294961BD95A7 /* TLCreateImageIQ.m */; };
 		9B0D49872C1A294825831967 /* TLPushFileOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 2CBDE14FA351DF96E71B7AD0 /* TLPushFileOperation.h */; };
@@ -1920,6 +1968,7 @@
 		9B3B0BE949D6DEF3D07F7D10 /* TLAddRosterMemberIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = D0C3C33A8BBD9721E1D9C6BB /* TLAddRosterMemberIQ.h */; };
 		9B3D6F3BC53B2F637E2C3089 /* TLJobService.h in Sources */ = {isa = PBXBuildFile; fileRef = EFBB37346FB293BBC3AF97AA /* TLJobService.h */; };
 		9B3DF179D2E11DA4233B9455 /* TLOnUpdateObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = E239119A753C4B5EF869461C /* TLOnUpdateObjectIQ.h */; };
+		9B5E12DACB16952BD4C72EDF /* TLAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */; };
 		9B933D7F400EAD9120F4E8E0 /* TLResetConversationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 49046B766E8E2FB64EBFF80D /* TLResetConversationOperation.h */; };
 		9BDC401E8F5D37BD9F69C3AA /* TLVerifyReport.h in Sources */ = {isa = PBXBuildFile; fileRef = 0813C09C7DAC04689F2ED328 /* TLVerifyReport.h */; };
 		9BFA37676FF0FB46D154BFED /* TLPushObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 46A430411DD31B96CFD1D100 /* TLPushObjectIQ.h */; };
@@ -1991,6 +2040,7 @@
 		A0466E677B4A058C57CA2333 /* TLPeerConnection.h in Sources */ = {isa = PBXBuildFile; fileRef = 5CFBD35FD42146F16C4728D7 /* TLPeerConnection.h */; };
 		A05BCB873C8477E65B491D77 /* TLSecureRosterService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E7F4F4C8D9C3C8259227D10F /* TLSecureRosterService.h */; };
 		A07407B8BB44326EDF81E588 /* TLUpdateConfigurationIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5990B7365A3A6A66546F3000 /* TLUpdateConfigurationIQ.m */; };
+		A082ACA74ADAB39B762930B1 /* TLPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */; };
 		A086F058700BE6775160E7A6 /* TLGetObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 74EAD7A78743AFF25D4AE709 /* TLGetObjectIQ.h */; };
 		A0A8EBF920481112AEFE56DD /* TLErrorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = D0F0ADB56A5951605D374F12 /* TLErrorIQ.m */; };
 		A0DE95039355B98D432B7E47 /* TLPeerConnectionObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = 2B921C3B77CC68271CCF2D47 /* TLPeerConnectionObserver.m */; };
@@ -2147,11 +2197,14 @@
 		AA1B07C343912DCF6A5D0E54 /* TLConversationServiceScheduler.h in Sources */ = {isa = PBXBuildFile; fileRef = E18661C043B407732755F22E /* TLConversationServiceScheduler.h */; };
 		AA43BFB346253C1F28F6B993 /* TLUpdateDescriptorOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 249DD6E3DB1B83F38E985794 /* TLUpdateDescriptorOperation.m */; };
 		AA6826E517C722FCBD91D891 /* TLQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 68CB61CFA833860881375EC7 /* TLQueue.m */; };
+		AA7031DA52A53B3D7B577B20 /* TLPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */; };
+		AA978EC54A502228DFAA136C /* TLOnPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */; };
 		AA999181F9933EED69059A98 /* TLTwincodeDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A9F3DEAB702D4A48502CEC8 /* TLTwincodeDescriptorImpl.m */; };
 		AAA3E930FC2FD93190CEB7CB /* TLPushCommandOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 0850A6DB0D3C64BD350A5C9A /* TLPushCommandOperation.m */; };
 		AAAADC5A008B205E03B652AD /* TLDatabaseCheck.m in Sources */ = {isa = PBXBuildFile; fileRef = 4C4B66608DE048CFCF5C27E8 /* TLDatabaseCheck.m */; };
 		AAC0CB22FA53F1D0181013F3 /* TLUpdateTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D7B3A0D256CE385478F89D9 /* TLUpdateTwincodeIQ.m */; };
 		AB057CA758FCE7F650C961E7 /* TLOnGetAllBackupsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = C7AA1F8BFE54F761CC5298C2 /* TLOnGetAllBackupsIQ.h */; };
+		AB06CF92EAE04E018EA20DC5 /* TLDataChannelHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		AB5119C55DA37FE72A926CA4 /* TLImageId.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E51FBBDECF994BC2264A7397 /* TLImageId.h */; };
 		AB5E796504FEB08D065470C6 /* TLOnCopyImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 9F7C7DA470176BD950ADDD18 /* TLOnCopyImageIQ.m */; };
 		AB60773CF382BFAAE7490F2E /* TLErrorIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = D0F0ADB56A5951605D374F12 /* TLErrorIQ.m */; };
@@ -2161,6 +2214,7 @@
 		AB78BCC1A155099DE459E71C /* TLTwincodeDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A9F3DEAB702D4A48502CEC8 /* TLTwincodeDescriptorImpl.m */; };
 		AB895FF8C97F3CE26202C089 /* TLCreateInvitationCodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DE1BC671385B9D2D713F4830 /* TLCreateInvitationCodeIQ.h */; };
 		AB9BA2A1F547CC34B62EA73E /* TLDecoder.h in Sources */ = {isa = PBXBuildFile; fileRef = 4A247EC8F604F99F75B2C6AE /* TLDecoder.h */; };
+		ABBB6710B75B8906A2B2BDFB /* TLContactShareDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */; };
 		ABBE1289492C084FD41776D3 /* TLOnPushPollIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 6AF80D3B45EC8AE9904D3EAD /* TLOnPushPollIQ.m */; };
 		ABBE4800229692F37E3C73FB /* TLPushTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7B9DDBB64F757D8665D03BC0 /* TLPushTwincodeIQ.m */; };
 		ABC07BB623192824A9672182 /* TLDeviceInfo.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 84BAF6E0E901D5DFBBF6B07D /* TLDeviceInfo.h */; };
@@ -2179,6 +2233,7 @@
 		AD218499AADF73E237F0224B /* TLAccountIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 2BED22AC3201D020DE1CFEFD /* TLAccountIQ.h */; };
 		AD37758815391E9308A517F0 /* TLTwincodeInboundHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 9407B2A6831A3E7EBCA2DBE1 /* TLTwincodeInboundHandler.m */; };
 		AD4EDCD6534F36C3BF4C0D8C /* TLBackupHeaderHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 0F03829C592D5905C7E52BDE /* TLBackupHeaderHandler.m */; };
+		AD55F75CDA2571826A99FBEE /* TLAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */; };
 		AD62D50DB2CEF7602B5A96F5 /* TLRepositoryServiceProvider.m in Sources */ = {isa = PBXBuildFile; fileRef = 7F3C4CFD0737FEF1C9D41748 /* TLRepositoryServiceProvider.m */; };
 		AD7302F6AE0D0E7E0A830A53 /* TLDecoder.h in Sources */ = {isa = PBXBuildFile; fileRef = 4A247EC8F604F99F75B2C6AE /* TLDecoder.h */; };
 		AD73FFDF567BBF7F400DB43F /* TLArrayData.m in Sources */ = {isa = PBXBuildFile; fileRef = 33F33D5565E7921540A24BB0 /* TLArrayData.m */; };
@@ -2212,6 +2267,7 @@
 		B041904045925780EEBC9654 /* TLTwincodeFactoryServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 0069359C61A1D458867A51B0 /* TLTwincodeFactoryServiceImpl.h */; };
 		B0636F51351279606F55D68D /* TLTwincodeInboundService.h in Sources */ = {isa = PBXBuildFile; fileRef = 38CA6EB10F573ACF3E40CEFF /* TLTwincodeInboundService.h */; };
 		B06AB798A283851E17AC7AD4 /* TLBinaryDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 3FC3A3796AD079A51C3DD287 /* TLBinaryDecoder.m */; };
+		B082A956A73518B2B235A92C /* TLDataChannelHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		B082FAA24BED9B64F3D2E5CE /* TLManagementServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 1F76210B85CA91D15BBD9E20 /* TLManagementServiceImpl.m */; };
 		B0A03F036C344ABC3BF060D5 /* TLPeerCallService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 9CDA68C3689E3545C68832E0 /* TLPeerCallService.h */; };
 		B0AFA63031C610E85969ABF4 /* TLDataOutputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = E468DDEA398D45D97E37AAA4 /* TLDataOutputStream.m */; };
@@ -2227,6 +2283,7 @@
 		B1D8749B03879D4D429FF31E /* TLCreateCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = F0171F3E06C20C47DDB56AC5 /* TLCreateCallRoomIQ.m */; };
 		B1ED517C29DA0621B932D2CE /* TLOnJoinMeetingIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 65ABFCAE9DAE1FC6605952D3 /* TLOnJoinMeetingIQ.h */; };
 		B1F73D7040744303B2076F2B /* TLBackupInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = DE4433FAF623E33DB4028C40 /* TLBackupInfo.m */; };
+		B22272AF6E1F8DC8CD5DBCC6 /* TLDataChannelHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		B232213CA9F604B6FD2D44AC /* TLOnCreateInvitationCodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = F3A2C7E6B0084694C9CC676D /* TLOnCreateInvitationCodeIQ.h */; };
 		B23631C2575A347F6713A08E /* TLDatabaseService.m in Sources */ = {isa = PBXBuildFile; fileRef = C7EFFB3A9F12DE6644AC1778 /* TLDatabaseService.m */; };
 		B25540D36C9501CF15A794F4 /* TLCancelFeatureIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 8A93C2451D4F0B6E5BF930CE /* TLCancelFeatureIQ.m */; };
@@ -2277,6 +2334,7 @@
 		B580FC7E50CFC58B36C7AFC0 /* TLNotificationService.h in Sources */ = {isa = PBXBuildFile; fileRef = 96E8DC48FBF2565E259D3F8B /* TLNotificationService.h */; };
 		B5852F55AE84A19EBAA21EB5 /* TLJoinGroupIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6D04BE83BCC76AD5457C9FAB /* TLJoinGroupIQ.h */; };
 		B593885B2043493A09C8A679 /* TLSettingsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 83B31A245301733723C3218A /* TLSettingsIQ.m */; };
+		B596B61AE1854E2A8C2A974F /* TLOnAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */; };
 		B59BE0364C3B705BB7130ECC /* TLJobService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = EFBB37346FB293BBC3AF97AA /* TLJobService.h */; };
 		B59D5A7660174C05EDC6FB73 /* TLQueryStatsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6FB29B45C392771795F8830A /* TLQueryStatsIQ.h */; };
 		B5AC0A25670422CAA3DEF495 /* TLCreateImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B5520A41E7F2294961BD95A7 /* TLCreateImageIQ.m */; };
@@ -2288,6 +2346,7 @@
 		B62A713F4B31AF8195754F86 /* TLRepositoryServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 26485EE46F821E1CF8548B32 /* TLRepositoryServiceImpl.m */; };
 		B649B82B3FA65961EB043A62 /* TLAssertion.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = D3E37ACAE264E58219D5A39A /* TLAssertion.h */; };
 		B65079692AA38B5A727727A6 /* TLBackupService.h in Sources */ = {isa = PBXBuildFile; fileRef = C222A8D0DCD3D071662463C9 /* TLBackupService.h */; };
+		B6578F4F163F974755326CF4 /* TLAnswerContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */; };
 		B67FB1F0D0A0840C32950108 /* TLOnCreateObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DFBF0E2AAAE0F989F44AFD0A /* TLOnCreateObjectIQ.h */; };
 		B68C539A297EA78CE8A0DC33 /* TLSetPushTokenIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 83B86155A8A9BFD81357650D /* TLSetPushTokenIQ.m */; };
 		B698D846CD1EAFBF06900244 /* TLSettingsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 83B31A245301733723C3218A /* TLSettingsIQ.m */; };
@@ -2309,6 +2368,7 @@
 		B7ED58ADFB81A6D74122A507 /* TLInvitationCode.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = A56228F112FC9725B28272AB /* TLInvitationCode.h */; };
 		B7F8CEB1ED24ED1581384F73 /* TLAttributeNameValue.h in Sources */ = {isa = PBXBuildFile; fileRef = 5E3ED72A48A5F09D4E9871F4 /* TLAttributeNameValue.h */; };
 		B7FDB80EAED5588E90C28E87 /* TLDeviceRingingIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B571160B2AEF5F3D303CDABD /* TLDeviceRingingIQ.h */; };
+		B80DEA4D5005B7B5ABACD160 /* TLPushContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */; };
 		B83C6E13E983CFBA4F788C21 /* TLDataInputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 891DB8A725E4039504C55B99 /* TLDataInputStream.m */; };
 		B85F4F33B0F608A3F1D4A92E /* TLGroupUpdateOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 601DF41B9AB5A7660B408EAB /* TLGroupUpdateOperation.h */; };
 		B86AB4E3B3E1A09B7F073D3C /* TLOnAuthChallengeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 9B5EDBC1F4CC7A64C7060F81 /* TLOnAuthChallengeIQ.h */; };
@@ -2317,12 +2377,12 @@
 		B8D884EFA256C25286205AC5 /* TLConversationMigration.h in Sources */ = {isa = PBXBuildFile; fileRef = D17DFB7325F29B4D8044C1F8 /* TLConversationMigration.h */; };
 		B8E70E274043F5E745A09408 /* TLCryptoServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 75C80E44915E4074D0F4B4B2 /* TLCryptoServiceImpl.h */; };
 		B8EAD5CB8A71F193B04E983A /* TLGeolocationDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 04A326B5CA866F409C4E49AD /* TLGeolocationDescriptorImpl.m */; };
+		B8FB39EFDC86AFBC11886FCF /* TLOnPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */; };
 		B90C7CB3EBFDE3FCBE435037 /* TLResetConversationOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = C05CC0F6C33E96D8387EC754 /* TLResetConversationOperation.m */; };
 		B91A0F7528B27C3255FADD64 /* TLCryptoService.h in Sources */ = {isa = PBXBuildFile; fileRef = 2EF22C7777A0096FB936EB05 /* TLCryptoService.h */; };
 		B92955155BF85C18C2B26245 /* TLQueue.h in Sources */ = {isa = PBXBuildFile; fileRef = 4C7DC5577DD5F6D8F9745867 /* TLQueue.h */; };
 		B943CF34E0C6E7E667ADC338 /* TLAccountServiceSecuredConfiguration.h in Sources */ = {isa = PBXBuildFile; fileRef = DF96D63CF89B1327BAB18101 /* TLAccountServiceSecuredConfiguration.h */; };
 		B950336BA023ADC5C50E7329 /* NSURL+Extensions.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 915952EF479788C8A0542302 /* NSURL+Extensions.h */; };
-		B95BBD835FF317BC0028C380 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		B9A68E89CFD25F1BEA2DED35 /* TLAccountServiceSecuredConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 08F4CF32BFAED0B3A0F3AFD5 /* TLAccountServiceSecuredConfiguration.m */; };
 		B9A6B3F624C973070019A566 /* TLSubscribeFeatureIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 59D3016172E1701863505CAE /* TLSubscribeFeatureIQ.m */; };
 		B9CF72156F781D9BA909F039 /* TLSynchronizeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 51437FFD024EDC5F2CDECEB7 /* TLSynchronizeIQ.m */; };
@@ -2390,6 +2450,7 @@
 		BEB1377F14BA5EFA74C3502A /* TLDeleteTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 0A5193C8F7072BC9F7E51D5D /* TLDeleteTwincodeIQ.m */; };
 		BEB4BAB1EA2978292EED76AA /* TLAssertion.h in Sources */ = {isa = PBXBuildFile; fileRef = D3E37ACAE264E58219D5A39A /* TLAssertion.h */; };
 		BEC276B2E8B184C41F7E99D1 /* TLOnCreateObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = A99F0CC355F7B70545A803EA /* TLOnCreateObjectIQ.m */; };
+		BED4845189233F581E532FC5 /* TLDataChannelHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */; };
 		BED909D20F6CEEC72B48C6DB /* TLTwincodeURI.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0CC893D38CFBE50F8BA46894 /* TLTwincodeURI.h */; };
 		BEF0F953274EF5C2675C945A /* TLUpdateTimestampIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 02AE9EFC6C5D6CDD0AC0A6AF /* TLUpdateTimestampIQ.h */; };
 		BEF685DF5C7688015C125023 /* TLBackupService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = C222A8D0DCD3D071662463C9 /* TLBackupService.h */; };
@@ -2422,10 +2483,12 @@
 		C1221ED18C6837FCF30AC1A2 /* NSURL+Extensions.m in Sources */ = {isa = PBXBuildFile; fileRef = 01FE2936A1B37B0C518F06CC /* NSURL+Extensions.m */; };
 		C12557746A81513962D5333B /* TLAddRosterMemberIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = D0C3C33A8BBD9721E1D9C6BB /* TLAddRosterMemberIQ.h */; };
 		C137F132B20FB4E9D53FB6E6 /* TLBackupHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 5A9AB4E250D904969F8AF05F /* TLBackupHandler.h */; };
+		C1633AD24242C91F3B2EC752 /* TLAnswerContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */; };
 		C165F8B8927D763523DADBCA /* TLCancelFeatureIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 440B268E088D1E903C35757E /* TLCancelFeatureIQ.h */; };
 		C17C7472E0DABD22068F8940 /* TLAuthRequestIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 47D1FEB1920E69A17CD35A4A /* TLAuthRequestIQ.m */; };
 		C194E413C53CEFE5ECD4196C /* TLOnJoinGroupIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 04AFFF76BF8C8EE69A34261D /* TLOnJoinGroupIQ.h */; };
 		C1990136CED07E3893B3270D /* TLImageServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = CFC17DED9717A3C93934206D /* TLImageServiceImpl.h */; };
+		C19B4719F0136D34739D33F2 /* TLPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */; };
 		C1BC7D932F3EBE1F34A72D4C /* TLRestoreContent.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 8A0802339AEF2BCF2FEA96B1 /* TLRestoreContent.h */; };
 		C1C2EABFBEF648500F53695A /* TLAddRosterPublicKeyIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 4922D1C04172414297D22278 /* TLAddRosterPublicKeyIQ.h */; };
 		C1DA3AE1B333291BC9C80F63 /* TLOnValidateConfigurationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 706AF9BAC0480E86F7A026FB /* TLOnValidateConfigurationIQ.h */; };
@@ -2470,6 +2533,7 @@
 		C5513CAE344A2ACC2EBA5ABB /* TLConfigIdentifier.m in Sources */ = {isa = PBXBuildFile; fileRef = A290EE95E8E084990B663B4A /* TLConfigIdentifier.m */; };
 		C584FA5AA87C1D8E3D7C3A45 /* TLServiceRequestIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = BAD4196D40B038962CD8E0E4 /* TLServiceRequestIQ.h */; };
 		C59FD3A405042677BB43B6E3 /* TLTwincodeInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 4ACA86E3687DC2A6875DFAAE /* TLTwincodeInfo.h */; };
+		C5D115E3F3510F84B295C25D /* TLContactShareDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */; };
 		C5F6C7D22693DD4A63A00F82 /* TLBinaryDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = 3FC3A3796AD079A51C3DD287 /* TLBinaryDecoder.m */; };
 		C6092C870BE8363B6DD44409 /* TLBackupInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 873AC3552086C21242FEBC04 /* TLBackupInfo.h */; };
 		C612149057DABDC73CE69923 /* TLAudioDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 9401C51B3F62C76E401E5316 /* TLAudioDescriptorImpl.m */; };
@@ -2482,6 +2546,7 @@
 		C6844B701C9A8631818D3741 /* TLMemberInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 80DC5B7287089CDEC89DAB7C /* TLMemberInfo.h */; };
 		C68C82073331CFC1778A4696 /* TLPrimitiveData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 99E76DC3CA31E86E890C3548 /* TLPrimitiveData.h */; };
 		C69AF140860F168369728A3B /* TLQueryStatsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6FB29B45C392771795F8830A /* TLQueryStatsIQ.h */; };
+		C69BAB4DD8078FE3AF7A4D15 /* TLOnPushContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */; };
 		C6A99C173498439E9D9A1625 /* TLTwincodeOutboundService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3A59A9B9C7EC2DA336BC2F2D /* TLTwincodeOutboundService.h */; };
 		C6C12ED6179830869EE4F2B5 /* TLClearDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 7E15BA2DAD9D7644AEE5923F /* TLClearDescriptorImpl.m */; };
 		C6C50BB67C851A1ABCF8C0A2 /* TLPrimitiveData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 99E76DC3CA31E86E890C3548 /* TLPrimitiveData.h */; };
@@ -2511,6 +2576,7 @@
 		C82CE23853EF5B9DAE55BFAC /* TLDeleteRosterMemberIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A4FB0D1D2D8626E1191057F /* TLDeleteRosterMemberIQ.m */; };
 		C8511282F3CE1D298F22ECBB /* TLGenerateBackupKeyIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B0446EAB8BA5BAEA480EA925 /* TLGenerateBackupKeyIQ.m */; };
 		C851CDD47D5980187A459A92 /* TLAssertionIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = F86A879808978CD5126952DD /* TLAssertionIQ.m */; };
+		C8592F6A6949AD95B76C958A /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */; };
 		C85C98E582F0CB2F9DE2604D /* TLOnJoinCallRoomIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = CC25CFE71E3EABC71617C260 /* TLOnJoinCallRoomIQ.h */; };
 		C8682EE9D80616CFD4541230 /* TLPutImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 98470CDE58E1F25B0E8CB6DA /* TLPutImageIQ.h */; };
 		C8697FB776E250E143884A4F /* TLInvocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DFF41D4826E2F7069B19DC72 /* TLInvocationIQ.h */; };
@@ -2618,6 +2684,7 @@
 		D0704515F9F6DD8484A4B7DE /* TLArrayData.h in Sources */ = {isa = PBXBuildFile; fileRef = E87D9F07DF2F5148C4F5E1B8 /* TLArrayData.h */; };
 		D07A2294B26898C8A77E9503 /* TLOnGenerateBackupKeyIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 77680B40F316AD768F1466FB /* TLOnGenerateBackupKeyIQ.m */; };
 		D0C62085130C56FEF288C472 /* TLPushObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7BA7EAA7016F5C15E2DC7F6F /* TLPushObjectIQ.m */; };
+		D0C6F03D1796FECB33F26C53 /* TLDataChannelHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */; };
 		D0C8B56F09CE3C63258C406C /* TLSendingFileInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = CD0269DFAC21AB99D4AEA611 /* TLSendingFileInfo.m */; };
 		D0D6F541D2B34D863FC4BAF3 /* TLOnCreateAccountIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = CD1D38082AD9B1B39D0783CE /* TLOnCreateAccountIQ.m */; };
 		D103C87E1DF75986F1C3F83B /* TLBackupServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = CB8CAED87EFA72A414AF632D /* TLBackupServiceImpl.h */; };
@@ -2714,6 +2781,7 @@
 		D82CC05ECC55214649926C5F /* TLDeleteTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 26EAF56116C751E8B51E044B /* TLDeleteTwincodeIQ.h */; };
 		D838E4AF16EFF6699F4EBB7F /* TLPushGeolocationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 862C34FC6E64CF5DFCBB30D3 /* TLPushGeolocationOperation.h */; };
 		D839C0732E4376752420D060 /* TLSerializerFactoryImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = E1720462ECFD7C2865B0F178 /* TLSerializerFactoryImpl.m */; };
+		D855286257C3F6DF72FE57C6 /* TLDataChannelHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */; };
 		D874D0E759196D471658291E /* TLTerminateAccountRestoreIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 30E0EAAC1D6696D5921F15A9 /* TLTerminateAccountRestoreIQ.h */; };
 		D896078632BC9D720C1581C2 /* TLPushFileChunkIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5124CE342D205B9FAA570B /* TLPushFileChunkIQ.m */; };
 		D89853D15F9CC52CDEF38D3F /* TLInvokeTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = C1331AF2D0234A3A44408DB7 /* TLInvokeTwincodeIQ.m */; };
@@ -2723,14 +2791,18 @@
 		D8D47F0693D3415BBED91344 /* TLVoidData.h in Sources */ = {isa = PBXBuildFile; fileRef = FD9BE9AA9378DDFAA29B2805 /* TLVoidData.h */; };
 		D8DFCFFD0029EBB83CC5E4B1 /* TLSessionAcceptIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DA05BA9750368FA73922463E /* TLSessionAcceptIQ.h */; };
 		D8FB264379B904E716A45D4B /* TLDatabaseCheck.h in Sources */ = {isa = PBXBuildFile; fileRef = 0B5C753C71E8A05E609C1167 /* TLDatabaseCheck.h */; };
+		D8FE519358086FB80377D3B7 /* TLAnswerContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */; };
 		D9079147499C434CA3BE60B2 /* TLSecureRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 3A33A6851FB5371EE33FF049 /* TLSecureRosterIQ.m */; };
 		D91C253130F05CAA2A3BCA68 /* TLOnPushGeolocationIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 540B675AAC17F9A69AEF9838 /* TLOnPushGeolocationIQ.h */; };
 		D97BB91AF90836B3FC057A36 /* TLUpdateTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = BC2AB24E9EDABC12E0CC5025 /* TLUpdateTwincodeIQ.h */; };
+		D97F86802DD96027C7F7221F /* TLOnAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */; };
 		D9905924F30DC80C985CBE42 /* TLRestoreExecutor.h in Sources */ = {isa = PBXBuildFile; fileRef = FBE6DE1CB2290841951C9EC9 /* TLRestoreExecutor.h */; };
 		D9AB6B1205346F348871712D /* TLDeviceRingingIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = FDBFD62CB68CDF4CF879B272 /* TLDeviceRingingIQ.m */; };
 		D9AEAD3A1679C4C1209F9733 /* TLGeolocationDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 04A326B5CA866F409C4E49AD /* TLGeolocationDescriptorImpl.m */; };
+		D9B16714A5396D07DC74BA9B /* TLContactShareDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */; };
 		D9D34AE3F753AFD8FCCE9BDE /* TLFileInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = D5D70A0DBC82FEE47BBCF794 /* TLFileInfo.m */; };
 		D9E8691436DBBBC51986F363 /* TLBackupInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = DE4433FAF623E33DB4028C40 /* TLBackupInfo.m */; };
+		D9E8C22C08465670D09003A8 /* TLOnPushContactShareIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */; };
 		D9ECD3B383B41D2BC828C614 /* TLSessionSecretKeyPair.m in Sources */ = {isa = PBXBuildFile; fileRef = 059A90AE1571C751B84A29C2 /* TLSessionSecretKeyPair.m */; };
 		D9F70116E19A55597D7A345A /* TLData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E45ED68CB0B435CDAC44AFED /* TLData.h */; };
 		D9FF630B35D33ABE6AFC0865 /* TLTwincodeOutboundServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 9D09B363EE6C39A26167D691 /* TLTwincodeOutboundServiceImpl.h */; };
@@ -2770,6 +2842,7 @@
 		DCD3DDBD059F258A24717126 /* TLOnCreateObjectIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = A99F0CC355F7B70545A803EA /* TLOnCreateObjectIQ.m */; };
 		DCD7E1DE10BCD24AC9E6731A /* TLBackupHeaderInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 667D2E795ADBAED21E986D3E /* TLBackupHeaderInfo.h */; };
 		DCFAD45331CF2F69CF0472A4 /* TLGroupJoinOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 7C7B07A8514FD206758467F4 /* TLGroupJoinOperation.h */; };
+		DD0072C84706D0B7DD72724C /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */; };
 		DD1D6E8B3C89F81A8C71CF26 /* TLCreateAccountIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 8B516B0A8515451486FDCB8E /* TLCreateAccountIQ.h */; };
 		DD1E9375AEBFF9235147B578 /* TLManagementService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 7EBA2055DA64FB287C7A7C04 /* TLManagementService.h */; };
 		DD28587D84E12659BA47018F /* TLConfigIdentifier.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E34DF1D9B063AF938AE0E9BD /* TLConfigIdentifier.h */; };
@@ -2807,10 +2880,12 @@
 		DF70D828EE01B783D08538E3 /* TLResetConversationOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 49046B766E8E2FB64EBFF80D /* TLResetConversationOperation.h */; };
 		DF782C1C95F85C4A70F2B3E4 /* TLResetConversationOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = C05CC0F6C33E96D8387EC754 /* TLResetConversationOperation.m */; };
 		DF794E6D66D558ACF79C521D /* TLAccountMigrationService.h in Sources */ = {isa = PBXBuildFile; fileRef = 4B57D6F49DA1035414F6EDFE /* TLAccountMigrationService.h */; };
+		DF8BA7E470B8ACD84854EE5A /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */; };
 		DF9429D2D5EA979BF074C374 /* TLVideoDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0089F8D0298C6FEDF3FB6493 /* TLVideoDescriptorImpl.m */; };
 		DF9F2B5C3FA7EBC5BFA2DA4A /* TLServiceErrorIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 3DDC1677A54055F3F23CFB8C /* TLServiceErrorIQ.h */; };
 		DFA5E9A3F379DF8CF71544C0 /* TLNotificationServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = F2D3303386AF58C4E50545BB /* TLNotificationServiceImpl.h */; };
 		DFABF3CB55C3AACC3B65B3CC /* TLCryptoServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 75C80E44915E4074D0F4B4B2 /* TLCryptoServiceImpl.h */; };
+		DFBFF896204E1618FC640DE0 /* TLDataChannelHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */; };
 		DFC7043B1B7726706C36A485 /* TLConversationServiceOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 774B1905AE609AA126F0569E /* TLConversationServiceOperation.m */; };
 		DFEB7A0A86D24B351434B2AB /* TLOnGetImageIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 3CED9B90DBAD6CD3938F457B /* TLOnGetImageIQ.h */; };
 		DFED6A8D7FACF5595B5C71D7 /* TLPollDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0DDB115F1DEB205C9CC59EB0 /* TLPollDescriptorImpl.m */; };
@@ -2838,7 +2913,6 @@
 		E1E5425BD76843501B5FE378 /* TLDeviceRingingIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = B571160B2AEF5F3D303CDABD /* TLDeviceRingingIQ.h */; };
 		E1F2DB46D4B12C0DB7837B42 /* TLAccountIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 54CE8E24763FCE75E249CC3D /* TLAccountIQ.m */; };
 		E1FEE1E0430506F19A6A4517 /* TLInvokeTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = C1331AF2D0234A3A44408DB7 /* TLInvokeTwincodeIQ.m */; };
-		E20122570F4324B4FA7272A1 /* TLPeerConnectionHandler.h in Sources */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		E20B78F20C572A2D5D031CF0 /* TLOnCreateTwincodeIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 3E19C5BF3CECB3B19560A738 /* TLOnCreateTwincodeIQ.m */; };
 		E20B8D12E1879EDF7CFDABDF /* TLVideoDescriptorImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = 0089F8D0298C6FEDF3FB6493 /* TLVideoDescriptorImpl.m */; };
 		E224D258B43E75B9863B549A /* TLDatabase.h in Sources */ = {isa = PBXBuildFile; fileRef = 5EFDA85332B19A9ED1482EAF /* TLDatabase.h */; };
@@ -2873,7 +2947,9 @@
 		E45CA0943CEBD8276976042C /* TLJoinCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 576BFF7C628C0A75F0BAD5E7 /* TLJoinCallRoomIQ.m */; };
 		E45F2934708728E1C02DFAC8 /* TLSerializerFactory.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3A0CAAA7C4FA8F30B7F0F234 /* TLSerializerFactory.h */; };
 		E4A230AF09C86692C57EF251 /* TLTwinlifeContext.h in Sources */ = {isa = PBXBuildFile; fileRef = 364909F3817BEF490BBD8FFD /* TLTwinlifeContext.h */; };
+		E4A500A401FD29EB6B004365 /* TLDataChannelHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */; };
 		E4A6689E00E367BA66462E9F /* TLPrimitiveDataImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = FBA9012ECABDF35383CA82C0 /* TLPrimitiveDataImpl.m */; };
+		E4D17D3EC6FB77E83EA47F40 /* TLAnswerContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */; };
 		E4D9C29C4A09345E203AEF16 /* TLPermissions.h in Sources */ = {isa = PBXBuildFile; fileRef = 7D2842817D63A2781A67A244 /* TLPermissions.h */; };
 		E4DCBEB259413AE8F9268DA4 /* TLUpdateDescriptorTimestampOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = B9317F317F2E3A83347FB2A7 /* TLUpdateDescriptorTimestampOperation.m */; };
 		E4E507306EB5A911D23F5C51 /* TLOnRefreshTwincodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 78F7A431BCB1F14014A1A986 /* TLOnRefreshTwincodeIQ.h */; };
@@ -2988,6 +3064,7 @@
 		EEB0C7DB9499229372B09014 /* TLPushFileChunkIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5124CE342D205B9FAA570B /* TLPushFileChunkIQ.m */; };
 		EEC916B26E2C8BCF7C3986FF /* TLDecoder.h in Sources */ = {isa = PBXBuildFile; fileRef = 4A247EC8F604F99F75B2C6AE /* TLDecoder.h */; };
 		EECF92650FA109C063EEF736 /* TLListFilesIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7A156AD93D06CCDAE5B39AF0 /* TLListFilesIQ.m */; };
+		EF03A2BF36089AF4EEA9FB93 /* TLAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */; };
 		EF0CF9FB775B16BADDD0DE92 /* TLTwincodeOutboundService.h in Sources */ = {isa = PBXBuildFile; fileRef = 3A59A9B9C7EC2DA336BC2F2D /* TLTwincodeOutboundService.h */; };
 		EF118F3B44C2A9DE6F3BE6A4 /* TLSignatureInfoIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 7536410AE6562FC79878BC52 /* TLSignatureInfoIQ.m */; };
 		EF1D58E27838E896851B5C69 /* TLVoidData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = FD9BE9AA9378DDFAA29B2805 /* TLVoidData.h */; };
@@ -2998,7 +3075,6 @@
 		EFB66DA5A85570772613325D /* TLLeaveCallRoomIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 19F9CEB277AECF4B60EDBB81 /* TLLeaveCallRoomIQ.m */; };
 		EFB7E2F3DC0FB62798D919F8 /* TLResultIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 75AF9C6C7235D585307BD0F5 /* TLResultIQ.h */; };
 		EFBC768F491ACFCE98F61E11 /* TLAttributeNameValue.m in Sources */ = {isa = PBXBuildFile; fileRef = 6E2B173E6CA310911060DC90 /* TLAttributeNameValue.m */; };
-		EFCFF5E08A370E6836AFDD26 /* TLPeerConnectionHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		EFD2CFA238E6101A52F79A19 /* TLOnDeleteImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 4FBA7A4889BD27A0C8FB401C /* TLOnDeleteImageIQ.m */; };
 		EFDCD4E489068175053D0F0A /* TLNotificationService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 96E8DC48FBF2565E259D3F8B /* TLNotificationService.h */; };
 		EFDECB7757F9C33859CCB1FC /* TLPeerConnectionService.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = CFF25E8B1C87FD7C67D8CC2B /* TLPeerConnectionService.h */; };
@@ -3034,6 +3110,7 @@
 		F23B472256FCF989489DFF9A /* TLConversationProtocol.h in Sources */ = {isa = PBXBuildFile; fileRef = AF82A0ACB5E80A774FA72A68 /* TLConversationProtocol.h */; };
 		F261C2D1BCBB780F77096E70 /* TLPeerConnectionServiceImpl.m in Sources */ = {isa = PBXBuildFile; fileRef = A6314AC7BEF609D4EFB96357 /* TLPeerConnectionServiceImpl.m */; };
 		F28DCC5EE564BA089F97572E /* TLOnJoinMeetingIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 59AF58AE7A4500A0CCA30E80 /* TLOnJoinMeetingIQ.m */; };
+		F2B74515D191DD5A9DAC76F9 /* TLPushContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = 8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */; };
 		F2BFAFF38763F441F05251A4 /* TLPeerCallServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 7356E558DAC1F0530BCEBECA /* TLPeerCallServiceImpl.h */; };
 		F2C517774A9562E9C0EC71FA /* TLVerifyReport.m in Sources */ = {isa = PBXBuildFile; fileRef = 52AC70A00410FA8AD1E91ACB /* TLVerifyReport.m */; };
 		F2CB83B2032E6DF6D417E90F /* TLInviteCallRoomIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 62C688B61ACB30F36005C42B /* TLInviteCallRoomIQ.h */; };
@@ -3051,6 +3128,7 @@
 		F3BABB89EC3ACEA374684114 /* TLStringData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1477BA41B3CFDC5F837B768A /* TLStringData.h */; };
 		F3DF6C727AF306B8F031A511 /* TLJoinCallRoomIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = D3F33DCE85299C3BF54A3C0C /* TLJoinCallRoomIQ.h */; };
 		F3E41A4E7A6A6FE40BC3486D /* TLCreateInvitationCodeIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = DE1BC671385B9D2D713F4830 /* TLCreateInvitationCodeIQ.h */; };
+		F3FC04660D4C4400F28436A6 /* TLContactShareDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */; };
 		F409157AF4B7FF9C2D80F46E /* TLDataInputStream.m in Sources */ = {isa = PBXBuildFile; fileRef = 891DB8A725E4039504C55B99 /* TLDataInputStream.m */; };
 		F40E55FC78D48193BF003FBD /* TLTwincodeInboundServiceImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 44C6B9A75FC45C6817EDD36D /* TLTwincodeInboundServiceImpl.h */; };
 		F42CC90363A4AA851DB1DA86 /* TLGroupConversationImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 7DEBF449FFC64CFA55D1C92D /* TLGroupConversationImpl.h */; };
@@ -3068,6 +3146,7 @@
 		F4BA2FB806638446B48B3B91 /* TLMemberInfo.h in Sources */ = {isa = PBXBuildFile; fileRef = 80DC5B7287089CDEC89DAB7C /* TLMemberInfo.h */; };
 		F4F1BB0025A6C89F52B218EB /* TLOnCreateRosterIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = E2F82210D71A45369D016174 /* TLOnCreateRosterIQ.h */; };
 		F4FC3FC130BBA0F0EBFE8CE0 /* TLIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = F5AF1F86CDD79647760462CF /* TLIQ.h */; };
+		F4FFFAACAC415D7C73D4F927 /* TLOnAnswerContactShareIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */; };
 		F51B9ED17EAE08E5D991C35A /* TLOnPutImageIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = B68CDD4CAD675049F2347D65 /* TLOnPutImageIQ.m */; };
 		F53533CBF8463F308E50F24A /* TLUpdatePermissionsIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BB8EA38CF66B4EE9134AE88 /* TLUpdatePermissionsIQ.m */; };
 		F55EEF3EEBDE4F69A996FB95 /* TLBinaryCompactEncoder.m in Sources */ = {isa = PBXBuildFile; fileRef = F0EEE6C67453C193DFD98F12 /* TLBinaryCompactEncoder.m */; };
@@ -3107,6 +3186,7 @@
 		F8247007F30E506BFF56BE30 /* TLNotificationService.h in Sources */ = {isa = PBXBuildFile; fileRef = 96E8DC48FBF2565E259D3F8B /* TLNotificationService.h */; };
 		F82E0FE12DAE187CC3DB0349 /* TLOnPushObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = FBB5734D94FD6A9187B68C63 /* TLOnPushObjectIQ.h */; };
 		F82FA8A86CB24CDB78357656 /* TLOnListObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 6B3CC50B9D83160B4B56788F /* TLOnListObjectIQ.h */; };
+		F844CA7A603CEF73BA6DC085 /* TLPeerConnectionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */; };
 		F844F62722DF8C905FDABE88 /* TLUpdateAnnotationsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 5E7D99A4C1475D3CC689FBCE /* TLUpdateAnnotationsIQ.h */; };
 		F855CFF255CBFC4E31E0DB57 /* TLOnGetAllBackupsIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = C7AA1F8BFE54F761CC5298C2 /* TLOnGetAllBackupsIQ.h */; };
 		F858B91B18F86BDA3C382834 /* TLQueue.h in Sources */ = {isa = PBXBuildFile; fileRef = 4C7DC5577DD5F6D8F9745867 /* TLQueue.h */; };
@@ -3169,7 +3249,6 @@
 		FCD1D9ECDE959DF6F7EA5C45 /* TLOnCreateRosterIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 91874F5B189CF74430486E7A /* TLOnCreateRosterIQ.m */; };
 		FCDA238F314B68FF288C5933 /* TLPushFileChunkIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = AC5124CE342D205B9FAA570B /* TLPushFileChunkIQ.m */; };
 		FCFCA628D877AB957C3D4BAA /* TLOnSubscribeFeatureIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = ABCDD0DD0B72D2DA1BA1A03E /* TLOnSubscribeFeatureIQ.h */; };
-		FD1595BAF12D520424C828C8 /* TLPeerConnectionHandler.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */; };
 		FD234495152F3DF77A04B6D5 /* TLImageId.h in Sources */ = {isa = PBXBuildFile; fileRef = E51FBBDECF994BC2264A7397 /* TLImageId.h */; };
 		FD35A184CF32047668B1E7EC /* TLSessionTerminateIQ.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B4805EB0AC592A4FC1E2259 /* TLSessionTerminateIQ.m */; };
 		FD42B24793D737A822978D85 /* TLUpdateTimestampIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = 02AE9EFC6C5D6CDD0AC0A6AF /* TLUpdateTimestampIQ.h */; };
@@ -3198,6 +3277,7 @@
 		FEF165043C2D8037E10CEB33 /* TLSerializerFactory.h in Sources */ = {isa = PBXBuildFile; fileRef = 3A0CAAA7C4FA8F30B7F0F234 /* TLSerializerFactory.h */; };
 		FF272B29F0DABB54B736C41E /* TLDescriptorImpl.h in Sources */ = {isa = PBXBuildFile; fileRef = 6C0F5C980B77E472D71198C4 /* TLDescriptorImpl.h */; };
 		FF49E28473A75DBB1930F281 /* TLAccountMigrationService.h in Sources */ = {isa = PBXBuildFile; fileRef = 4B57D6F49DA1035414F6EDFE /* TLAccountMigrationService.h */; };
+		FF4C174FAC3F8ABB6C9E10FD /* TLAnswerContactShareOperation.h in Sources */ = {isa = PBXBuildFile; fileRef = C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */; };
 		FF55DF91CCE2F1AABDCA6960 /* TLOnPushObjectIQ.h in Sources */ = {isa = PBXBuildFile; fileRef = FBB5734D94FD6A9187B68C63 /* TLOnPushObjectIQ.h */; };
 		FF74915D13D298C612CEA3C5 /* TLTwinlife.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = BE5D34CB7A88CBA96F654673 /* TLTwinlife.h */; };
 		FFA7F5806A17B613CBF8281B /* TLData.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = E45ED68CB0B435CDAC44AFED /* TLData.h */; };
@@ -3285,6 +3365,7 @@
 				D7A4BC69B65B23EE16AB6D34 /* TLConversationService.h in CopyFiles */,
 				9EC0843A359C8C247122E6E1 /* TLCryptoService.h in CopyFiles */,
 				705C151DB1FBBBB96A4A4FA3 /* TLData.h in CopyFiles */,
+				517B55B29715AD3FF64646A6 /* TLDataChannelHandler.h in CopyFiles */,
 				3529661D7CCA8667BF2260DD /* TLDatabase.h in CopyFiles */,
 				4025A4B1013769F4A0044C69 /* TLDecoder.h in CopyFiles */,
 				EA34EE0BBEF2947DB3359269 /* TLDeviceInfo.h in CopyFiles */,
@@ -3300,7 +3381,6 @@
 				2EA77027961C5D96A641C28F /* TLManagementService.h in CopyFiles */,
 				CCB088A526786142ACE86265 /* TLNotificationService.h in CopyFiles */,
 				1EE572FCC8430877889B6223 /* TLPeerCallService.h in CopyFiles */,
-				1A48C7AAAA4810550B324761 /* TLPeerConnectionHandler.h in CopyFiles */,
 				97578EFBE1DA8955BC8A74B8 /* TLPeerConnectionService.h in CopyFiles */,
 				C05A16FBA4A88C260F351CDD /* TLPermissions.h in CopyFiles */,
 				C6C50BB67C851A1ABCF8C0A2 /* TLPrimitiveData.h in CopyFiles */,
@@ -3358,6 +3438,7 @@
 				11DC4D8BEB1EF20DBC791EA9 /* TLConversationService.h in CopyFiles */,
 				D31A9D067E0334DBD81E7FEE /* TLCryptoService.h in CopyFiles */,
 				A33772D7A1262B225791D4A1 /* TLData.h in CopyFiles */,
+				6EF21F6E0B6C53631D64D499 /* TLDataChannelHandler.h in CopyFiles */,
 				57411AD9F99407170DA51C2C /* TLDatabase.h in CopyFiles */,
 				55A6688EA091C76E87E1740E /* TLDecoder.h in CopyFiles */,
 				ABC07BB623192824A9672182 /* TLDeviceInfo.h in CopyFiles */,
@@ -3373,7 +3454,6 @@
 				DD1E9375AEBFF9235147B578 /* TLManagementService.h in CopyFiles */,
 				ED1177FB3AEC31771455BE20 /* TLNotificationService.h in CopyFiles */,
 				517F915EE42CF7241013C693 /* TLPeerCallService.h in CopyFiles */,
-				FD1595BAF12D520424C828C8 /* TLPeerConnectionHandler.h in CopyFiles */,
 				C06FC263592EDB55C5E7D438 /* TLPeerConnectionService.h in CopyFiles */,
 				BD2A52AABA6316E696525AF8 /* TLPermissions.h in CopyFiles */,
 				3132DF92D70FDC7E712531C3 /* TLPrimitiveData.h in CopyFiles */,
@@ -3431,6 +3511,7 @@
 				E5F8B65765D38975DD8ED179 /* TLConversationService.h in CopyFiles */,
 				E7C7E58F2E2332026F247116 /* TLCryptoService.h in CopyFiles */,
 				D9F70116E19A55597D7A345A /* TLData.h in CopyFiles */,
+				3DA0B63425F2CCADE81F0AF6 /* TLDataChannelHandler.h in CopyFiles */,
 				80C5EA86195F5F9B4BED6B35 /* TLDatabase.h in CopyFiles */,
 				8D0373EA766CA9C61B1848A5 /* TLDecoder.h in CopyFiles */,
 				CC82F3C02A6D850578DF1FF5 /* TLDeviceInfo.h in CopyFiles */,
@@ -3446,7 +3527,6 @@
 				60B43CCFA9075E6017F99F31 /* TLManagementService.h in CopyFiles */,
 				EFDCD4E489068175053D0F0A /* TLNotificationService.h in CopyFiles */,
 				0EDE2AA24BAFC5E03ADACB18 /* TLPeerCallService.h in CopyFiles */,
-				0AB47D0DEE5994DE278A3792 /* TLPeerConnectionHandler.h in CopyFiles */,
 				72F8A31B15951BF99997F4B4 /* TLPeerConnectionService.h in CopyFiles */,
 				885B6C115362B0482C0660E2 /* TLPermissions.h in CopyFiles */,
 				E2629B8EEDEBA2970B525BBB /* TLPrimitiveData.h in CopyFiles */,
@@ -3504,6 +3584,7 @@
 				5AF07069716F73A24D6C2A61 /* TLConversationService.h in CopyFiles */,
 				3AE041B68162267D28B86877 /* TLCryptoService.h in CopyFiles */,
 				FFA7F5806A17B613CBF8281B /* TLData.h in CopyFiles */,
+				B082A956A73518B2B235A92C /* TLDataChannelHandler.h in CopyFiles */,
 				72BAFCB3131F67E7388025DD /* TLDatabase.h in CopyFiles */,
 				58041A9B07EB22726C298DDE /* TLDecoder.h in CopyFiles */,
 				65D6EAF85D553E1AD1E5E701 /* TLDeviceInfo.h in CopyFiles */,
@@ -3519,7 +3600,6 @@
 				2E6FD9B24EDB2E325F45AC59 /* TLManagementService.h in CopyFiles */,
 				C3BAF2BC079C380D51D10714 /* TLNotificationService.h in CopyFiles */,
 				B0A03F036C344ABC3BF060D5 /* TLPeerCallService.h in CopyFiles */,
-				57BFE52B9B5D129087305DA1 /* TLPeerConnectionHandler.h in CopyFiles */,
 				EFDECB7757F9C33859CCB1FC /* TLPeerConnectionService.h in CopyFiles */,
 				C802EAA17C9F7F07E1D536EE /* TLPermissions.h in CopyFiles */,
 				C68C82073331CFC1778A4696 /* TLPrimitiveData.h in CopyFiles */,
@@ -3577,6 +3657,7 @@
 				12F3C5A2C9963D6DC49736CE /* TLConversationService.h in CopyFiles */,
 				B47ADB0286A3DFF4ACC6F87B /* TLCryptoService.h in CopyFiles */,
 				664222D52B0B7845202025BC /* TLData.h in CopyFiles */,
+				36033D670365574E53BF9DF6 /* TLDataChannelHandler.h in CopyFiles */,
 				B4FED89935B6143065301495 /* TLDatabase.h in CopyFiles */,
 				880BD47BEEE62F29B2C7428E /* TLDecoder.h in CopyFiles */,
 				BC87571A63CB52B677149E63 /* TLDeviceInfo.h in CopyFiles */,
@@ -3592,7 +3673,6 @@
 				CB9C2BBB1B278FB4A1A2DE37 /* TLManagementService.h in CopyFiles */,
 				7098A5C2535F4D8EEE39A827 /* TLNotificationService.h in CopyFiles */,
 				436914FE0635A381EBAFD3E0 /* TLPeerCallService.h in CopyFiles */,
-				EFCFF5E08A370E6836AFDD26 /* TLPeerConnectionHandler.h in CopyFiles */,
 				35027D2B030F79A48C91A011 /* TLPeerConnectionService.h in CopyFiles */,
 				F16E9E7FC2A8949A50A40BBA /* TLPermissions.h in CopyFiles */,
 				DC4BBE58606A8B4BCF848C68 /* TLPrimitiveData.h in CopyFiles */,
@@ -3697,7 +3777,6 @@
 		20ACB5A5DFEF186CB0985CC8 /* TLProxyDescriptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLProxyDescriptor.h; sourceTree = "<group>"; };
 		21783A9B3D4EDF1C35BA21AA /* TLTwincode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLTwincode.h; sourceTree = "<group>"; };
 		21F17B4CAABF2DA87747CC6A /* TLDatabaseService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLDatabaseService.h; sourceTree = "<group>"; };
-		21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPeerConnectionHandler.h; sourceTree = "<group>"; };
 		226B1FC27408B6D920177A4C /* TLOnCreateImageIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnCreateImageIQ.h; sourceTree = "<group>"; };
 		22B0C0E6BE415B32A3ED7BB6 /* TLStringData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLStringData.m; sourceTree = "<group>"; };
 		22E07EE8621808A44BEFEF08 /* TLGroupJoinOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLGroupJoinOperation.m; sourceTree = "<group>"; };
@@ -3773,6 +3852,7 @@
 		440B268E088D1E903C35757E /* TLCancelFeatureIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLCancelFeatureIQ.h; sourceTree = "<group>"; };
 		448B6E8AD5A64079CB6DA0A6 /* TLDeleteImageIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLDeleteImageIQ.h; sourceTree = "<group>"; };
 		44C6B9A75FC45C6817EDD36D /* TLTwincodeInboundServiceImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLTwincodeInboundServiceImpl.h; sourceTree = "<group>"; };
+		44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPeerConnectionHandler.m; sourceTree = "<group>"; };
 		44ECB70FF893314EE92F89C8 /* TLOnUpdateObjectIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnUpdateObjectIQ.m; sourceTree = "<group>"; };
 		456B31C8165B22644938355E /* TLGetImageIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLGetImageIQ.m; sourceTree = "<group>"; };
 		45B181E1A53B110F2E6F28B4 /* TLTwincodeURI.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLTwincodeURI.m; sourceTree = "<group>"; };
@@ -3800,6 +3880,7 @@
 		4C7DC5577DD5F6D8F9745867 /* TLQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLQueue.h; sourceTree = "<group>"; };
 		4CD8BD3A52C0D84435D225F0 /* TLCopyImageIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLCopyImageIQ.m; sourceTree = "<group>"; };
 		4D069E6F59F939595A23C191 /* TLBaseServiceImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLBaseServiceImpl.h; sourceTree = "<group>"; };
+		4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLDataChannelHandler.m; sourceTree = "<group>"; };
 		4DA4290FE7F4C56017533634 /* TLConversationImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLConversationImpl.h; sourceTree = "<group>"; };
 		4DA91E15F23E15142431F77D /* TLJoinMeetingIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLJoinMeetingIQ.m; sourceTree = "<group>"; };
 		4E46A5486458951B322A7BDA /* TLAddRosterMemberIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLAddRosterMemberIQ.m; sourceTree = "<group>"; };
@@ -3848,7 +3929,9 @@
 		6005E25659262DD35D0FE1FB /* TLAcknowledgeInvocationIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLAcknowledgeInvocationIQ.m; sourceTree = "<group>"; };
 		601DF41B9AB5A7660B408EAB /* TLGroupUpdateOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLGroupUpdateOperation.h; sourceTree = "<group>"; };
 		603B210F40922A140F0FC07F /* TLLongData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLLongData.m; sourceTree = "<group>"; };
+		60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnAnswerContactShareIQ.m; sourceTree = "<group>"; };
 		622F39F76C2EDA48CD03CE6B /* TLBinaryEncoder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLBinaryEncoder.m; sourceTree = "<group>"; };
+		6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLContactShareDescriptorImpl.m; sourceTree = "<group>"; };
 		62BF202112895830D45D6F57 /* TLCreateRosterIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLCreateRosterIQ.m; sourceTree = "<group>"; };
 		62C688B61ACB30F36005C42B /* TLInviteCallRoomIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLInviteCallRoomIQ.h; sourceTree = "<group>"; };
 		62FC95B5576A57F721FC6507 /* TLCryptoServiceProvider.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLCryptoServiceProvider.m; sourceTree = "<group>"; };
@@ -3890,14 +3973,17 @@
 		6FB29B45C392771795F8830A /* TLQueryStatsIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLQueryStatsIQ.h; sourceTree = "<group>"; };
 		706AF9BAC0480E86F7A026FB /* TLOnValidateConfigurationIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnValidateConfigurationIQ.h; sourceTree = "<group>"; };
 		7136A42818BEE94165FDDC02 /* TLTwincodeInboundServiceImpl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLTwincodeInboundServiceImpl.m; sourceTree = "<group>"; };
-		716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPeerConnectionHandler.m; sourceTree = "<group>"; };
+		714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPushContactShareIQ.m; sourceTree = "<group>"; };
 		71B81142AFB94DAD706EE227 /* TLPollDescriptorImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPollDescriptorImpl.h; sourceTree = "<group>"; };
 		72F8FD189A62BE627560871F /* TLOnDeleteImageIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnDeleteImageIQ.h; sourceTree = "<group>"; };
 		7356E558DAC1F0530BCEBECA /* TLPeerCallServiceImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPeerCallServiceImpl.h; sourceTree = "<group>"; };
 		73B84EFCA6115B4C8513CFF9 /* TLBooleanData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLBooleanData.m; sourceTree = "<group>"; };
 		73C8F84964B14C2A358C9684 /* TLImageService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLImageService.h; sourceTree = "<group>"; };
+		73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnPushContactShareIQ.h; sourceTree = "<group>"; };
+		74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPushContactShareIQ.h; sourceTree = "<group>"; };
 		74E4AAA160BE650563CEEA5A /* TLTransientObjectDescriptorImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLTransientObjectDescriptorImpl.h; sourceTree = "<group>"; };
 		74EAD7A78743AFF25D4AE709 /* TLGetObjectIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLGetObjectIQ.h; sourceTree = "<group>"; };
+		75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLAnswerContactShareOperation.m; sourceTree = "<group>"; };
 		7536410AE6562FC79878BC52 /* TLSignatureInfoIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLSignatureInfoIQ.m; sourceTree = "<group>"; };
 		75AF9C6C7235D585307BD0F5 /* TLResultIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLResultIQ.h; sourceTree = "<group>"; };
 		75C281AF9F3CACFBA3321AFA /* TLSynchronizeConversationOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLSynchronizeConversationOperation.m; sourceTree = "<group>"; };
@@ -3960,6 +4046,7 @@
 		8B516B0A8515451486FDCB8E /* TLCreateAccountIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLCreateAccountIQ.h; sourceTree = "<group>"; };
 		8C7D9EABF788F52C84BF8670 /* TLResetConversationIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLResetConversationIQ.h; sourceTree = "<group>"; };
 		8E4780468577694142564DAB /* TLNotificationServiceProvider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLNotificationServiceProvider.h; sourceTree = "<group>"; };
+		8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPushContactShareOperation.h; sourceTree = "<group>"; };
 		8EDFB5A71EAFF5B13604A9A6 /* TLErrorIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLErrorIQ.h; sourceTree = "<group>"; };
 		8EEA420571395E16C94EF95E /* TLAudioDescriptorImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLAudioDescriptorImpl.h; sourceTree = "<group>"; };
 		906B2BD1541BEC4E97D18EFB /* TLPushTransientObjectOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPushTransientObjectOperation.m; sourceTree = "<group>"; };
@@ -3987,6 +4074,7 @@
 		97F6F93D9948DEE57A88C4E8 /* TLAuthRequestIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLAuthRequestIQ.h; sourceTree = "<group>"; };
 		98165E070C8B9E2FF4B4321B /* TLMemberNotificationIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLMemberNotificationIQ.h; sourceTree = "<group>"; };
 		98470CDE58E1F25B0E8CB6DA /* TLPutImageIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPutImageIQ.h; sourceTree = "<group>"; };
+		985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLAnswerContactShareIQ.h; sourceTree = "<group>"; };
 		99259D74713710E4B98A4634 /* TLOnGetAllTwincodesIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnGetAllTwincodesIQ.h; sourceTree = "<group>"; };
 		992ACEB6FBF53DD042A58ACC /* TLOnPushFileIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnPushFileIQ.m; sourceTree = "<group>"; };
 		99D6B875FED26579B66C7C39 /* TLInviteCallRoomIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLInviteCallRoomIQ.m; sourceTree = "<group>"; };
@@ -4034,6 +4122,7 @@
 		AF058A181A776EC706D09169 /* TLUpdatePermissionsIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLUpdatePermissionsIQ.h; sourceTree = "<group>"; };
 		AF82A0ACB5E80A774FA72A68 /* TLConversationProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLConversationProtocol.h; sourceTree = "<group>"; };
 		B0446EAB8BA5BAEA480EA925 /* TLGenerateBackupKeyIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLGenerateBackupKeyIQ.m; sourceTree = "<group>"; };
+		B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnAnswerContactShareIQ.h; sourceTree = "<group>"; };
 		B13D08E613BE403A4E2C1E44 /* TLOnUpdateDescriptorIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnUpdateDescriptorIQ.h; sourceTree = "<group>"; };
 		B1A5466DD292D1E1ECF93F27 /* TLBinaryCompactEncoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLBinaryCompactEncoder.h; sourceTree = "<group>"; };
 		B2F36A0AEDD55735BEFCF286 /* TLCreateTwincodeIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLCreateTwincodeIQ.m; sourceTree = "<group>"; };
@@ -4066,6 +4155,7 @@
 		BE5D34CB7A88CBA96F654673 /* TLTwinlife.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLTwinlife.h; sourceTree = "<group>"; };
 		BED7E0762D921F084B9851E3 /* TLGroupInviteOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLGroupInviteOperation.h; sourceTree = "<group>"; };
 		C05CC0F6C33E96D8387EC754 /* TLResetConversationOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLResetConversationOperation.m; sourceTree = "<group>"; };
+		C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLAnswerContactShareOperation.h; sourceTree = "<group>"; };
 		C102D3E1196571A07DCC7B19 /* TLTwincodeFactoryServiceImpl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLTwincodeFactoryServiceImpl.m; sourceTree = "<group>"; };
 		C12C497B5A27BBA1C5611DA6 /* TLOnResetConversationIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnResetConversationIQ.h; sourceTree = "<group>"; };
 		C1331AF2D0234A3A44408DB7 /* TLInvokeTwincodeIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLInvokeTwincodeIQ.m; sourceTree = "<group>"; };
@@ -4138,6 +4228,8 @@
 		DFBF0E2AAAE0F989F44AFD0A /* TLOnCreateObjectIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnCreateObjectIQ.h; sourceTree = "<group>"; };
 		DFDFEB8E5677AD61719B625D /* TLBinaryEncoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLBinaryEncoder.h; sourceTree = "<group>"; };
 		DFF41D4826E2F7069B19DC72 /* TLInvocationIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLInvocationIQ.h; sourceTree = "<group>"; };
+		E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnPushContactShareIQ.m; sourceTree = "<group>"; };
+		E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLAnswerContactShareIQ.m; sourceTree = "<group>"; };
 		E1720462ECFD7C2865B0F178 /* TLSerializerFactoryImpl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLSerializerFactoryImpl.m; sourceTree = "<group>"; };
 		E18661C043B407732755F22E /* TLConversationServiceScheduler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLConversationServiceScheduler.h; sourceTree = "<group>"; };
 		E203469F3AD6CFD5C5361FEA /* TLBackupHeaderHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLBackupHeaderHandler.h; sourceTree = "<group>"; };
@@ -4159,10 +4251,12 @@
 		E637D2DBB3C5BB1B6B06087B /* TLGetTwincodeIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLGetTwincodeIQ.m; sourceTree = "<group>"; };
 		E65CE3C807BC6FC592C13C85 /* TLOnListObjectIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnListObjectIQ.m; sourceTree = "<group>"; };
 		E6A49F27A341F02FA3C744A6 /* TLPushGeolocationIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPushGeolocationIQ.m; sourceTree = "<group>"; };
+		E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLContactShareDescriptorImpl.h; sourceTree = "<group>"; };
 		E7F4F4C8D9C3C8259227D10F /* TLSecureRosterService.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLSecureRosterService.h; sourceTree = "<group>"; };
 		E87D9F07DF2F5148C4F5E1B8 /* TLArrayData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLArrayData.h; sourceTree = "<group>"; };
 		E9037E53C254B7D37299F948 /* TLOnCreateInvitationCodeIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnCreateInvitationCodeIQ.m; sourceTree = "<group>"; };
 		E93BC6D579951EEBCE877AB6 /* TLNamedFileDescriptorImpl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLNamedFileDescriptorImpl.m; sourceTree = "<group>"; };
+		E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLDataChannelHandler.h; sourceTree = "<group>"; };
 		E9ADFBA18EF1D5A648C2FB39 /* TLValidateConfigurationIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLValidateConfigurationIQ.m; sourceTree = "<group>"; };
 		EA62403AE742CEFF9FE1FDDC /* NSUUID+Extensions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSUUID+Extensions.h"; sourceTree = "<group>"; };
 		EAA9368004BC1BA69D0459A5 /* TLFeedbackIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLFeedbackIQ.h; sourceTree = "<group>"; };
@@ -4192,12 +4286,14 @@
 		F86A879808978CD5126952DD /* TLAssertionIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLAssertionIQ.m; sourceTree = "<group>"; };
 		F90E2CF817725CC22AFD6731 /* TLStartIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLStartIQ.m; sourceTree = "<group>"; };
 		FA3F7F9A59E3301671E5FF5A /* TLEncoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLEncoder.h; sourceTree = "<group>"; };
+		FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPushContactShareOperation.m; sourceTree = "<group>"; };
 		FBA9012ECABDF35383CA82C0 /* TLPrimitiveDataImpl.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLPrimitiveDataImpl.m; sourceTree = "<group>"; };
 		FBB5734D94FD6A9187B68C63 /* TLOnPushObjectIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLOnPushObjectIQ.h; sourceTree = "<group>"; };
 		FBE6DE1CB2290841951C9EC9 /* TLRestoreExecutor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLRestoreExecutor.h; sourceTree = "<group>"; };
 		FC15604C9E974F62A3F242FD /* TLOnGetImageIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnGetImageIQ.m; sourceTree = "<group>"; };
 		FCE49FC9B4AD8EECC43D6DB4 /* TLCreateInvitationCodeIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLCreateInvitationCodeIQ.m; sourceTree = "<group>"; };
 		FD9BE9AA9378DDFAA29B2805 /* TLVoidData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLVoidData.h; sourceTree = "<group>"; };
+		FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLPeerConnectionHandler.h; sourceTree = "<group>"; };
 		FDBFD62CB68CDF4CF879B272 /* TLDeviceRingingIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLDeviceRingingIQ.m; sourceTree = "<group>"; };
 		FE15ABD3579FB3D3F4B7D71C /* TLLeaveCallRoomIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLLeaveCallRoomIQ.h; sourceTree = "<group>"; };
 		FE5CC5D53A0BEAEEE084A9E1 /* TLErrorIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLErrorIQ.h; sourceTree = "<group>"; };
@@ -4205,7 +4301,7 @@
 		FEE5FA46857550006D059863 /* TLOnListFilesIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnListFilesIQ.m; sourceTree = "<group>"; };
 		FF3C973C9E73CAAEFDAAFEAF /* TLSessionPingIQ.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TLSessionPingIQ.h; sourceTree = "<group>"; };
 		FF5067985D78E2B6C0FF9C6C /* TLOnQueryStatsIQ.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TLOnQueryStatsIQ.m; sourceTree = "<group>"; };
-		"TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Twinlife.xcconfig; sourceTree = "<group>"; };
+		"TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Twinlife.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -4421,6 +4517,7 @@
 		363416A62BEE2907396408E5 /* peerConnection */ = {
 			isa = PBXGroup;
 			children = (
+				4D186E6DB1B433D4C0AA3426 /* TLDataChannelHandler.m */,
 				5CFBD35FD42146F16C4728D7 /* TLPeerConnection.h */,
 				2A492EEE2CDF94025156FE56 /* TLPeerConnection.m */,
 				E59FEFC57269A703DDB11E1C /* TLPeerConnectionServiceImpl.h */,
@@ -4491,6 +4588,8 @@
 				657BA256E5D66DB510D4FCF1 /* TLOnPutFileIQ.m */,
 				08E3404C5CED411D3BF24445 /* TLOnQueryStatsIQ.h */,
 				FF5067985D78E2B6C0FF9C6C /* TLOnQueryStatsIQ.m */,
+				FDB011BA2B84E688A9AC414B /* TLPeerConnectionHandler.h */,
+				44EB595B336C445120AFDE93 /* TLPeerConnectionHandler.m */,
 				BA7B48950DD30F65738A3A00 /* TLPeerConnectionObserver.h */,
 				2B921C3B77CC68271CCF2D47 /* TLPeerConnectionObserver.m */,
 				B35630F96BA9FB99AB889AB1 /* TLPutFileIQ.h */,
@@ -4596,6 +4695,7 @@
 				2EF22C7777A0096FB936EB05 /* TLCryptoService.h */,
 				E45ED68CB0B435CDAC44AFED /* TLData.h */,
 				5EFDA85332B19A9ED1482EAF /* TLDatabase.h */,
+				E93E2178FABBBDCCC9A37795 /* TLDataChannelHandler.h */,
 				4A247EC8F604F99F75B2C6AE /* TLDecoder.h */,
 				84BAF6E0E901D5DFBBF6B07D /* TLDeviceInfo.h */,
 				FA3F7F9A59E3301671E5FF5A /* TLEncoder.h */,
@@ -4762,8 +4862,6 @@
 				15C219C47C6E71E85447902C /* repository */,
 				6459EB0A799D7F511C8616B1 /* secureroster */,
 				289C4DD147A826CBD25317EC /* twincode */,
-				21F68B1C9C8459B9ED73D918 /* TLPeerConnectionHandler.h */,
-				716EAB460F8D17DCEC798BC0 /* TLPeerConnectionHandler.m */,
 				9689F80AEE577867691FD2F7 /* TLServerConnection.h */,
 				C4AA4003BCEE218ADFCAFAB7 /* TLServerConnection.m */,
 			);
@@ -4773,12 +4871,18 @@
 		A9EF8511C0D4836672C2A59E /* conversation */ = {
 			isa = PBXGroup;
 			children = (
+				985069733805B7B65FD2E579 /* TLAnswerContactShareIQ.h */,
+				E0BAB9A18AE3755320FC8F2F /* TLAnswerContactShareIQ.m */,
+				C0FFDC7E2B9743089082D952 /* TLAnswerContactShareOperation.h */,
+				75080A6FEA14EDE1369DA362 /* TLAnswerContactShareOperation.m */,
 				8EEA420571395E16C94EF95E /* TLAudioDescriptorImpl.h */,
 				9401C51B3F62C76E401E5316 /* TLAudioDescriptorImpl.m */,
 				2FBABDD9D95ED5EA9AA92635 /* TLCallDescriptorImpl.h */,
 				E53D15E4CF084CC0121A1CEE /* TLCallDescriptorImpl.m */,
 				6356DB171A10D0D980B92334 /* TLClearDescriptorImpl.h */,
 				7E15BA2DAD9D7644AEE5923F /* TLClearDescriptorImpl.m */,
+				E6D1B3786034EA56963290A1 /* TLContactShareDescriptorImpl.h */,
+				6266E9EC467159BC3A057C1F /* TLContactShareDescriptorImpl.m */,
 				31818BD716EE839B322D4302 /* TLConversationConnection.h */,
 				AB5CB31EEF7266E2167CCEAC /* TLConversationConnection.m */,
 				4DA4290FE7F4C56017533634 /* TLConversationImpl.h */,
@@ -4831,10 +4935,14 @@
 				E93BC6D579951EEBCE877AB6 /* TLNamedFileDescriptorImpl.m */,
 				6B510B0951DE45BFC3B4A4C5 /* TLObjectDescriptorImpl.h */,
 				DB4C9B7927BB1B4BCF0B6AD2 /* TLObjectDescriptorImpl.m */,
+				B0DEA3E4771F1C0A55BF18C6 /* TLOnAnswerContactShareIQ.h */,
+				60F23FAB318C3B74C3EAAD87 /* TLOnAnswerContactShareIQ.m */,
 				6987BC961F8518E659C5C30E /* TLOnInviteGroupIQ.h */,
 				2E8E9B4396AFA65699DB5AAA /* TLOnInviteGroupIQ.m */,
 				04AFFF76BF8C8EE69A34261D /* TLOnJoinGroupIQ.h */,
 				33EF5AFFD352025CEE0B94F5 /* TLOnJoinGroupIQ.m */,
+				73CBF1048CF0E7A3A73CFA69 /* TLOnPushContactShareIQ.h */,
+				E023D10209CF26C68F118B61 /* TLOnPushContactShareIQ.m */,
 				BCF36BE24FE12851DD418C3C /* TLOnPushFileChunkIQ.h */,
 				927D3010FFFBEEAB4ADCF191 /* TLOnPushFileChunkIQ.m */,
 				39AF83721C41EBACB3331A67 /* TLOnPushFileIQ.h */,
@@ -4861,6 +4969,10 @@
 				0DDB115F1DEB205C9CC59EB0 /* TLPollDescriptorImpl.m */,
 				6B08442BBC2585464645F0BD /* TLPushCommandOperation.h */,
 				0850A6DB0D3C64BD350A5C9A /* TLPushCommandOperation.m */,
+				74E34AF749D64E3E9997BB09 /* TLPushContactShareIQ.h */,
+				714CEE749ECA1A2DE56FC661 /* TLPushContactShareIQ.m */,
+				8EA0CC08A05D4A18E7EBA8F7 /* TLPushContactShareOperation.h */,
+				FAE62E54769450174FD5C300 /* TLPushContactShareOperation.m */,
 				BD4738549F30DD9339E143ED /* TLPushFileChunkIQ.h */,
 				AC5124CE342D205B9FAA570B /* TLPushFileChunkIQ.m */,
 				D9CA881033D8BC4370DE3E2B /* TLPushFileIQ.h */,
@@ -5029,10 +5141,10 @@
 			path = backup;
 			sourceTree = "<group>";
 		};
-		"TEMP_18DE10B3-B4C6-4DCD-8A1C-BC3A067A886B" /* TwinlifeFramework */ = {
+		"TEMP_5157A54C-818D-4C25-BAAF-A4C9D65FD1ED" /* TwinlifeFramework */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */,
+				"TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */,
 			);
 			path = TwinlifeFramework;
 			sourceTree = "<group>";
@@ -5162,7 +5274,6 @@
 				};
 			};
 			buildConfigurationList = 547866CF984C253A9CF10F94 /* Build configuration list for PBXProject "Twinlife" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -5172,6 +5283,7 @@
 			mainGroup = CCC27F44C5E9749CDA826348;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			productRefGroup = DD569ECCA0E3446301EEA943 /* Products */;
 			projectDirPath = "";
 			projectReferences = (
 				{
@@ -5231,6 +5343,10 @@
 				0C3171513B82687F4EE50B0B /* TLAddRosterMemberIQ.m in Sources */,
 				C1C2EABFBEF648500F53695A /* TLAddRosterPublicKeyIQ.h in Sources */,
 				D729412C011FC8B4909CB982 /* TLAddRosterPublicKeyIQ.m in Sources */,
+				9B5E12DACB16952BD4C72EDF /* TLAnswerContactShareIQ.h in Sources */,
+				6C3F677FE5A65CC768457637 /* TLAnswerContactShareIQ.m in Sources */,
+				FF4C174FAC3F8ABB6C9E10FD /* TLAnswerContactShareOperation.h in Sources */,
+				44B5374BA47899D7E1C48EA9 /* TLAnswerContactShareOperation.m in Sources */,
 				BE55902E4004B54B9090EED4 /* TLApplication.h in Sources */,
 				8228D31952202EE04A9A2F1C /* TLArrayData.h in Sources */,
 				D22C9A62F80B1E1999BB8F1E /* TLArrayData.m in Sources */,
@@ -5289,6 +5405,8 @@
 				86D1CF174CB038536F5D6207 /* TLConnectivityService.h in Sources */,
 				66D7DA91CC315C680F785772 /* TLConnectivityServiceImpl.h in Sources */,
 				E35C76C74D4E3524A41430B9 /* TLConnectivityServiceImpl.m in Sources */,
+				18850CD98C5CEC33E9889DDC /* TLContactShareDescriptorImpl.h in Sources */,
+				C5D115E3F3510F84B295C25D /* TLContactShareDescriptorImpl.m in Sources */,
 				9890243D7E6DDE111EE87882 /* TLConversationConnection.h in Sources */,
 				340C4D4A2D935D4EB9BCD4BF /* TLConversationConnection.m in Sources */,
 				8378998313504C5525578282 /* TLConversationImpl.h in Sources */,
@@ -5334,6 +5452,8 @@
 				FE079DC1FA62D3ABAFFE77DB /* TLCryptoServiceProvider.h in Sources */,
 				9EAF1FF19DA416951F2EA219 /* TLCryptoServiceProvider.m in Sources */,
 				DB06A1F4B66635B3A96F2CD8 /* TLData.h in Sources */,
+				D855286257C3F6DF72FE57C6 /* TLDataChannelHandler.h in Sources */,
+				DFBFF896204E1618FC640DE0 /* TLDataChannelHandler.m in Sources */,
 				6F9C331A88CA8D5B76415A45 /* TLDataImpl.h in Sources */,
 				1690A9A233C87020A2F54197 /* TLDataImpl.m in Sources */,
 				9863B0F20EC0AE237DCD490A /* TLDataInputStream.h in Sources */,
@@ -5471,6 +5591,8 @@
 				1C21DA216E6CE5E32019779B /* TLNotificationServiceProvider.m in Sources */,
 				306EEA6FFF4957F5C3F48184 /* TLObjectDescriptorImpl.h in Sources */,
 				C47583AF8259745AEA1ADFE4 /* TLObjectDescriptorImpl.m in Sources */,
+				37BA68D5FA609BB2F0F50CB0 /* TLOnAnswerContactShareIQ.h in Sources */,
+				660C57260A2F7A17D963FA2D /* TLOnAnswerContactShareIQ.m in Sources */,
 				B86AB4E3B3E1A09B7F073D3C /* TLOnAuthChallengeIQ.h in Sources */,
 				DB25CCE4D24220467D7981B5 /* TLOnAuthChallengeIQ.m in Sources */,
 				1E45B7896C77E183BEA5D86C /* TLOnAuthRequestIQ.h in Sources */,
@@ -5521,6 +5643,8 @@
 				94CCFEADE916AC632402D7C5 /* TLOnListObjectIQ.m in Sources */,
 				6FA549726FCD9CC6B8646D26 /* TLOnListRosterIQ.h in Sources */,
 				68B253DFBA00E6A20BF5E7B7 /* TLOnListRosterIQ.m in Sources */,
+				D9E8C22C08465670D09003A8 /* TLOnPushContactShareIQ.h in Sources */,
+				4A36DB6AD66B76530FE77FA5 /* TLOnPushContactShareIQ.m in Sources */,
 				0593C19257996AC423375910 /* TLOnPushFileChunkIQ.h in Sources */,
 				74F20B34E9327766A0EF8A1C /* TLOnPushFileChunkIQ.m in Sources */,
 				5B2F1FF5AE6D646DD3AE391D /* TLOnPushFileIQ.h in Sources */,
@@ -5566,8 +5690,8 @@
 				99EBA42B6756B45CBC908097 /* TLPeerCallServiceImpl.m in Sources */,
 				5E0B7668C4D5A099BDC394C8 /* TLPeerConnection.h in Sources */,
 				2CACECE70D0D5ACE55894FCA /* TLPeerConnection.m in Sources */,
-				63B020D035C7851C7938FB53 /* TLPeerConnectionHandler.h in Sources */,
-				3B3ECE6855B8835D692FF445 /* TLPeerConnectionHandler.m in Sources */,
+				DD0072C84706D0B7DD72724C /* TLPeerConnectionHandler.h in Sources */,
+				91B26E24D2353762BEEC0693 /* TLPeerConnectionHandler.m in Sources */,
 				16F43ABFBF668C07628A30F3 /* TLPeerConnectionObserver.h in Sources */,
 				E599FC32911A23F5C33F6A5E /* TLPeerConnectionObserver.m in Sources */,
 				5FE0CC9FC3A4E730879D6313 /* TLPeerConnectionService.h in Sources */,
@@ -5584,6 +5708,10 @@
 				FB6CD4BA1406E083BB87050C /* TLProxyDescriptor.m in Sources */,
 				3BE42BDEF41BFE53ECBCA303 /* TLPushCommandOperation.h in Sources */,
 				AAA3E930FC2FD93190CEB7CB /* TLPushCommandOperation.m in Sources */,
+				A082ACA74ADAB39B762930B1 /* TLPushContactShareIQ.h in Sources */,
+				6703F023C78E67EF94A55A5A /* TLPushContactShareIQ.m in Sources */,
+				B80DEA4D5005B7B5ABACD160 /* TLPushContactShareOperation.h in Sources */,
+				173692D3BAAD92A873E1C2A1 /* TLPushContactShareOperation.m in Sources */,
 				47911F0F1000E1B3CD468C50 /* TLPushFileChunkIQ.h in Sources */,
 				EEB0C7DB9499229372B09014 /* TLPushFileChunkIQ.m in Sources */,
 				C0B63DDDF8FF60277283AB18 /* TLPushFileIQ.h in Sources */,
@@ -5814,6 +5942,10 @@
 				01348555CFBCD2A02E6CE6A8 /* TLAddRosterMemberIQ.m in Sources */,
 				8DD639EC2CB4A7AF384E0EA7 /* TLAddRosterPublicKeyIQ.h in Sources */,
 				AE1C401536FEFF5E80CBD1EA /* TLAddRosterPublicKeyIQ.m in Sources */,
+				AD55F75CDA2571826A99FBEE /* TLAnswerContactShareIQ.h in Sources */,
+				1B63910B4D51CEBE0A4E7097 /* TLAnswerContactShareIQ.m in Sources */,
+				E4D17D3EC6FB77E83EA47F40 /* TLAnswerContactShareOperation.h in Sources */,
+				4920FD77D6C1E2F1368ECA2D /* TLAnswerContactShareOperation.m in Sources */,
 				6C153524D28C752E25360566 /* TLApplication.h in Sources */,
 				D0704515F9F6DD8484A4B7DE /* TLArrayData.h in Sources */,
 				E332DA4B87889FE5B6EAACC0 /* TLArrayData.m in Sources */,
@@ -5872,6 +6004,8 @@
 				FB2855C576846CD0B42C18D2 /* TLConnectivityService.h in Sources */,
 				356FDE2D4F8E0102F5EFA38C /* TLConnectivityServiceImpl.h in Sources */,
 				BD5F2646A9D1F362EC7AC0C4 /* TLConnectivityServiceImpl.m in Sources */,
+				D9B16714A5396D07DC74BA9B /* TLContactShareDescriptorImpl.h in Sources */,
+				00478C048F04DE462B4BAC07 /* TLContactShareDescriptorImpl.m in Sources */,
 				092FA0D6855713850844C9B0 /* TLConversationConnection.h in Sources */,
 				A0E561F9B0A66784E56C8CED /* TLConversationConnection.m in Sources */,
 				85E6C32D8BAC25F691F6F3BD /* TLConversationImpl.h in Sources */,
@@ -5917,6 +6051,8 @@
 				1C5CCBDDBED4ED9BD4761922 /* TLCryptoServiceProvider.h in Sources */,
 				60AC303D871692AA80A96C14 /* TLCryptoServiceProvider.m in Sources */,
 				6DB629F8954A3F051FE4EFD8 /* TLData.h in Sources */,
+				28239F548CF55E422BD91ACA /* TLDataChannelHandler.h in Sources */,
+				D0C6F03D1796FECB33F26C53 /* TLDataChannelHandler.m in Sources */,
 				3F0A176735FF9347723BA243 /* TLDataImpl.h in Sources */,
 				46A945A23A4992E9441F7033 /* TLDataImpl.m in Sources */,
 				144BFAA4006AC8888667C089 /* TLDataInputStream.h in Sources */,
@@ -6054,6 +6190,8 @@
 				6598D1D50D13E7CA935558E9 /* TLNotificationServiceProvider.m in Sources */,
 				EE6111EA9C63123F60DDD04A /* TLObjectDescriptorImpl.h in Sources */,
 				879073F2AA6C54162F76CA71 /* TLObjectDescriptorImpl.m in Sources */,
+				463C5940A1A6DD5B3678111A /* TLOnAnswerContactShareIQ.h in Sources */,
+				D97F86802DD96027C7F7221F /* TLOnAnswerContactShareIQ.m in Sources */,
 				E4EA369AB83BC445302B1F49 /* TLOnAuthChallengeIQ.h in Sources */,
 				041FA6A101BEECC4623FC86D /* TLOnAuthChallengeIQ.m in Sources */,
 				0DD78D509083684ABEDEF3B0 /* TLOnAuthRequestIQ.h in Sources */,
@@ -6104,6 +6242,8 @@
 				07130459F0F2266781A41405 /* TLOnListObjectIQ.m in Sources */,
 				A966EBD2290269877AC38FBF /* TLOnListRosterIQ.h in Sources */,
 				666FC0FAA59493D2E817A469 /* TLOnListRosterIQ.m in Sources */,
+				2BA72914374F58D58392ADFF /* TLOnPushContactShareIQ.h in Sources */,
+				395A1B702995705303E59545 /* TLOnPushContactShareIQ.m in Sources */,
 				C91A78FD09A3BA2B78A138C3 /* TLOnPushFileChunkIQ.h in Sources */,
 				C8DDB77472DB6E035BDDA208 /* TLOnPushFileChunkIQ.m in Sources */,
 				A1F26FEA6CD92522FA488D5F /* TLOnPushFileIQ.h in Sources */,
@@ -6149,8 +6289,8 @@
 				E827F6FE91CE0DFE2A850349 /* TLPeerCallServiceImpl.m in Sources */,
 				E27704BAB8BEF1164E0850AA /* TLPeerConnection.h in Sources */,
 				A608121AA6E6AA04652C7430 /* TLPeerConnection.m in Sources */,
-				E20122570F4324B4FA7272A1 /* TLPeerConnectionHandler.h in Sources */,
-				68E4E4C8D5AFE21F38D050B6 /* TLPeerConnectionHandler.m in Sources */,
+				224F3152D43A447B408515B5 /* TLPeerConnectionHandler.h in Sources */,
+				F844CA7A603CEF73BA6DC085 /* TLPeerConnectionHandler.m in Sources */,
 				9F92B3163C9AD31733BCAC03 /* TLPeerConnectionObserver.h in Sources */,
 				A0DE95039355B98D432B7E47 /* TLPeerConnectionObserver.m in Sources */,
 				64E58D77BDE3A2C4A19BEFE5 /* TLPeerConnectionService.h in Sources */,
@@ -6167,6 +6307,10 @@
 				092F90A5854DE9428B1B6749 /* TLProxyDescriptor.m in Sources */,
 				FA585F8F23BC9D81CEB714C7 /* TLPushCommandOperation.h in Sources */,
 				5B493FB8CE198103DBF9AFE0 /* TLPushCommandOperation.m in Sources */,
+				3CE50D1BE69DE0F9E511823A /* TLPushContactShareIQ.h in Sources */,
+				292E4821158E5CC32BF18B90 /* TLPushContactShareIQ.m in Sources */,
+				8DA091CE989CA72821036BB9 /* TLPushContactShareOperation.h in Sources */,
+				31FD881254D287D1749F8F77 /* TLPushContactShareOperation.m in Sources */,
 				31A924E98E6FECCA3D33FFFE /* TLPushFileChunkIQ.h in Sources */,
 				C7795A539EF3B7ED3379C74C /* TLPushFileChunkIQ.m in Sources */,
 				7B1A986B8F45588BEEC73941 /* TLPushFileIQ.h in Sources */,
@@ -6397,6 +6541,10 @@
 				67E6096B9A5F5D10DE32EF79 /* TLAddRosterMemberIQ.m in Sources */,
 				308862EC9552538C8160B318 /* TLAddRosterPublicKeyIQ.h in Sources */,
 				05D0F7043FAD49F117545BF2 /* TLAddRosterPublicKeyIQ.m in Sources */,
+				6BE4D29443E34859DB3BD4A6 /* TLAnswerContactShareIQ.h in Sources */,
+				EF03A2BF36089AF4EEA9FB93 /* TLAnswerContactShareIQ.m in Sources */,
+				95A446A15B64D028AE39E7BC /* TLAnswerContactShareOperation.h in Sources */,
+				1B8E6C300669A85F7420BAB9 /* TLAnswerContactShareOperation.m in Sources */,
 				FE1F54213938159B664CDEB7 /* TLApplication.h in Sources */,
 				0F2BCDAD176FB18BED26385E /* TLArrayData.h in Sources */,
 				8CAAA2FFCBD3B822E9FA4710 /* TLArrayData.m in Sources */,
@@ -6455,6 +6603,8 @@
 				1C664C1D600292D854CA1114 /* TLConnectivityService.h in Sources */,
 				3955182DC7544CD8697CD550 /* TLConnectivityServiceImpl.h in Sources */,
 				99B8E761D71C54A311E0B01D /* TLConnectivityServiceImpl.m in Sources */,
+				489D2F40A7D2586F78A4296D /* TLContactShareDescriptorImpl.h in Sources */,
+				ABBB6710B75B8906A2B2BDFB /* TLContactShareDescriptorImpl.m in Sources */,
 				85BFF598DCC7635532E3D18D /* TLConversationConnection.h in Sources */,
 				83AD29EBD6DEB1247B80D88B /* TLConversationConnection.m in Sources */,
 				7B1CC174CBF4E77027715126 /* TLConversationImpl.h in Sources */,
@@ -6500,6 +6650,8 @@
 				7565CEF8972D801E235391C4 /* TLCryptoServiceProvider.h in Sources */,
 				0BE560E4E4CFE962A583EC1C /* TLCryptoServiceProvider.m in Sources */,
 				BCE46082100D909CE485B8A6 /* TLData.h in Sources */,
+				AB06CF92EAE04E018EA20DC5 /* TLDataChannelHandler.h in Sources */,
+				BED4845189233F581E532FC5 /* TLDataChannelHandler.m in Sources */,
 				28D9A17E8E4720DB20F57C9B /* TLDataImpl.h in Sources */,
 				D2712E6E9986C5F89E345BF6 /* TLDataImpl.m in Sources */,
 				E994CA5D8BE6EB26EFA6E8FF /* TLDataInputStream.h in Sources */,
@@ -6637,6 +6789,8 @@
 				1C04AD2014D99621A82A0602 /* TLNotificationServiceProvider.m in Sources */,
 				DAC580F19C031860A4887634 /* TLObjectDescriptorImpl.h in Sources */,
 				B6D406E0CBDE75ACECD778EE /* TLObjectDescriptorImpl.m in Sources */,
+				16F3214486B0842C93088D95 /* TLOnAnswerContactShareIQ.h in Sources */,
+				549B8333B2102077BC768C54 /* TLOnAnswerContactShareIQ.m in Sources */,
 				27641A7FB4D8816CF6785423 /* TLOnAuthChallengeIQ.h in Sources */,
 				F49D2FCE4542AC552629DB5A /* TLOnAuthChallengeIQ.m in Sources */,
 				85373C0D50005F5B419EF1FB /* TLOnAuthRequestIQ.h in Sources */,
@@ -6687,6 +6841,8 @@
 				BD7F9309E8A660FCAE910916 /* TLOnListObjectIQ.m in Sources */,
 				AE0BE126F0A9446C8FBEC1F4 /* TLOnListRosterIQ.h in Sources */,
 				1644D227F73CC549848165D4 /* TLOnListRosterIQ.m in Sources */,
+				AA978EC54A502228DFAA136C /* TLOnPushContactShareIQ.h in Sources */,
+				C69BAB4DD8078FE3AF7A4D15 /* TLOnPushContactShareIQ.m in Sources */,
 				5A4879826BEF1537378A9392 /* TLOnPushFileChunkIQ.h in Sources */,
 				83678F01707987116A39AD52 /* TLOnPushFileChunkIQ.m in Sources */,
 				64FC6A40BE30A518D3887F5A /* TLOnPushFileIQ.h in Sources */,
@@ -6732,8 +6888,8 @@
 				3AA0AB1F44A30C1582FF0051 /* TLPeerCallServiceImpl.m in Sources */,
 				CCA8529F5389AE8010CD5809 /* TLPeerConnection.h in Sources */,
 				A309057CC0DD69568B63637F /* TLPeerConnection.m in Sources */,
-				5EB683CE65B137384F52C090 /* TLPeerConnectionHandler.h in Sources */,
-				0997B1EED3D40EAD882F7224 /* TLPeerConnectionHandler.m in Sources */,
+				38707750A838C2875AFD9F70 /* TLPeerConnectionHandler.h in Sources */,
+				C8592F6A6949AD95B76C958A /* TLPeerConnectionHandler.m in Sources */,
 				6EB18DB68D20069797A9E9E9 /* TLPeerConnectionObserver.h in Sources */,
 				D3DD90F9B51BF35BB1CFD4E0 /* TLPeerConnectionObserver.m in Sources */,
 				407937257EF16A5DCBBC7DF9 /* TLPeerConnectionService.h in Sources */,
@@ -6750,6 +6906,10 @@
 				007869F8F57C88493ACF6693 /* TLProxyDescriptor.m in Sources */,
 				0878EA3D36A3DB63BF3DFE2D /* TLPushCommandOperation.h in Sources */,
 				65DEAE98121F29824A963BEA /* TLPushCommandOperation.m in Sources */,
+				20DFBE639BD62D9817239D3C /* TLPushContactShareIQ.h in Sources */,
+				C19B4719F0136D34739D33F2 /* TLPushContactShareIQ.m in Sources */,
+				3994E7F8511DCCF92741A9DC /* TLPushContactShareOperation.h in Sources */,
+				103324272295B75DADD46646 /* TLPushContactShareOperation.m in Sources */,
 				74DB83ACBE52B643C7B08E79 /* TLPushFileChunkIQ.h in Sources */,
 				FCDA238F314B68FF288C5933 /* TLPushFileChunkIQ.m in Sources */,
 				A1CB601CEB2D7F2362DD2016 /* TLPushFileIQ.h in Sources */,
@@ -6980,6 +7140,10 @@
 				A73833F78D53EA06A0F475B1 /* TLAddRosterMemberIQ.m in Sources */,
 				4AABD28CF9C854A00F5FD069 /* TLAddRosterPublicKeyIQ.h in Sources */,
 				D495853FAA425A000A3124F9 /* TLAddRosterPublicKeyIQ.m in Sources */,
+				2355CE467FEE0D9EF1A02FDF /* TLAnswerContactShareIQ.h in Sources */,
+				950E5041AB35074A6A0511E1 /* TLAnswerContactShareIQ.m in Sources */,
+				D8FE519358086FB80377D3B7 /* TLAnswerContactShareOperation.h in Sources */,
+				0BD560B649A09324CDEA61E6 /* TLAnswerContactShareOperation.m in Sources */,
 				8E70E9A7D24B8A5699D92672 /* TLApplication.h in Sources */,
 				8382949E15DEB38C699DDE62 /* TLArrayData.h in Sources */,
 				AD73FFDF567BBF7F400DB43F /* TLArrayData.m in Sources */,
@@ -7038,6 +7202,8 @@
 				5075B4A8A1A4A453736E73E3 /* TLConnectivityService.h in Sources */,
 				A7C0428A9A04A96CCCDF74DF /* TLConnectivityServiceImpl.h in Sources */,
 				7BAC26C501CB2EA77306C134 /* TLConnectivityServiceImpl.m in Sources */,
+				F3FC04660D4C4400F28436A6 /* TLContactShareDescriptorImpl.h in Sources */,
+				23CAEEA548D7732B595C8F80 /* TLContactShareDescriptorImpl.m in Sources */,
 				4F37A99B4EF693464FD9BCA9 /* TLConversationConnection.h in Sources */,
 				63F2B3C78CDC8936D453060C /* TLConversationConnection.m in Sources */,
 				999DBA9482CE4864026E31A5 /* TLConversationImpl.h in Sources */,
@@ -7083,6 +7249,8 @@
 				F8614EECA847D80013DB4356 /* TLCryptoServiceProvider.h in Sources */,
 				D3CA80E182AB1F22679C8A38 /* TLCryptoServiceProvider.m in Sources */,
 				A42F8F7EF8D0B680E918C791 /* TLData.h in Sources */,
+				273C455CF9D368FBD7755041 /* TLDataChannelHandler.h in Sources */,
+				0E21B9B822C304CB628A4354 /* TLDataChannelHandler.m in Sources */,
 				7DFA9F7E90D72E9DC9BCD0E0 /* TLDataImpl.h in Sources */,
 				743E70EB4D3F7B1BDE34FAD3 /* TLDataImpl.m in Sources */,
 				31583B75CF488EBE2A140115 /* TLDataInputStream.h in Sources */,
@@ -7220,6 +7388,8 @@
 				B3377AE1547500C86D778AA4 /* TLNotificationServiceProvider.m in Sources */,
 				55870102E52AABC5B21C9EFB /* TLObjectDescriptorImpl.h in Sources */,
 				5D2DADDF4626451F23A6084E /* TLObjectDescriptorImpl.m in Sources */,
+				1262C4BBE0B6450B453668C4 /* TLOnAnswerContactShareIQ.h in Sources */,
+				9672134FDD1D69B1C1701282 /* TLOnAnswerContactShareIQ.m in Sources */,
 				24A165EB0C1107A9D350C583 /* TLOnAuthChallengeIQ.h in Sources */,
 				2FEFAE39C668586E62AC2662 /* TLOnAuthChallengeIQ.m in Sources */,
 				63DEE3FE6A9BB57654B76A8B /* TLOnAuthRequestIQ.h in Sources */,
@@ -7270,6 +7440,8 @@
 				AF1D7E70A94163E3058F153C /* TLOnListObjectIQ.m in Sources */,
 				94861C310DCEF01264D8E249 /* TLOnListRosterIQ.h in Sources */,
 				23E172F3705BB347BDE058BC /* TLOnListRosterIQ.m in Sources */,
+				9AE8D0A97EF954DF06CF32C0 /* TLOnPushContactShareIQ.h in Sources */,
+				2257599DE62C68E629717504 /* TLOnPushContactShareIQ.m in Sources */,
 				75A8FA431BAF1AD27BBB97CC /* TLOnPushFileChunkIQ.h in Sources */,
 				E9E9E213392774CAD353F0D9 /* TLOnPushFileChunkIQ.m in Sources */,
 				2511A02E297764C91A75CB32 /* TLOnPushFileIQ.h in Sources */,
@@ -7315,8 +7487,8 @@
 				DB70893A38E5B31675E26D44 /* TLPeerCallServiceImpl.m in Sources */,
 				24EC182D17C2EEF63A37BA95 /* TLPeerConnection.h in Sources */,
 				31420D52FB669EC4D485F83C /* TLPeerConnection.m in Sources */,
-				0FE77E4CBDFA1B8D82C2B926 /* TLPeerConnectionHandler.h in Sources */,
-				0157AB6DD867299382D21EF6 /* TLPeerConnectionHandler.m in Sources */,
+				004EE23F4A69D84248BA4F38 /* TLPeerConnectionHandler.h in Sources */,
+				DF8BA7E470B8ACD84854EE5A /* TLPeerConnectionHandler.m in Sources */,
 				C76829C0DEFBED8AC11A769F /* TLPeerConnectionObserver.h in Sources */,
 				824A0501DE830AC44B24D915 /* TLPeerConnectionObserver.m in Sources */,
 				CA5271424A715686F4CD59B6 /* TLPeerConnectionService.h in Sources */,
@@ -7333,6 +7505,10 @@
 				5DB594C759D6002341D6CE44 /* TLProxyDescriptor.m in Sources */,
 				3871A0698101AAEBFCE509EF /* TLPushCommandOperation.h in Sources */,
 				0F4C605773559AF495E989F5 /* TLPushCommandOperation.m in Sources */,
+				40499667C048F318D33886EB /* TLPushContactShareIQ.h in Sources */,
+				6310C570328CD5F5E036905F /* TLPushContactShareIQ.m in Sources */,
+				F2B74515D191DD5A9DAC76F9 /* TLPushContactShareOperation.h in Sources */,
+				1AF97F5DC0DEC1A0125B57A8 /* TLPushContactShareOperation.m in Sources */,
 				37A185CDD12CA05728B075A7 /* TLPushFileChunkIQ.h in Sources */,
 				76C15ECCA143244C399D7E7C /* TLPushFileChunkIQ.m in Sources */,
 				823F9EC6D89405DC7116DFA1 /* TLPushFileIQ.h in Sources */,
@@ -7563,6 +7739,10 @@
 				709E679FABD1DD582AA68244 /* TLAddRosterMemberIQ.m in Sources */,
 				DD69A402F92F4D976B7AD001 /* TLAddRosterPublicKeyIQ.h in Sources */,
 				C8845159E3F6CDB7A6522856 /* TLAddRosterPublicKeyIQ.m in Sources */,
+				C1633AD24242C91F3B2EC752 /* TLAnswerContactShareIQ.h in Sources */,
+				4464D81DE2161C3F29A443BE /* TLAnswerContactShareIQ.m in Sources */,
+				B6578F4F163F974755326CF4 /* TLAnswerContactShareOperation.h in Sources */,
+				37514BF3837F6A20EC49C390 /* TLAnswerContactShareOperation.m in Sources */,
 				1BC41CFD7A93A8A9278EE2A7 /* TLApplication.h in Sources */,
 				D06B80A1C226D53B51C10935 /* TLArrayData.h in Sources */,
 				2554EFD716257945D3552900 /* TLArrayData.m in Sources */,
@@ -7621,6 +7801,8 @@
 				3D84E49F0C13232D81C17694 /* TLConnectivityService.h in Sources */,
 				2A92434D39AFE728E3F38CB5 /* TLConnectivityServiceImpl.h in Sources */,
 				F6094CC2640A9D8E9D66AEE4 /* TLConnectivityServiceImpl.m in Sources */,
+				8362AC5F068A00DE59FA55D7 /* TLContactShareDescriptorImpl.h in Sources */,
+				5BECDDA07C05B50316CF0D69 /* TLContactShareDescriptorImpl.m in Sources */,
 				1BCEDF39631E31157D7C3AD5 /* TLConversationConnection.h in Sources */,
 				56E5123B2FB99F61F551ABCD /* TLConversationConnection.m in Sources */,
 				0E6A5659B7660D8118D89432 /* TLConversationImpl.h in Sources */,
@@ -7666,6 +7848,8 @@
 				457ADDE68D301CCB7C2E7BAB /* TLCryptoServiceProvider.h in Sources */,
 				03099DA6882163BC9ADFB27F /* TLCryptoServiceProvider.m in Sources */,
 				48ABD56E398858F538B47459 /* TLData.h in Sources */,
+				B22272AF6E1F8DC8CD5DBCC6 /* TLDataChannelHandler.h in Sources */,
+				E4A500A401FD29EB6B004365 /* TLDataChannelHandler.m in Sources */,
 				BA53AB11406EE7263963F0A9 /* TLDataImpl.h in Sources */,
 				889F0E0326B3DEB64CA7A55C /* TLDataImpl.m in Sources */,
 				E64F7988750FAAEC7FCE7C2B /* TLDataInputStream.h in Sources */,
@@ -7803,6 +7987,8 @@
 				389FD87976AE84258F042171 /* TLNotificationServiceProvider.m in Sources */,
 				81914517381B11B0FDA05096 /* TLObjectDescriptorImpl.h in Sources */,
 				1028377C0401D5825BF16B28 /* TLObjectDescriptorImpl.m in Sources */,
+				B596B61AE1854E2A8C2A974F /* TLOnAnswerContactShareIQ.h in Sources */,
+				F4FFFAACAC415D7C73D4F927 /* TLOnAnswerContactShareIQ.m in Sources */,
 				1C32E3365ABA66129A19BD80 /* TLOnAuthChallengeIQ.h in Sources */,
 				9D6264318372D0724FE9E2D2 /* TLOnAuthChallengeIQ.m in Sources */,
 				867AC76AF527AD19B40E133B /* TLOnAuthRequestIQ.h in Sources */,
@@ -7853,6 +8039,8 @@
 				986A6AF76FD3F0E992C1C0FF /* TLOnListObjectIQ.m in Sources */,
 				1E68CF5C0C2F88BB368A15D5 /* TLOnListRosterIQ.h in Sources */,
 				8BA327CA341BE4916E995F88 /* TLOnListRosterIQ.m in Sources */,
+				365A4161A260D03C62B1155F /* TLOnPushContactShareIQ.h in Sources */,
+				B8FB39EFDC86AFBC11886FCF /* TLOnPushContactShareIQ.m in Sources */,
 				0D78466932866E2DD9A01EFA /* TLOnPushFileChunkIQ.h in Sources */,
 				A77486CC206A9AD5745E8EE9 /* TLOnPushFileChunkIQ.m in Sources */,
 				03052C8622B03F4B4E0FDD96 /* TLOnPushFileIQ.h in Sources */,
@@ -7898,8 +8086,8 @@
 				A9A18775CAC7B585B68E9CD3 /* TLPeerCallServiceImpl.m in Sources */,
 				A0466E677B4A058C57CA2333 /* TLPeerConnection.h in Sources */,
 				29981609AE1AECCC1AD8D492 /* TLPeerConnection.m in Sources */,
-				B95BBD835FF317BC0028C380 /* TLPeerConnectionHandler.h in Sources */,
-				5B1628D7C022AA5AE17574B3 /* TLPeerConnectionHandler.m in Sources */,
+				591EE2FA29AF88327E1D8E70 /* TLPeerConnectionHandler.h in Sources */,
+				332888672D50EF0E2EE544F6 /* TLPeerConnectionHandler.m in Sources */,
 				9FA21A3C56070CCDD42BC8FC /* TLPeerConnectionObserver.h in Sources */,
 				07588849C6C0931DC55C80D5 /* TLPeerConnectionObserver.m in Sources */,
 				03F52846AA97B77E6464728F /* TLPeerConnectionService.h in Sources */,
@@ -7916,6 +8104,10 @@
 				03F87A02B0C01CD15D1BE26D /* TLProxyDescriptor.m in Sources */,
 				19EF915A914CB111DFE5A865 /* TLPushCommandOperation.h in Sources */,
 				D277ACE13598D5BCE1B88140 /* TLPushCommandOperation.m in Sources */,
+				15A8A75D5A1594B2C48D8010 /* TLPushContactShareIQ.h in Sources */,
+				AA7031DA52A53B3D7B577B20 /* TLPushContactShareIQ.m in Sources */,
+				9A0857BE0EF864E86E27C608 /* TLPushContactShareOperation.h in Sources */,
+				45E53D76EEC3C123A07537F0 /* TLPushContactShareOperation.m in Sources */,
 				A1550D5B3E82D50EAA19961B /* TLPushFileChunkIQ.h in Sources */,
 				D896078632BC9D720C1581C2 /* TLPushFileChunkIQ.m in Sources */,
 				F1428686B52E8B2DC21A2EAF /* TLPushFileIQ.h in Sources */,
@@ -8149,7 +8341,7 @@
 /* Begin XCBuildConfiguration section */
 		165393864687C75C9EA3D229 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -8178,7 +8370,7 @@
 		};
 		355704F713DEC692E36D4329 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_NS_ASSERTIONS = YES;
@@ -8208,7 +8400,7 @@
 		};
 		392C6B841884A88B1B65D637 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_NS_ASSERTIONS = YES;
@@ -8238,7 +8430,7 @@
 		};
 		599851F25E2423F9490330D6 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -8330,7 +8522,7 @@
 		};
 		7DD325B7487F690D7306315D /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = V67CQ37J89;
 				ENABLE_NS_ASSERTIONS = YES;
@@ -8360,7 +8552,7 @@
 		};
 		8DEDFDC845336E7DC2BADF41 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = V67CQ37J89;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -8389,7 +8581,7 @@
 		};
 		9CBE244620269A9599AAB304 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_NS_ASSERTIONS = YES;
@@ -8419,7 +8611,7 @@
 		};
 		BBD21913F010AB7CDE6DAE36 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -8504,7 +8696,7 @@
 		};
 		C3D029177DCAD1AD286BCC3A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -8533,7 +8725,7 @@
 		};
 		FD1187E5BAF6DAF3F422C3F4 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E9AA739D-3FB6-42C1-B1E6-95FE037909A5" /* Twinlife.xcconfig */;
+			baseConfigurationReference = "TEMP_6542134B-A922-423C-A8C2-F67D91FAC37F" /* Twinlife.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = MU7KFWAKY9;
 				ENABLE_NS_ASSERTIONS = YES;
