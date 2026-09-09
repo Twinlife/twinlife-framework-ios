@@ -124,7 +124,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 #pragma mark - ConversationService API
 
-- (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner {
+- (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions {
     DDLogVerbose(@"%@ createGroupConversationWithSubject: %@ owner: %d", LOG_TAG, subject, owner);
     
     TLTwincodeOutbound *groupTwincode = subject.peerTwincodeOutbound;
@@ -142,7 +142,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         return group;
     }
 
-    group = [self.serviceProvider createGroupConversationWithSubject:subject isOwner:owner];
+    group = [self.serviceProvider createGroupConversationWithSubject:subject isOwner:owner permissions:permissions joinPermissions:joinPermissions];
     
     // Notify upper layers about the new group conversation.
     for (id delegate in self.conversationService.delegates) {
@@ -279,7 +279,8 @@ static const int ddLogLevel = DDLogLevelWarning;
         invitation.status = TLInvitationDescriptorStatusTypeAccepted;
         
         // Create the local group conversation.
-        groupConversation = [self createGroupConversationWithSubject:group owner:false];
+        int64_t permissions = [TLGroupProtocol getJoinPermissions:peerTwincodeOutbound];
+        groupConversation = [self createGroupConversationWithSubject:group owner:false permissions:permissions joinPermissions:permissions];
         invitation.memberTwincodeId = twincodeOutbound.uuid;
 
         // Update the invitation descriptor.
@@ -330,7 +331,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 
     TLGroupConversationImpl *groupConversation = (TLGroupConversationImpl *)conversation;
-    [groupConversation joinWithPermissions:permissions];
+    [groupConversation joinWithPermissions:permissions permissions:permissions];
     [self.serviceProvider updateGroupConversation:groupConversation];
     
     // Add the admin member.
@@ -528,13 +529,15 @@ static const int ddLogLevel = DDLogLevelWarning;
     }
 
     TLGroupConversationImpl *groupConversation = (TLGroupConversationImpl *)conversation;
+    TLTwincodeOutbound *groupTwincode = groupConversation.peerTwincodeOutbound;
+    int64_t joinPermission = [TLGroupProtocol getJoinPermissions:groupTwincode];
     NSMutableDictionary<NSUUID*,TLGroupMemberConversationImpl*> *groupMembers = [groupConversation listMembers];
     for (TLRosterMember *activeMember in members) {
         TLGroupMemberConversationImpl *memberConversation = groupMembers[activeMember.memberTwincodeId];
         if (memberConversation == nil) {
             if ([activeMember.memberTwincodeId isEqual:[groupConversation twincodeOutboundId]]) {
-                if ([groupConversation permissions] != activeMember.permissions) {
-                    [groupConversation joinWithPermissions:activeMember.permissions];
+                if ([groupConversation permissions] != activeMember.permissions || [groupConversation joinPermissions] != joinPermission) {
+                    [groupConversation joinWithPermissions:joinPermission permissions:activeMember.permissions];
                     [self.serviceProvider updateGroupConversation:groupConversation];
                 }
             } else {
@@ -1306,7 +1309,7 @@ static const int ddLogLevel = DDLogLevelWarning;
 
     BOOL joinStatus;
     if (invitationDescriptor) {
-        joinStatus = [groupConversation joinWithPermissions:permissions];
+        joinStatus = [groupConversation joinWithPermissions:permissions permissions:permissions];
         if (joinStatus) {
             [self.serviceProvider updateGroupConversation:groupConversation];
         }

@@ -65,7 +65,7 @@ typedef enum {
 
 - (void)onTwinlifeReady;
 
-- (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner;
+- (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions;
 
 - (TLBaseServiceErrorCode)inviteGroupWithRequestId:(int64_t)requestId conversation:(nonnull id<TLConversation>)conversation group:(nonnull id<TLRepositoryObject>)group name:(nonnull NSString *)name;
 

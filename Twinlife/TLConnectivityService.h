@@ -49,6 +49,10 @@
 
 - (BOOL)isConnectedNetwork;
 
+- (BOOL)isMobileConnected;
+
+- (BOOL)isWifiConnected;
+
 /// Check if user proxies are enabled.
 - (BOOL)isProxyEnabled;
 

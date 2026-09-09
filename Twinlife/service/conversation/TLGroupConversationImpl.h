@@ -71,7 +71,7 @@
 - (nullable TLGroupMemberConversationImpl *)getConversationWithId:(int64_t)conversationId;
 
 /// Update the group state to join it with the given permissions.
-- (BOOL)joinWithPermissions:(int64_t)permissions;
+- (BOOL)joinWithPermissions:(int64_t)joinPermissions permissions:(int64_t)permissions;
 
 - (BOOL)isEmpty;
 

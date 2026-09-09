@@ -665,7 +665,7 @@ static const int ddLogLevel = DDLogLevelWarning;
     return result;
 }
 
-- (nullable TLGroupConversationImpl *)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject isOwner:(BOOL)isOwner {
+- (nullable TLGroupConversationImpl *)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject isOwner:(BOOL)isOwner permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions {
     DDLogVerbose(@"%@ createGroupConversationWithSubject: %@ isOwner: %d", LOG_TAG, subject, isOwner);
     
     TLTwincodeOutbound *peerTwincodeOutbound = [subject peerTwincodeOutbound];
@@ -693,9 +693,9 @@ static const int ddLogLevel = DDLogLevelWarning;
             int64_t creationDate = [[NSDate date] timeIntervalSince1970] * 1000;
             
             NSObject *peerTwincode = peerTwincodeOutbound ? [peerTwincodeOutbound.identifier identifierNumber] : [NSNull alloc];
-            TLGroupConversationImpl *conversation = [[TLGroupConversationImpl alloc] initWithIdentifier:identifier conversationId:conversationId subject:subject creationDate:creationDate resourceId:resourceId permissions:-1L joinPermissions:-1L flags:0];
+            TLGroupConversationImpl *conversation = [[TLGroupConversationImpl alloc] initWithIdentifier:identifier conversationId:conversationId subject:subject creationDate:creationDate resourceId:resourceId permissions:permissions joinPermissions:joinPermissions flags:0];
             if (isOwner) {
-                [conversation joinWithPermissions:-1L];
+                [conversation joinWithPermissions:joinPermissions permissions:permissions];
             }
             [transaction executeUpdate:@"INSERT INTO conversation (id, groupId, uuid, subject, creationDate,"
              " peerTwincodeOutbound, resourceId, permissions, joinPermissions,"

@@ -21,25 +21,6 @@
 @class TLRosterPendingRequest;
 
 //
-// Interface: TLMemberToAdd
-//
-
-/**
- * Member to add to a secure roster.
- */
-@interface TLMemberToAdd : NSObject
-
-@property (readonly, nonnull) NSUUID *memberTwincodeId;
-@property (readonly) int64_t memberPermission;
-@property (readonly, nonnull) NSData *memberPublicKey;
-
-- (nonnull instancetype)initWithMemberTwincodeId:(nonnull NSUUID *)memberTwincodeId
-                                memberPermission:(int64_t)memberPermission
-                               memberPublicKey:(nonnull NSData *)memberPublicKey;
-
-@end
-
-//
 // Interface: TLSecureRosterService ()
 //
 
@@ -49,7 +30,7 @@
 
 - (void)addMembersWithRosterId:(nonnull TLRosterId *)rosterId
                      signingMember:(nonnull TLTwincodeOutbound *)signingMember
-                          members:(nonnull NSArray<TLMemberToAdd *> *)members
+                          members:(nonnull NSArray<TLMemberIdentity *> *)members
                           complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete;
 
 @end

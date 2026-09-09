@@ -23,6 +23,7 @@
 #import "TLListRosterIQ.h"
 #import "TLAddRosterMemberIQ.h"
 #import "TLAddRosterPublicKeyIQ.h"
+#import "TLUpdateRosterMemberIQ.h"
 #import "TLDeleteRosterMemberIQ.h"
 #import "TLSecureRosterIQ.h"
 #import "TLOnCreateRosterIQ.h"
@@ -48,6 +49,8 @@ static NSUUID *LIST_ROSTER_SCHEMA_ID = nil;
 static NSUUID *ON_LIST_ROSTER_SCHEMA_ID = nil;
 static NSUUID *ADD_ROSTER_MEMBER_SCHEMA_ID = nil;
 static NSUUID *ON_ADD_ROSTER_MEMBER_SCHEMA_ID = nil;
+static NSUUID *UPDATE_ROSTER_MEMBER_SCHEMA_ID = nil;
+static NSUUID *ON_UPDATE_ROSTER_MEMBER_SCHEMA_ID = nil;
 static NSUUID *DELETE_ROSTER_MEMBER_SCHEMA_ID = nil;
 static NSUUID *ON_DELETE_ROSTER_MEMBER_SCHEMA_ID = nil;
 static NSUUID *ADD_ROSTER_PUBLIC_KEY_SCHEMA_ID = nil;
@@ -61,9 +64,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_CREATE_ROSTER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_LIST_ROSTER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_LIST_ROSTER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ADD_ROSTER_MEMBER_SERIALIZER = nil;
+static TLBinaryPacketIQSerializer *IQ_UPDATE_ROSTER_MEMBER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_DELETE_ROSTER_MEMBER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ADD_ROSTER_PUBLIC_KEY_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_ADD_ROSTER_MEMBER_SERIALIZER = nil;
+static TLBinaryPacketIQSerializer *IQ_ON_UPDATE_ROSTER_MEMBER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_MEMBER_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_ON_ADD_ROSTER_PUBLIC_KEY_SERIALIZER = nil;
 static TLBinaryPacketIQSerializer *IQ_DELETE_ROSTER_SERIALIZER = nil;
@@ -270,10 +275,10 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
 @end
 
 //
-// Implementation: TLMemberToAdd
+// Implementation: TLMemberIdentity
 //
 
-@implementation TLMemberToAdd
+@implementation TLMemberIdentity
 
 - (nonnull instancetype)initWithMemberTwincodeId:(nonnull NSUUID *)memberTwincodeId
                                 memberPermission:(int64_t)memberPermission
@@ -335,6 +340,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
         ON_LIST_ROSTER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"299b036c-2589-4367-8df3-3f61ef5b2268"];
         ADD_ROSTER_MEMBER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"abf52b69-e9d4-47c1-864c-9f94cbfa5096"];
         ON_ADD_ROSTER_MEMBER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"4ceec7bb-0ae9-462d-bd9f-cc84f33232b7"];
+        UPDATE_ROSTER_MEMBER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"9d8dc720-be8e-4fb7-a5f1-4b1ecd0f539f"];
+        ON_UPDATE_ROSTER_MEMBER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"6ec3a99c-6a5e-4554-812d-ed2791768383"];
         DELETE_ROSTER_MEMBER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"e10bbf8e-cab3-4817-9e22-2a8664135ab8"];
         ON_DELETE_ROSTER_MEMBER_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"721ab261-9259-437e-bd2c-efe11b7eec8b"];
         ADD_ROSTER_PUBLIC_KEY_SCHEMA_ID = [[NSUUID alloc] initWithUUIDString:@"a0c5183a-062e-412d-b31b-1a6c79b4c6f6"];
@@ -347,9 +354,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
         IQ_LIST_ROSTER_SERIALIZER = [[TLListRosterIQSerializer alloc] initWithSchema:LIST_ROSTER_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_ON_LIST_ROSTER_SERIALIZER = [[TLOnListRosterIQSerializer alloc] initWithSchema:ON_LIST_ROSTER_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_ADD_ROSTER_MEMBER_SERIALIZER = [[TLAddRosterMemberIQSerializer alloc] initWithSchema:ADD_ROSTER_MEMBER_SCHEMA_ID.UUIDString schemaVersion:1];
+        IQ_UPDATE_ROSTER_MEMBER_SERIALIZER = [[TLUpdateRosterMemberIQSerializer alloc] initWithSchema:UPDATE_ROSTER_MEMBER_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_DELETE_ROSTER_MEMBER_SERIALIZER = [[TLDeleteRosterMemberIQSerializer alloc] initWithSchema:DELETE_ROSTER_MEMBER_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_ADD_ROSTER_PUBLIC_KEY_SERIALIZER = [[TLAddRosterPublicKeyIQSerializer alloc] initWithSchema:ADD_ROSTER_PUBLIC_KEY_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_ON_ADD_ROSTER_MEMBER_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_ADD_ROSTER_MEMBER_SCHEMA_ID.UUIDString schemaVersion:1];
+        IQ_ON_UPDATE_ROSTER_MEMBER_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_UPDATE_ROSTER_MEMBER_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_ON_DELETE_ROSTER_MEMBER_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_DELETE_ROSTER_MEMBER_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_ON_ADD_ROSTER_PUBLIC_KEY_SERIALIZER = [[TLBinaryErrorPacketIQSerializer alloc] initWithSchema:ON_ADD_ROSTER_PUBLIC_KEY_SCHEMA_ID.UUIDString schemaVersion:1];
         IQ_DELETE_ROSTER_SERIALIZER = [[TLSecureRosterIQSerializer alloc] initWithSchema:DELETE_ROSTER_SCHEMA_ID.UUIDString schemaVersion:1];
@@ -374,6 +383,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
         }];
         [twinlife addPacketListener:IQ_ON_ADD_ROSTER_MEMBER_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
             [self onAddMemberRosterWithIQ:iq];
+        }];
+        [twinlife addPacketListener:IQ_ON_UPDATE_ROSTER_MEMBER_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
+            [self onUpdateMemberRosterWithIQ:iq];
         }];
         [twinlife addPacketListener:IQ_ON_DELETE_ROSTER_MEMBER_SERIALIZER listener:^(TLBinaryPacketIQ * iq) {
             [self onDeleteRosterMemberWithIQ:iq];
@@ -472,7 +484,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
 - (void)addMemberWithRosterId:(nonnull TLRosterId *)rosterId signingMember:(nonnull TLTwincodeOutbound *)signingMember newMemberTwincodeId:(nonnull NSUUID *)newMemberTwincodeId newMemberPermission:(int64_t)newMemberPermission newMemberPublicKey:(nonnull TLPublicKeyData *)newMemberPublicKey complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete {
     DDLogVerbose(@"%@ addMemberWithRosterId: %@ signingMember: %@", LOG_TAG, rosterId, signingMember);
 
-    TLMemberToAdd *member = [[TLMemberToAdd alloc] initWithMemberTwincodeId:newMemberTwincodeId memberPermission:newMemberPermission memberPublicKey:[newMemberPublicKey publicKey]];
+    TLMemberIdentity *member = [[TLMemberIdentity alloc] initWithMemberTwincodeId:newMemberTwincodeId memberPermission:newMemberPermission memberPublicKey:[newMemberPublicKey publicKey]];
     [self addMembersWithRosterId:rosterId signingMember:signingMember members:@[member] complete:complete];
 }
 
@@ -487,7 +499,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
     [self addMemberWithRosterId:rosterId signingMember:signingMember newMemberTwincodeId:newMemberTwincode.uuid newMemberPermission:newMemberPermission newMemberPublicKey:publicKey complete:complete];
 }
 
-- (void)addMembersWithRosterId:(nonnull TLRosterId *)rosterId signingMember:(nonnull TLTwincodeOutbound *)signingMember members:(nonnull NSArray<TLMemberToAdd *> *)membersToAdd complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete {
+- (void)addMembersWithRosterId:(nonnull TLRosterId *)rosterId signingMember:(nonnull TLTwincodeOutbound *)signingMember members:(nonnull NSArray<TLMemberIdentity *> *)membersToAdd complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete {
     DDLogVerbose(@"%@ addMemberWithRosterId: %@ signingMember: %@", LOG_TAG, rosterId, signingMember);
 
     if (![self isServiceOn]) {
@@ -498,7 +510,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
     NSMutableArray<TLMemberInfo *> *addMembers = [NSMutableArray arrayWithCapacity:membersToAdd.count];
     TLCryptoService *cryptoService = self.twinlife.cryptoService;
 
-    for (TLMemberToAdd *member in membersToAdd) {
+    for (TLMemberIdentity *member in membersToAdd) {
         int64_t permissions = member.memberPermission;
         NSData *rawPublicKey = member.memberPublicKey;
 
@@ -555,7 +567,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
         return;
     }
 
-    NSMutableArray<TLMemberToAdd *> *addMembers = [NSMutableArray array];
+    NSMutableArray<TLMemberIdentity *> *addMembers = [NSMutableArray array];
     TLCryptoService *cryptoService = self.twinlife.cryptoService;
 
     // Add the group owner (ie, ourselves).
@@ -564,7 +576,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
         int64_t permissions = TL_RESTRICT_PERMISSIONS([groupConversation permissions], TL_ALL_PERMISSIONS);
         TLPublicKeyData *publicKey = [cryptoService getRawPublicKeyWithTwincode:ownerTwincode];
         if (publicKey) {
-            [addMembers addObject:[[TLMemberToAdd alloc] initWithMemberTwincodeId:ownerTwincode.uuid memberPermission:permissions memberPublicKey:[publicKey publicKey]]];
+            [addMembers addObject:[[TLMemberIdentity alloc] initWithMemberTwincodeId:ownerTwincode.uuid memberPermission:permissions memberPublicKey:[publicKey publicKey]]];
         } else if ([rosterId.schemaId isEqual:[TLGroupProtocol LEGACY_SCHEMA_ID]]) {
             // If this is a legacy secure roster group, add this member with an empty public key.
             // We must also remove the right for that member to invite other members because it would not be able
@@ -573,7 +585,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
                 permissions = [TLPermissions removePermission:TLPermissionTypeInviteMember permissions:permissions];
                 [[self.twinlife getConversationService] setPermissionsWithSubject:groupConversation.subject memberTwincodeId:ownerTwincode.uuid permissions:permissions];
             }
-            [addMembers addObject:[[TLMemberToAdd alloc] initWithMemberTwincodeId:ownerTwincode.uuid memberPermission:permissions memberPublicKey:[[NSData alloc] init]]];
+            [addMembers addObject:[[TLMemberIdentity alloc] initWithMemberTwincodeId:ownerTwincode.uuid memberPermission:permissions memberPublicKey:[[NSData alloc] init]]];
         }
     }
 
@@ -585,7 +597,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
             int64_t permissions = TL_RESTRICT_PERMISSIONS([memberConversation permissions], TL_ALL_PERMISSIONS);
             TLPublicKeyData *publicKey = [cryptoService getRawPublicKeyWithTwincode:memberTwincode];
             if (publicKey) {
-                [addMembers addObject:[[TLMemberToAdd alloc] initWithMemberTwincodeId:memberTwincode.uuid memberPermission:permissions memberPublicKey:[publicKey publicKey]]];
+                [addMembers addObject:[[TLMemberIdentity alloc] initWithMemberTwincodeId:memberTwincode.uuid memberPermission:permissions memberPublicKey:[publicKey publicKey]]];
             } else if ([rosterId.schemaId isEqual:[TLGroupProtocol LEGACY_SCHEMA_ID]]) {
                 // If this is a legacy secure roster group, add this member with an empty public key.
                 // We must also remove the right for that member to invite other members because it would not be able
@@ -594,12 +606,72 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
                     permissions = [TLPermissions removePermission:TLPermissionTypeInviteMember permissions:permissions];
                     [[self.twinlife getConversationService] setPermissionsWithSubject:groupConversation.subject memberTwincodeId:memberTwincode.uuid permissions:permissions];
                 }
-                [addMembers addObject:[[TLMemberToAdd alloc] initWithMemberTwincodeId:memberTwincode.uuid memberPermission:permissions memberPublicKey:[[NSData alloc] init]]];
+                [addMembers addObject:[[TLMemberIdentity alloc] initWithMemberTwincodeId:memberTwincode.uuid memberPermission:permissions memberPublicKey:[[NSData alloc] init]]];
             }
         }
     }
 
     [self addMembersWithRosterId:rosterId signingMember:signingMember members:addMembers complete:complete];
+}
+
+- (void)updateMembersWithRosterId:(nonnull TLRosterId *)rosterId signingMember:(nonnull TLTwincodeOutbound *)signingMember members:(nonnull NSArray<TLMemberIdentity *> *)members complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete {
+    DDLogVerbose(@"%@ updateMembersWithRosterId: %@ signingMember: %@ members: %@", LOG_TAG, rosterId, signingMember, members);
+
+    if (![self isServiceOn]) {
+        complete(TLBaseServiceErrorCodeServiceUnavailable);
+        return;
+    }
+
+    NSMutableArray<TLMemberInfo *> *updateMembers = [NSMutableArray arrayWithCapacity:members.count];
+    TLCryptoService *cryptoService = self.twinlife.cryptoService;
+
+    for (TLMemberIdentity *member in members) {
+        int64_t permissions = member.memberPermission;
+        NSData *rawPublicKey = member.memberPublicKey;
+
+        NSMutableData *contentData = [NSMutableData data];
+        TLBinaryCompactEncoder *encoder = [[TLBinaryCompactEncoder alloc] initWithData:contentData];
+        [encoder writeUUID:rosterId.rosterId];
+        [encoder writeUUID:rosterId.schemaId];
+        [encoder writeUUID:member.memberTwincodeId];
+        [encoder writeLong:permissions];
+        [encoder writeData:rawPublicKey];
+
+        NSData *content = [NSData dataWithData:contentData];
+
+        NSData *signature = [cryptoService signContentRawWithTwincode:signingMember content:content];
+        if (!signature) {
+            complete(TLBaseServiceErrorCodeLibraryError);
+            return;
+        }
+
+        // If this member can invite other members, we also have to provide a valid signature
+        // to verify that member's public key to sign other members.
+        NSData *rosterKeySignature = nil;
+        if ([TLPermissions hasPermission:TLPermissionTypeInviteMember permissions:permissions]) {
+            NSData *keyFingerPrint = [self createKeyFingerprintWithRosterId:rosterId newKeyId:member.memberTwincodeId newPublicKey:rawPublicKey];
+            if (!keyFingerPrint) {
+                complete(TLBaseServiceErrorCodeLibraryError);
+                return;
+            }
+            rosterKeySignature = [cryptoService signContentRawWithTwincode:signingMember content:keyFingerPrint];
+            if (!rosterKeySignature) {
+                complete(TLBaseServiceErrorCodeLibraryError);
+                return;
+            }
+        }
+
+        TLMemberInfo *memberInfo = [[TLMemberInfo alloc] initWithNewMemberTwincodeId:member.memberTwincodeId newMemberPermission:permissions newMemberPublicKey:rawPublicKey signature:signature rosterKeySignature:rosterKeySignature];
+        [updateMembers addObject:memberInfo];
+    }
+
+    NSNumber *requestId = [TLBaseService newRequestId];
+    @synchronized(self.pendingRequests) {
+        self.pendingRequests[requestId] = [[TLRosterPendingRequest alloc] initWithComplete:complete];
+    }
+
+    TLUpdateRosterMemberIQ *updateRosterMemberIQ = [[TLUpdateRosterMemberIQ alloc] initWithSerializer:IQ_UPDATE_ROSTER_MEMBER_SERIALIZER requestId:requestId.longLongValue rosterId:rosterId.rosterId signingKeyId:signingMember.uuid members:updateMembers];
+    [self sendBinaryIQ:updateRosterMemberIQ factory:self.serializerFactory timeout:DEFAULT_REQUEST_TIMEOUT];
 }
 
 - (void)deleteMemberWithRosterId:(nonnull NSUUID *)rosterId memberId:(nonnull NSUUID *)memberId complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete {
@@ -763,7 +835,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
             key.verified = errorCode == TLBaseServiceErrorCodeSuccess;
 
             if (key.verified) {
-                validatedKeys[key.keyId] = publicKey;
+                validatedKeys[key.keyId] = key.publicKey;
             }
         } else {
             key.verified = NO;
@@ -781,7 +853,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
                 [encoder writeData:[member.publicKey publicKey]];
                 NSData *content = [NSData dataWithData:contentData];
                 
-                TLBaseServiceErrorCode errorCode = [cryptoService verifyContentWithPublicKey:publicKey keyId:key.keyId content:content signature:member.signature];
+                TLBaseServiceErrorCode errorCode = [cryptoService verifyContentWithPublicKey:key.publicKey keyId:key.keyId content:content signature:member.signature];
                 member.verified = errorCode == TLBaseServiceErrorCodeSuccess;
             } else {
                 member.verified = NO;
@@ -792,6 +864,25 @@ static TLBinaryPacketIQSerializer *IQ_ON_DELETE_ROSTER_SERIALIZER = nil;
 
 - (void)onAddMemberRosterWithIQ:(nonnull TLBinaryPacketIQ *)iq {
     DDLogVerbose(@"%@ onAddMemberRosterWithIQ: %@", LOG_TAG, iq);
+
+    TLBinaryErrorPacketIQ *response = (TLBinaryErrorPacketIQ *)iq;
+
+    TLSecureRosterPendingRequest *request;
+    @synchronized(self.pendingRequests) {
+        request = self.pendingRequests[@(iq.requestId)];
+        [self.pendingRequests removeObjectForKey:@(iq.requestId)];
+    }
+
+    if (![request isKindOfClass:[TLRosterPendingRequest class]]) {
+        return;
+    }
+
+    TLRosterPendingRequest *rosterRequest = (TLRosterPendingRequest *)request;
+    rosterRequest.complete(response.errorCode);
+}
+
+- (void)onUpdateMemberRosterWithIQ:(nonnull TLBinaryPacketIQ *)iq {
+    DDLogVerbose(@"%@ onUpdateMemberRosterWithIQ: %@", LOG_TAG, iq);
 
     TLBinaryErrorPacketIQ *response = (TLBinaryErrorPacketIQ *)iq;
 

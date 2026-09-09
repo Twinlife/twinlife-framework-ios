@@ -54,6 +54,18 @@
 @end
 
 //
+// Interface: TLUUIDSharedConfigIdentifier
+//
+
+@interface TLUUIDSharedConfigIdentifier : TLConfigIdentifier
+
+@property (nullable) NSUUID *uuidValue;
+
++ (nonnull TLUUIDSharedConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid migrate:(BOOL)migrate;
+
+@end
+
+//
 // Interface: TLStringConfigIdentifier
 //
 

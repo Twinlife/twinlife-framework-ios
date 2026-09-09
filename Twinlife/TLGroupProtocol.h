@@ -47,4 +47,8 @@
 
 + (void)setSecureRosterId:(nonnull NSMutableArray<TLAttributeNameValue *> *)attributes rosterId:(nonnull TLRosterId *)rosterId;
 
++ (int64_t)getJoinPermissions:(nullable TLTwincodeOutbound *)twincode;
+
++ (void)setJoinPermissions:(nonnull NSMutableArray<TLAttributeNameValue *> *)attributes permissions:(int64_t)permissions;
+
 @end

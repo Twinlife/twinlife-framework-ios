@@ -182,6 +182,51 @@ static NSMutableDictionary<NSUUID *, TLConfigIdentifier *> *configRegistry;
 @end
 
 #undef LOG_TAG
+#define LOG_TAG @"TLUUIDSharedConfigIdentifier"
+
+@implementation TLUUIDSharedConfigIdentifier
+
++ (nonnull TLUUIDSharedConfigIdentifier *)defineWithName:(nonnull NSString *)name uuid:(nonnull NSString *)uuid migrate:(BOOL)migrate {
+    DDLogVerbose(@"%@ defineWithName: %@ uuid: %@", LOG_TAG, name, uuid);
+
+    TLUUIDSharedConfigIdentifier *config = [[TLUUIDSharedConfigIdentifier alloc] initWithName:name uuid:uuid];
+    if (migrate) {
+        NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+
+        NSString *value = [userDefaults stringForKey:name];
+        if (value) {
+            [config setUuidValue:[[NSUUID alloc] initWithUUIDString:value]];
+            [userDefaults removeObjectForKey:name];
+            [userDefaults synchronize];
+        }
+    }
+    return config;
+}
+
+- (nullable NSUUID *)uuidValue {
+
+    NSUserDefaults *sharedUserDefaults = [TLTwinlife getAppSharedUserDefaults];
+
+    NSUUID * result = [[NSUUID alloc] initWithUUIDString:[sharedUserDefaults stringForKey:self.name]];
+    DDLogVerbose(@"%@ uuidValue.%@=%@", LOG_TAG, self.name, result);
+    return result;
+}
+
+- (void)setUuidValue:(nullable NSUUID *)value {
+    DDLogVerbose(@"%@ setUuidValue: %@ value: %@", LOG_TAG, self.name, value);
+
+    NSUserDefaults *sharedUserDefaults = [TLTwinlife getAppSharedUserDefaults];
+    if (!value) {
+        [sharedUserDefaults removeObjectForKey:self.name];
+    } else {
+        [sharedUserDefaults setObject:value.UUIDString forKey:self.name];
+    }
+    [sharedUserDefaults synchronize];
+}
+
+@end
+
+#undef LOG_TAG
 #define LOG_TAG @"TLStringConfigIdentifier"
 
 @implementation TLStringConfigIdentifier

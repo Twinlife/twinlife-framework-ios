@@ -222,7 +222,7 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 }
 
 + (nonnull TLCipherResult *)errorWithErrorCode:(TLBaseServiceErrorCode)errorCode {
-    DDLogError(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
+    DDLogVerbose(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
 
     return [[TLCipherResult alloc] initWithErrorCode:errorCode data:nil length:0];
 }
@@ -258,7 +258,7 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 }
 
 + (nonnull TLDecipherResult *)errorWithErrorCode:(TLBaseServiceErrorCode)errorCode {
-    DDLogError(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
+    DDLogVerbose(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
 
     return [[TLDecipherResult alloc] initWithErrorCode:errorCode attributes:nil peerTwincodeId:nil keyIndex:0 secretKey:nil publicKey:nil trustMethod:TLTrustMethodNone];
 }
@@ -289,7 +289,7 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 }
 
 + (nonnull TLSignResult *)errorWithErrorCode:(TLBaseServiceErrorCode)errorCode {
-    DDLogError(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
+    DDLogVerbose(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
 
     return [[TLSignResult alloc] initWithErrorCode:errorCode signature:nil];
 }
@@ -320,7 +320,7 @@ static NSArray<NSString *> *PREDEFINED_LIST;
 }
 
 + (nonnull TLVerifyAuthenticateResult *)errorWithErrorCode:(TLBaseServiceErrorCode)errorCode {
-    DDLogError(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
+    DDLogVerbose(@"%@ errorWithErrorCode: %d", LOG_TAG, errorCode);
 
     return [[TLVerifyAuthenticateResult alloc] initWithErrorCode:errorCode subjectId:nil];
 }
@@ -875,8 +875,6 @@ static NSArray<NSString *> *PREDEFINED_LIST;
     [binaryEncoder writeInt:version];
     [binaryEncoder writeUUID:keyId];
     [binaryEncoder writeData:content];
-    
-    DDLogError(@"%@: data to sign: %@", LOG_TAG, data);
 
     // Sign what is serialized with the private key.
     return [keyInfo.signingKey signWithData:data isBase64:isBase64];

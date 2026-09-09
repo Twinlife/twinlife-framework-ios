@@ -56,6 +56,8 @@
 
 - (nonnull NSData *)notificationKey;
 
+- (BOOL)hasPushNotification;
+
 - (void)sendFeedbackWithDescription:(nonnull NSString *)description email:(nonnull NSString *)email subject:(nonnull NSString *)subject logReport:(nullable NSString *)logReport withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode))block;
 
 - (void)logEventWithEventId:(nonnull NSString *)eventId key:(nonnull NSString *)key value:(nonnull NSString *)value flush:(BOOL)flush;

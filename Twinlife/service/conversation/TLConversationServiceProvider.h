@@ -61,7 +61,7 @@ typedef enum {
 /// Create a group conversation object and insert it in the database.  Before inserting the
 /// new group conversation, verify in the database if a group conversation existed for the
 /// repository object.  It is loaded and used if necessary.
-- (nullable TLGroupConversationImpl *)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject isOwner:(BOOL)isOwner;
+- (nullable TLGroupConversationImpl *)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject isOwner:(BOOL)isOwner permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions;
 
 /// Create a group member conversation object and insert it in the database.  Before inserting the
 /// new group member conversation, check that the group member with the given twincode is not already

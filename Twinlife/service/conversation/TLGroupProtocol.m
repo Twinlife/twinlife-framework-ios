@@ -11,6 +11,7 @@
 #import "TLAttributeNameValue.h"
 #import "TLTwincodeOutboundService.h"
 #import "TLSecureRosterService.h"
+#import "TLPermissions.h"
 
 #define INVOKE_TWINCODE_ACTION_GROUP_SUBSCRIBE @"twinlife::conversation::subscribe"
 #define INVOKE_TWINCODE_ACTION_GROUP_REGISTERED @"twinlife::conversation::registered"
@@ -21,6 +22,8 @@
 
 #define TL_GROUP_SCHEMA_ID [[NSUUID alloc] initWithUUIDString:@"a70f964c-7147-4825-afe2-d14da222f181"]
 #define TL_LEGACY_GROUP_SCHEMA_ID [[NSUUID alloc] initWithUUIDString:@"e3eab04a-263f-4e5d-95b8-e18252f49f7b"]
+
+#define TL_JOIN_PERMISSIONS   @"joinPermissions"
 
 //
 // Implementation: TLConversationProtocol
@@ -101,6 +104,25 @@
 + (void)setSecureRosterId:(nonnull NSMutableArray<TLAttributeNameValue *> *)attributes rosterId:(nonnull TLRosterId *)rosterId {
     
     [attributes addObject:[[TLAttributeNameStringValue alloc] initWithName:TL_ROSTER_ID stringValue:[NSString stringWithFormat:@"%@:%@", [rosterId.rosterId toString], [rosterId.schemaId toString]]]];
+}
+
++ (int64_t)getJoinPermissions:(nullable TLTwincodeOutbound *)twincode {
+
+    if (!twincode) {
+        return TL_ALL_PERMISSIONS;
+    }
+
+    NSString *permissions = (NSString *)[twincode getAttributeWithName:TL_JOIN_PERMISSIONS];
+    if (!permissions) {
+        return TL_ALL_PERMISSIONS;
+    }
+
+    return [permissions longLongValue];
+}
+
++ (void)setJoinPermissions:(nonnull NSMutableArray<TLAttributeNameValue *> *)attributes permissions:(int64_t)permissions {
+
+    [attributes addObject:[[TLAttributeNameStringValue alloc] initWithName:TL_JOIN_PERMISSIONS stringValue:[NSString stringWithFormat:@"%lld", permissions]]];
 }
 
 @end

@@ -701,6 +701,30 @@ TL_CREATE_ASSERT_POINT(ENVIRONMENT, 400)
     return result;
 }
 
+- (BOOL)hasPushNotification {
+    if (self.pushNotificationRemoteToken.length == 0 || self.pushNotificationVoIPToken.length == 0) {
+        return NO;
+    }
+
+    static NSSet *errorTokens;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        errorTokens = [NSSet setWithObjects:
+            TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_APNS_ERROR,
+            TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_APNS_WAIT,
+            TL_MANAGEMENT_SERVICE_PUSH_NOTIFICATION_VOIP_DISABLED,
+            nil
+        ];
+    });
+
+    if ([errorTokens containsObject:self.pushNotificationRemoteToken] ||
+        [errorTokens containsObject:self.pushNotificationVoIPToken]) {
+        return NO;
+    }
+
+    return YES;
+}
+
 - (void)sendFeedbackWithDescription:(nonnull NSString *)description email:(nonnull NSString *)email subject:(nonnull NSString *)subject logReport:(nullable NSString *)logReport withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode))block {
     DDLogVerbose(@"%@ sendFeedbackWithDescription: %@ email: %@ subject: %@ logReport: %@", LOG_TAG, description, email, subject, logReport);
     

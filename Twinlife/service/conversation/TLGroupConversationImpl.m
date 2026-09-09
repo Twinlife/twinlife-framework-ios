@@ -365,8 +365,8 @@ static int GROUP_CONVERSATION_SCHEMA_VERSION = 2;
     return nil;
 }
 
-- (BOOL)joinWithPermissions:(int64_t)permissions {
-    DDLogVerbose(@"%@ joinWithPermissions: %lld", LOG_TAG, permissions);
+- (BOOL)joinWithPermissions:(int64_t)joinPermissions permissions:(int64_t)permissions {
+    DDLogVerbose(@"%@ joinWithPermissions: %lld permissions: %lld", LOG_TAG, joinPermissions, permissions);
 
     @synchronized (self) {
         if ((self.flags & (FLAG_DELETED | FLAG_LEAVING)) != 0) {
@@ -375,7 +375,7 @@ static int GROUP_CONVERSATION_SCHEMA_VERSION = 2;
         
         self.flags |= FLAG_JOINED;
         self.permissions = permissions;
-        self.joinPermissions = permissions;
+        self.joinPermissions = joinPermissions;
         self.incomingConversation.permissions = permissions;
     }
     return YES;

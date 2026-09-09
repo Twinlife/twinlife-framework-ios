@@ -37,6 +37,25 @@ FOUNDATION_EXPORT const int TLSecureRosterServiceAllowEmptyKey;
 @end
 
 //
+// Interface: TLMemberIdentity
+//
+
+/**
+ * Member to add to a secure roster.
+ */
+@interface TLMemberIdentity : NSObject
+
+@property (readonly, nonnull) NSUUID *memberTwincodeId;
+@property (readonly) int64_t memberPermission;
+@property (readonly, nonnull) NSData *memberPublicKey;
+
+- (nonnull instancetype)initWithMemberTwincodeId:(nonnull NSUUID *)memberTwincodeId
+                                memberPermission:(int64_t)memberPermission
+                               memberPublicKey:(nonnull NSData *)memberPublicKey;
+
+@end
+
+//
 // Interface: TLRosterMember
 //
 
@@ -199,6 +218,9 @@ FOUNDATION_EXPORT const int TLSecureRosterServiceAllowEmptyKey;
                      signingMember:(nonnull TLTwincodeOutbound *)signingMember
              groupConversation:(nonnull id<TLGroupConversation>)groupConversation
                           complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete;
+
+/// Update the member permissions in the secure roster.
+- (void)updateMembersWithRosterId:(nonnull TLRosterId *)rosterId signingMember:(nonnull TLTwincodeOutbound *)signingMember members:(nonnull NSArray<TLMemberIdentity *> *)members complete:(nonnull void (^)(TLBaseServiceErrorCode errorCode))complete;
 
 /// Remove a member from the secure roster. This operation is accepted by the server if:
 /// - the device has created the secure roster,

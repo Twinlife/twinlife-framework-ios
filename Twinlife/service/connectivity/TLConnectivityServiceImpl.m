@@ -53,6 +53,8 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
 @property (nullable) nw_path_monitor_t pathMonitor;
 @property (nullable) NSString *userProxyConfig;
 @property BOOL connectedNetwork;
+@property BOOL mobileConnected;
+@property BOOL wifiConnected;
 @property BOOL proxyEnabled;
 @property int proxyDescriptorLease;
 @property int activeProxyIndex;
@@ -215,8 +217,19 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     DDLogVerbose(@"%@: onPathUpdateWithInterfaces: %@", LOG_TAG, interfaces);
 
     if (interfaces.count == 0) {
+        self.mobileConnected = NO;
+        self.wifiConnected = NO;
         [self reachabilityCallback:0];
     } else {
+        for (NSString *interface in interfaces) {
+            nw_interface_type_t interfaceType = [interfaces[interface] intValue];
+            if (interfaceType == nw_interface_type_wifi) {
+                self.wifiConnected = YES;
+            } else if (interfaceType == nw_interface_type_cellular) {
+                self.mobileConnected = YES;
+            }
+        }
+        
         [self reachabilityCallback:kSCNetworkReachabilityFlagsReachable];
     }
     [self.serverStream onPathUpdateWithInterfaces:interfaces];
@@ -258,6 +271,18 @@ static void ReachabilityCallback(SCNetworkReachabilityRef target, SCNetworkReach
     DDLogVerbose(@"%@: isConnectedNetwork %d", LOG_TAG, self.connectedNetwork);
     
     return self.connectedNetwork;
+}
+
+- (BOOL)isMobileConnected {
+    DDLogVerbose(@"%@: isMobileConnected %d", LOG_TAG, self.mobileConnected);
+
+    return self.mobileConnected;
+}
+
+- (BOOL)isWifiConnected {
+    DDLogVerbose(@"%@: isWifiConnected %d", LOG_TAG, self.wifiConnected);
+
+    return self.wifiConnected;
 }
 
 - (BOOL)isProxyEnabled {

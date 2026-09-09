@@ -671,7 +671,7 @@ typedef enum {
 
 - (void)deleteDescriptorWithRequestId:(int64_t)requestId descriptorId:(nonnull TLDescriptorId *)descriptorId;
 
-- (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner;
+- (nullable id<TLGroupConversation>)createGroupConversationWithSubject:(nonnull id<TLRepositoryObject>)subject owner:(BOOL)owner permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions;
 
 - (nullable id<TLConversation>)restoreGroupConversationWithDatabaseId:(int64_t)databaseId conversationId:(nonnull NSUUID *)conversationId creationDate:(int64_t)creationDate groupId:(int64_t)groupId subjectId:(int64_t)subjectId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId resourceId:(nonnull NSUUID *)resourceId peerResourceId:(nullable NSUUID *)peerResourceId invitedContactId:(nullable NSUUID *)invitedContactId permissions:(int64_t)permissions joinPermissions:(int64_t)joinPermissions flags:(int)flags;
 
