@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import "NSUUID+Extensions.h"
@@ -310,6 +311,10 @@
 
 /// Sync the database by running the WAL checkpoint and switch to DELETE journal mode.
 - (void)syncDatabase;
+
+/// Export a consistent copy of the database in the given file (which is removed first if it exists).
+/// The live database is not modified and no write can occur while the copy is made.
+- (BOOL)snapshotDatabaseWithPath:(nonnull NSString *)snapshotPath;
 
 /// Get from the cache the object with the given database identifier.
 - (nullable id<TLDatabaseObject>)getCacheWithIdentifier:(nonnull TLDatabaseIdentifier *)identifier;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2014-2022 twinlife SA.
+ *  Copyright (c) 2014-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -93,6 +93,10 @@ typedef NS_ENUM(NSInteger, TLAccountMigrationErrorCode) {
 
 ///Check and get the active device migration id.
 - (nullable NSUUID *)getActiveDeviceMigrationId;
+
+///Check if this device started the given account migration (the user tapped "Start" on it).
+///The information is saved in the migration directory so that it survives an application restart.
+- (BOOL)isInitiatorWithAccountMigrationId:(nonnull NSUUID *)accountMigrationId;
 
 ///Start the device migration process by setting up and opening the P2P connection to the peer twincode outboundid.
 - (void)outgoingStartMigrationWithRequestId:(int64_t)requestId accountMigrationId:(nonnull NSUUID *)accountMigrationId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId twincodeOutboundId:(nonnull NSUUID *)twincodeOutboundId;

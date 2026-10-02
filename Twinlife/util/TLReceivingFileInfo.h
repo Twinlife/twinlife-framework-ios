@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2021-2024 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 /**
@@ -21,13 +22,13 @@
 
 @interface TLReceivingFileInfo : NSObject
 
-/// The file length.
-@property (readonly) int64_t length;
-
 /// Create the receiving stream object.
 - (nonnull instancetype)initWithPath:(nonnull NSString *)path;
 
-- (nonnull instancetype)initWithPath:(nonnull NSString *)path fileInfo:(nonnull TLFileInfo *)fileInfo;
+/// Create the receiving stream object to receive the file starting at the given offset.
+/// When the offset is 0, an existing file is removed.  Otherwise, the existing file is truncated to the
+/// offset and its content is read to compute the SHA256 so that we can proceed after an interruption.
+- (nonnull instancetype)initWithPath:(nonnull NSString *)path fileInfo:(nonnull TLFileInfo *)fileInfo offset:(int64_t)offset;
 
 /// Seek the receiving stream at the given position (raises an exception if there is a problem).
 - (BOOL)seekToFileOffset:(int64_t)position;

@@ -96,6 +96,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
 @property (nullable) RTC_OBJC_TYPE(RTCCameraVideoCapturer) *videoCapturer;
 @property (nullable) RTC_OBJC_TYPE(RTCVideoSource) *videoSource;
 @property (readonly, nonnull) NSMutableDictionary<NSNumber *, TLSdpPendingRequest *> *pendingRequests;
+@property (readonly, nonnull) NSObject *videoLock;
 
 @end
 
@@ -455,6 +456,7 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
         _peerDataConnectionConfiguration = [TLPeerConnectionService createRTCConfigurationWithMedia:NO];
         _peerMediaConnectionConfiguration = [TLPeerConnectionService createRTCConfigurationWithMedia:YES];
         _pendingRequests = [[NSMutableDictionary alloc] init];
+        _videoLock = [NSObject new];
     }
     return self;
 }
@@ -1390,7 +1392,8 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     DDLogVerbose(@"%@: createVideoTrackWithPeerConnectionFactory", LOG_TAG);
     
     RTC_OBJC_TYPE(RTCVideoTrack) *videoTrack;
-    @synchronized (self) {
+    // Lock with the videoLock object to avoid blocking the whole TLPeerConnectionService instance (see also releaseVideoTrack).
+    @synchronized (_videoLock) {
         if (self.videoCapturer && self.videoTrack) {
             self.videoConnections++;
             return self.videoTrack;
@@ -1485,7 +1488,8 @@ static NSData *PEER_CONNECTION_SERVICE_LEADING_PADDING;
     DDLogVerbose(@"%@: releaseVideoTrack", LOG_TAG);
     
     RTC_OBJC_TYPE(RTCCameraVideoCapturer) *videoCapturer;
-    @synchronized (self) {
+    // Lock with the videoLock object to avoid blocking the whole TLPeerConnectionService instance (see also releaseVideoTrack).
+    @synchronized (_videoLock) {
         if (videoTrack != self.videoTrack) {
             return;
         }

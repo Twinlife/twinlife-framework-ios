@@ -478,7 +478,7 @@ static const int64_t MAX_ADJUST_TIME = 3600 * 1000; // Absolute maximum wallcloc
         }
 
         if (!chunk) {
-            return [receivingFile length];
+            return receivingFile.position;
         }
 
         int64_t position = [receivingFile writeChunkWithData:chunk];

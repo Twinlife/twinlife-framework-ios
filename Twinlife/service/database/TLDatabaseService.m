@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2023-2024 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 #import <CocoaLumberjack.h>
@@ -1243,6 +1244,59 @@ TL_CREATE_ASSERT_POINT(DATABASE_UPDATE_ERROR, 22)
         [database executeStatements:@"PRAGMA journal_mode = DELETE"];
     }];
     TL_END_MEASURE(startTime, @"syncDatabase WAL checkpoint, switch to DELETE")
+}
+
+- (BOOL)snapshotDatabaseWithPath:(nonnull NSString *)snapshotPath {
+    DDLogVerbose(@"%@ snapshotDatabaseWithPath: %@", LOG_TAG, snapshotPath);
+
+    FMDatabaseQueue *databaseQueue = self.databaseQueue;
+    if (!databaseQueue) {
+        return NO;
+    }
+
+    [[NSFileManager defaultManager] removeItemAtPath:snapshotPath error:nil];
+
+    __block BOOL success = NO;
+    TL_DECL_START_MEASURE(startTime)
+    // Run everything in the same block so that no write can interleave with the export.
+    [databaseQueue inDatabase:^(FMDatabase *database) {
+        FMResultSet *resultSet = [database executeQuery:@"PRAGMA user_version"];
+        if (!resultSet || ![resultSet next]) {
+            DDLogError(@"%@ Could not get the database version: %@", LOG_TAG, [database lastError]);
+            [resultSet close];
+            return;
+        }
+        int userVersion = [resultSet intForColumnIndex:0];
+        [resultSet close];
+
+        // ATTACH without KEY -> SQLCipher will use the main DB's key.
+        if (![database executeUpdate:@"ATTACH DATABASE ? AS 'snapshot'", snapshotPath]) {
+            DDLogError(@"%@ Could not attach snapshot: %@", LOG_TAG, [database lastError]);
+            return;
+        }
+
+        // No PRAGMA cipher_plaintext_header_size. It is not currently applied on iOS nor Android,
+        // so applying it here makes the DB unreadable on both.
+        // It will be needed here and in the cipher converters when we enable it for real.
+
+        // Make sure the snapshot is synced when we detach it (the main DB's WAL mode is
+        // the default for the attached databases).
+        success = [database executeStatements:@"PRAGMA snapshot.journal_mode = DELETE"]
+            && [database executeStatements:@"SELECT sqlcipher_export('snapshot')"]
+            && [database executeStatements:[NSString stringWithFormat:@"PRAGMA snapshot.user_version = %d", userVersion]];
+        if (!success) {
+            DDLogError(@"%@ Could not snapshot database: %@", LOG_TAG, [database lastError]);
+        }
+
+        // Always detach: a snapshot left attached makes every later attempt fail.
+        if (![database executeStatements:@"DETACH DATABASE 'snapshot'"]) {
+            DDLogError(@"%@ Could not detach snapshot: %@", LOG_TAG, [database lastError]);
+            success = NO;
+        }
+    }];
+    TL_END_MEASURE(startTime, @"snapshotDatabase")
+
+    return success;
 }
 
 - (nullable id<TLDatabaseObject>)getCacheWithIdentifier:(nonnull TLDatabaseIdentifier *)identifier {

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2025 twinlife SA.
+ *  Copyright (c) 2019-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -90,6 +90,14 @@ typedef enum {
 /// The application is optional to allow the notification service extension to use this.
 /// The completionHandler will be called when the background processing time has ellapsed.
 - (void)didWakeupWithApplication:(nullable id<TLApplication>)application kind:(TLWakeupKind)kind fetchCompletionHandler:(nullable void (^)(TLBaseServiceErrorCode status))completionHandler;
+
+/// Notify the job scheduler that iOS launched the application. By default, we are in the background
+/// and we may not enter foreground if the launch is a prewarm after the device unlock.
+/// To avoid being suspended and control a proper application suspend, we create a shutdown
+/// job with a background task armed so that the database and the connection lock are closed
+/// (otherwise iOS kills the application with 0xdead10cc).  A push or background task wakeup that
+/// follows replaces that job.
+- (void)willFinishLaunchingWithApplication:(nonnull id<TLApplication>)application;
 
 /// Report the number of active VoIP calls which are in progress. The Job scheduler keeps the connection opened while we are in foreground
 /// or we have some VoIP call in progress. As soon as we are in background and there is no VoIP call, the Twinlife service is shutdown to

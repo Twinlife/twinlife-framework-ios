@@ -1402,6 +1402,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_ERROR_SERIALIZER_INSTANCE = nil;
     int status = TLTwinlifeStatusSuspending;
     if (atomic_compare_exchange_strong(&_twinlifeStatus, &status, TLTwinlifeStatusSuspended)) {
         [self closeDatabase];
+        [self unlockServerConnection];
         
         TL_END_MEASURE(self.startSuspendTime, @"twinlifeSuspended");
         self.startTime = 0;
@@ -2362,6 +2363,42 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     return YES;
 }
 
+- (BOOL)snapshotDatabaseWithPath:(nonnull NSString *)snapshotPath {
+    DDLogVerbose(@"%@ snapshotDatabaseWithPath: %@", LOG_TAG, snapshotPath);
+
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *tmpPath = [snapshotPath stringByAppendingString:@".tmp"];
+    NSError *error = nil;
+
+    BOOL success = [self.databaseService snapshotDatabaseWithPath:tmpPath];
+    if (success) {
+        [fileManager removeItemAtPath:snapshotPath error:nil];
+        success = [fileManager moveItemAtPath:tmpPath toPath:snapshotPath error:&error];
+        if (!success) {
+            DDLogError(@"%@ Could not rename snapshot %@: %@", LOG_TAG, tmpPath, error);
+        }
+    }
+
+    if (!success) {
+        [fileManager removeItemAtPath:tmpPath error:nil];
+        [fileManager removeItemAtPath:[tmpPath stringByAppendingString:@"-journal"] error:nil];
+    }
+
+    return success;
+}
+
+- (void)deleteDatabaseForMigration {
+    DDLogVerbose(@"%@ deleteDatabaseForMigration", LOG_TAG);
+
+    [self closeDatabase];
+
+    // Erase the database files with their -wal, -shm and -journal: if one of them remains,
+    // it is used with the new database when we restart (and it is encrypted with another key).
+    for (NSString *existingDbName in @[CIPHER_V5_DATABASE_NAME, CIPHER_V4_DATABASE_NAME, CIPHER_V3_DATABASE_NAME]) {
+        [self deleteDatabaseFilesWithDatabaseName:existingDbName error:nil];
+    }
+}
+
 - (BOOL)deleteRestoredDatabase {
     DDLogVerbose(@"%@ deleteRestoredDatabase", LOG_TAG);
     
@@ -2419,7 +2456,8 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
     DDLogVerbose(@"%@ lockServerConnection %@ fd: %d", LOG_TAG, self.connectLockFile, self.connectLockFd);
 
     // Open the lock file and try to get the lock.  We keep the file opened until we have the lock.
-    if (self.connectLockFd < 0) {
+    int connectLockFd = atomic_load(&_connectLockFd);
+    if (connectLockFd < 0) {
         int lockFd = open([self.connectLockFile UTF8String], O_CREAT | O_RDWR, 0600);
         if (lockFd < 0) {
             DDLogError(@"%@ cannot open file: %d", LOG_TAG, errno);
@@ -2433,7 +2471,17 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
             return NO;
         }
 
-        self.connectLockFd = lockFd;
+        TLTwinlifeStatus status = atomic_load(&_twinlifeStatus);
+        if (status == TLTwinlifeStatusSuspending || status == TLTwinlifeStatusSuspended) {
+            DDLogVerbose(@"%@ twinlife library is suspending %d", LOG_TAG, status);
+            close(lockFd);
+            return NO;
+        }
+        if (!atomic_compare_exchange_strong(&_connectLockFd, &connectLockFd, lockFd)) {
+            DDLogVerbose(@"%@ server connection was updated, releasing lock", LOG_TAG);
+            close(lockFd);
+            return NO;
+        }
     }
     return YES;
 }
@@ -2441,10 +2489,16 @@ static void darwinNotificationObserver(CFNotificationCenterRef center, void *obs
 - (void)unlockServerConnection {
     DDLogVerbose(@"%@ unlockServerConnection lockFd: %d", LOG_TAG, self.connectLockFd);
 
-    if (self.connectLockFd >= 0) {
-        flock(self.connectLockFd, LOCK_UN);
-        close(self.connectLockFd);
-        self.connectLockFd = -1;
+    while (1) {
+        int connectLockFd = atomic_load(&_connectLockFd);
+        if (connectLockFd < 0) {
+            break;
+        }
+
+        if (atomic_compare_exchange_strong(&_connectLockFd, &connectLockFd, -1)) {
+            flock(connectLockFd, LOCK_UN);
+            close(connectLockFd);
+        }
     }
 }
 

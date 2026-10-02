@@ -12,7 +12,6 @@
 #import "TLAccountMigrationServiceImpl.h"
 #import "TLAccountMigrationExecutor.h"
 #import "TLBaseServiceImpl.h"
-#import "TLDatabaseService.h"
 #import "TLTwincodeOutboundService.h"
 #import "TLManagementService.h"
 #import "TLPeerConnectionService.h"
@@ -107,7 +106,8 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 @interface TLAccountMigrationService ()
 
-@property (nonatomic, nonnull) TLDatabaseService *database;
+@property (nullable, nonatomic) TLAccountMigrationExecutor *currentAccountMigration;
+@property (nonnull, nonatomic, readonly) NSFileManager *fileManager;
 @property (nonatomic, nonnull) NSString *databasePath;
 
 @end
@@ -129,14 +129,6 @@ static const int ddLogLevel = DDLogLevelWarning;
     return self;
 }
 
-
-@end
-
-@interface TLAccountMigrationService ()
-
-@property (nullable, nonatomic) TLAccountMigrationExecutor *currentAccountMigration;
-@property (nonnull, nonatomic, readonly) NSFileManager *fileManager;
-@property (nonnull, nonatomic, readonly) TLDatabaseService *databaseService;
 
 @end
 
@@ -169,6 +161,19 @@ static const int ddLogLevel = DDLogLevelWarning;
     return nil;
 }
 
+- (BOOL)isInitiatorWithAccountMigrationId:(nonnull NSUUID *)accountMigrationId {
+    DDLogVerbose(@"%@ isInitiatorWithAccountMigrationId: %@", LOG_TAG, accountMigrationId.UUIDString);
+
+    NSURL *initiatorURL = [[[TLTwinlife getAppGroupURL:self.fileManager] URLByAppendingPathComponent:MIGRATION_DIR] URLByAppendingPathComponent:MIGRATION_INITIATOR];
+    NSString *migrationId = [[NSString alloc] initWithContentsOfFile:initiatorURL.path encoding:NSUTF8StringEncoding error:nil];
+    if (!migrationId) {
+        return NO;
+    }
+
+    NSUUID *uuid = [[NSUUID alloc] initWithUUIDString:migrationId];
+    return [accountMigrationId isEqual:uuid];
+}
+
 /// Start the device migration process by setting up and opening the P2P connection to the peer twincode outboundid.
 - (void)outgoingStartMigrationWithRequestId:(int64_t)requestId accountMigrationId:(nonnull NSUUID *)accountMigrationId peerTwincodeOutboundId:(nonnull NSUUID *)peerTwincodeOutboundId twincodeOutboundId:(nonnull NSUUID *)twincodeOutboundId {
     DDLogVerbose(@"%@ outgoingStartMigrationWithRequestId:%lld accountMigrationId:%@ peerTwincodeOutboundId:%@ twincodeOutboundId:%@", LOG_TAG, requestId, accountMigrationId.UUIDString, peerTwincodeOutboundId.UUIDString, twincodeOutboundId.UUIDString);
@@ -189,9 +194,6 @@ static const int ddLogLevel = DDLogLevelWarning;
     TLAccountMigrationExecutor *accountMigration;
     NSString *peerId = [self.twinlife.twincodeOutboundService getPeerId:peerTwincodeOutboundId twincodeOutboundId:twincodeOutboundId];
 
-    // Force a database sync before starting the migration to flush the WAL file
-    // (another one will be made before sending the database in case it was changed).
-    [self.databaseService syncDatabase];
     @synchronized (self) {
         if (self.currentAccountMigration) {
             // If the `incomingStartMigrationWithPeerConnectionId` was faster, we can have a current account
@@ -203,7 +205,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         } else {
             NSURL *dbUrl = [[NSURL alloc] initFileURLWithPath:self.databasePath];
             
-            accountMigration = [[TLAccountMigrationExecutor alloc] initWithTwinlife:self.twinlife accountMigrationService:self databaseService:self.databaseService databaseFile:dbUrl accountMigrationId:accountMigrationId peerId:peerId rootDirectory:filesDir];
+            accountMigration = [[TLAccountMigrationExecutor alloc] initWithTwinlife:self.twinlife accountMigrationService:self databaseFile:dbUrl accountMigrationId:accountMigrationId peerId:peerId rootDirectory:filesDir];
             self.currentAccountMigration = accountMigration;
             self.activeMigrationId = accountMigrationId;
         }
@@ -234,10 +236,6 @@ static const int ddLogLevel = DDLogLevelWarning;
         return;
     }
 
-    // Force a database sync before starting the migration to flush the WAL file
-    // (another one will be made before sending the database in case it was changed).
-    [self.databaseService syncDatabase];
-
     TLAccountMigrationExecutor *accountMigration;
     NSString *peerId = [self.twinlife.twincodeOutboundService getPeerId:peerTwincodeOutboundId twincodeOutboundId:twincodeOutboundId];
     
@@ -246,7 +244,7 @@ static const int ddLogLevel = DDLogLevelWarning;
         if (!accountMigration) {
             NSURL *dbUrl = [[NSURL alloc] initFileURLWithPath:self.databasePath];
             
-            accountMigration = [[TLAccountMigrationExecutor alloc] initWithTwinlife:self.twinlife accountMigrationService:self databaseService:self.databaseService databaseFile:dbUrl accountMigrationId:accountMigrationId peerId:peerId rootDirectory:filesDir];
+            accountMigration = [[TLAccountMigrationExecutor alloc] initWithTwinlife:self.twinlife accountMigrationService:self databaseFile:dbUrl accountMigrationId:accountMigrationId peerId:peerId rootDirectory:filesDir];
             self.currentAccountMigration = accountMigration;
             self.activeMigrationId = accountMigrationId;
         } else if (![accountMigrationId isEqual:accountMigration.accountMigrationId]){
@@ -423,6 +421,8 @@ static const int ddLogLevel = DDLogLevelWarning;
         [self.fileManager removeItemAtPath:[databaseDirectory stringByAppendingPathComponent:MIGRATION_DATABASE_CIPHER_V3_NAME] error:nil];
         [self.fileManager removeItemAtPath:[databaseDirectory stringByAppendingPathComponent:MIGRATION_DATABASE_CIPHER_V4_NAME] error:nil];
         [self.fileManager removeItemAtPath:[databaseDirectory stringByAppendingPathComponent:MIGRATION_DATABASE_CIPHER_V5_NAME] error:nil];
+        [self.fileManager removeItemAtPath:[databaseDirectory stringByAppendingPathComponent:MIGRATION_SNAPSHOT_NAME] error:nil];
+        [self.fileManager removeItemAtPath:[databaseDirectory stringByAppendingPathComponent:[MIGRATION_SNAPSHOT_NAME stringByAppendingString:@".tmp"]] error:nil];
     }
     
     [TLKeyChain removeKeyChainWithKey:[MIGRATION_PREFIX stringByAppendingString:TWINLIFE_SECURED_CONFIGURATION_KEY] tag:nil];
@@ -479,7 +479,6 @@ static const int ddLogLevel = DDLogLevelWarning;
     self = [super initWithTwinlife:twinlife];
     if (self) {
         self.serviceConfiguration = [[TLAccountMigrationServiceConfiguration alloc] init];
-        _database = twinlife.databaseService;
         _fileManager = [NSFileManager defaultManager];
     }
     
@@ -627,29 +626,11 @@ static const int ddLogLevel = DDLogLevelWarning;
         DDLogError(@"%@ updateKeyChainWithKey failed to store the account configuration", LOG_TAG);
     }
     
-    // Erase the existing database (if one of them remain, we could have some trouble when we restart).
-    // We must also remove some -wal and -shm that could exist in some rare cases (they are encrypted with another key).
-    NSString *dest = [rootDirectory stringByAppendingPathComponent:CIPHER_V4_DATABASE_NAME];
-    if ([self.fileManager fileExistsAtPath:dest]) {
-        [self.fileManager removeItemAtPath:dest error:nil];
-    }
-    dest = [rootDirectory stringByAppendingPathComponent:CIPHER_V5_DATABASE_NAME];
-    if ([self.fileManager fileExistsAtPath:dest]) {
-        [self.fileManager removeItemAtPath:dest error:nil];
-    }
-    NSString* wal = [dest stringByAppendingString:@"-wal"];
-    if ([self.fileManager fileExistsAtPath:wal]) {
-        [self.fileManager removeItemAtPath:wal error:nil];
-    }
-    NSString *shm = [dest stringByAppendingString:@"-shm"];
-    if ([self.fileManager fileExistsAtPath:shm]) {
-        [self.fileManager removeItemAtPath:shm error:nil];
-    }
-    NSString *journal = [dest stringByAppendingString:@"-journal"];
-    if ([self.fileManager fileExistsAtPath:journal]) {
-        [self.fileManager removeItemAtPath:journal error:nil];
-    }
-    dest = [rootDirectory stringByAppendingPathComponent:targetDB];
+    // Close and erase the existing database (if one of them remain, we could have some trouble when we restart).
+    // We must also remove the -wal, -shm and -journal that could exist (they are encrypted with another key).
+    [self.twinlife deleteDatabaseForMigration];
+
+    NSString *dest = [rootDirectory stringByAppendingPathComponent:targetDB];
     BOOL result;
     NSError *error;
 

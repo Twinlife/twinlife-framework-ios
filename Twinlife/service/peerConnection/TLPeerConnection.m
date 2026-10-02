@@ -62,6 +62,7 @@ typedef enum {
 
 static const int64_t RESTART_ICE_DELAY = 2500; // ms delay to wait before restarting ICE after a disconnect.
 static const int64_t RESTART_DATA_ICE_DELAY = 5000; // ms delay to wait before restarting ICE after a disconnect.
+static const int64_t DISPOSE_TIMEOUT = 2000; // ms delay to close the WebRTC connection if the statistics are not reported.
 
 static const int STATS_REPORT_VERSION = 2;
 static const int CONNECT_REPORT_VERSION = 3;
@@ -89,8 +90,8 @@ static const TLPeerConnectionServiceStatType SET_STAT_LIST[] = {
     TLPeerConnectionServiceStatTypeIqSetPushPoll,
     TLPeerConnectionServiceStatTypeIqSetPushContactShare,
     TLPeerConnectionServiceStatTypeIqSetAnswerContactShare,
-    TLPeerConnectionServiceStatTypeIqSetSdpSessionUpdate,
     TLPeerConnectionServiceStatTypeIqSetSdpTransportInfo,
+    TLPeerConnectionServiceStatTypeIqSetSdpSessionUpdate,
     TLPeerConnectionServiceStatTypeIqError
 };
 static const int SET_STAT_LIST_COUNT = sizeof(SET_STAT_LIST) / sizeof(SET_STAT_LIST[0]);
@@ -115,8 +116,8 @@ static const TLPeerConnectionServiceStatType RESULT_STAT_LIST[] = {
     TLPeerConnectionServiceStatTypeIqResultPushPoll,
     TLPeerConnectionServiceStatTypeIqResultPushContactShare,
     TLPeerConnectionServiceStatTypeIqResultAnswerContactShare,
-    TLPeerConnectionServiceStatTypeIqResultSdpSessionUpdate,
-    TLPeerConnectionServiceStatTypeIqResultSdpTransportInfo
+    TLPeerConnectionServiceStatTypeIqResultSdpTransportInfo,
+    TLPeerConnectionServiceStatTypeIqResultSdpSessionUpdate
 };
 static const int RESULT_STAT_LIST_COUNT = sizeof(RESULT_STAT_LIST) / sizeof(RESULT_STAT_LIST[0]);
 
@@ -151,6 +152,13 @@ static const int ERROR_STAT_LIST_COUNT = sizeof(ERROR_STAT_LIST) / sizeof(ERROR_
 
 /*
  * <pre>
+ * Date: 2026/07/24
+ *  changes: added IQ stat push-contact-share, answer-contact-share, sdp-transport-info, sdp-update
+ *           added ms 'duration' in the connectReport
+ *  iqReport: version 7
+ *  connectReport: version 3
+ *  connect_report = version::connect:connectmS::duration::durationmS::accept:acceptmS::iceRemote:value::iceLocal:value:
+ *
  * Date: 2026/05/13
  *  changes: added IQ stat push-poll-iq
  *  iqReport: version 6
@@ -251,7 +259,7 @@ typedef enum {
 
 #define DATA_CHANNEL_LABEL @"twinlife:data:conversation"
 
-static int MAX_FRAME_SIZE = 128 * 1024;
+static const int MAX_FRAME_SIZE = 128 * 1024;
 
 /*
  * Frame format : derived from WebSocket frame format
@@ -337,15 +345,20 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property (readonly) BOOL initiator;
 @property (readonly, nonnull) TLBaseServiceImplConfiguration *configuration;
 @property (readonly, nullable) TLNotificationContent *notificationContent;
-@property RTC_OBJC_TYPE(RTCPeerConnection) *peerConnection;
-@property RTC_OBJC_TYPE(RTCPeerConnectionFactory) *peerConnectionFactory;
+@property (nullable) RTC_OBJC_TYPE(RTCPeerConnection) *peerConnection;
+@property (nullable) RTC_OBJC_TYPE(RTCPeerConnectionFactory) *peerConnectionFactory;
+/// Set when the first offer or answer is being created (before initialized which is set when it was sent).
+@property BOOL negotiationStarted;
 @property atomic_bool initialized;
 @property atomic_bool serverNotified;
+/// Counts the renegotiation requests: the value 1 is a block token held until the first SDP is sent
+/// and while initSourcesInternal() updates the tracks; peerConnectionShouldNegotiate() adds 1 for each request.
 @property atomic_int renegotiationNeeded;
 @property atomic_int renegotationPending;
 @property atomic_bool terminated;
-@property NSMutableArray<TLTransportCandidate *> *iceRemoteCandidates;
-@property RTC_OBJC_TYPE(RTCSessionDescription) *remoteSessionDescription;
+@property atomic_bool disposed;
+@property (nullable) NSMutableArray<TLTransportCandidate *> *iceRemoteCandidates;
+@property (nullable) RTC_OBJC_TYPE(RTCSessionDescription) *remoteSessionDescription;
 @property BOOL audioSourceOn;
 @property BOOL videoSourceOn;
 @property BOOL dataSourceOn;
@@ -353,16 +366,15 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property BOOL isSettingRemoteAnswerPending;
 @property BOOL withMedia;
 @property RTCIceConnectionState state;
-@property RTC_OBJC_TYPE(RTCRtpSender) *audioStreamTrackSender;
-@property RTC_OBJC_TYPE(RTCAudioTrack) *audioTrack;
-@property RTC_OBJC_TYPE(RTCVideoTrack) *videoTrack;
-@property RTC_OBJC_TYPE(RTCDataChannel) *inDataChannel;
-@property NSString *inDataChannelExtension;
-@property RTC_OBJC_TYPE(RTCDataChannel) *outDataChannel;
-@property NSMutableArray<NSData *> *outDataFrames;
+@property (nullable) RTC_OBJC_TYPE(RTCAudioTrack) *audioTrack;
+@property (nullable) RTC_OBJC_TYPE(RTCVideoTrack) *videoTrack;
+@property (nullable) RTC_OBJC_TYPE(RTCDataChannel) *inDataChannel;
+@property (nullable) NSString *inDataChannelExtension;
+@property (nullable) RTC_OBJC_TYPE(RTCDataChannel) *outDataChannel;
+@property (nonnull) NSMutableArray<NSData *> *outDataFrames;
 @property RTCDataChannelState dataChannelState;
-@property RTC_OBJC_TYPE(RTCStatisticsReport) *statsReport;
-@property RTC_OBJC_TYPE(RTCStatistics) *selectedCandidateStats;
+@property (nullable) RTC_OBJC_TYPE(RTCStatisticsReport) *statsReport;
+@property (nullable) RTC_OBJC_TYPE(RTCStatistics) *selectedCandidateStats;
 @property int64_t startTimestamp;
 @property int64_t stopTimestamp;
 @property int64_t acceptedTimestamp;
@@ -370,8 +382,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property int64_t restartIceTimestamp;
 @property atomic_int remoteIceCandidatesCount;
 @property atomic_int localIceCandidatesCount;
-@property int *statCounters;
-@property id<TLPeerConnectionDataChannelDelegate> dataChannelDelegate;
+@property (nullable) int *statCounters;
+@property (nullable) id<TLPeerConnectionDataChannelDelegate> dataChannelDelegate;
 @property BOOL leadingPadding;
 @property int peerMajorVersion;
 @property int peerMinorVersion;
@@ -386,7 +398,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 @property (readonly, nonnull) TLPeerConnectionRTCSessionDescriptionDelegate *peerConnectionRTCSessionDescriptionDelegate;
 @property (readonly, nonnull) TLPeerConnectionRTCDataChannelDelegate *peerConnectionRTCDataChannelDelegate;
 
-- (BOOL)hasRemoveTrackOnMute;
+/// Increment a statistic counter with protection against the release of the counters by disposeInternal.
+- (void)incrementStatCounterWithStatType:(TLPeerConnectionServiceStatType)statType;
 
 - (void)onSignalingChangeInternalWithSignalingState:(RTCSignalingState)signalingState;
 
@@ -578,8 +591,10 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     _offerToReceive = offerToReceive;
     _configuration = configuration;
     _delegate = delegate;
+    _negotiationStarted = NO;
     _initialized = NO;
     _terminated = NO;
+    _disposed = NO;
     _serverNotified = NO;
 
     // Prevent re-negotiation due to the creation of the data-channel or setup of WebRTC connection.
@@ -642,8 +657,10 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     } else {
         _remoteSessionDescription = [[RTC_OBJC_TYPE(RTCSessionDescription) alloc] initWithType:RTCSdpTypeOffer sdp:[sdp sdp]];
     }
+    _negotiationStarted = NO;
     _initialized = NO;
     _terminated = NO;
+    _disposed = NO;
     _serverNotified = NO;
 
     // Prevent re-negotiation due to the creation of the data-channel or setup of WebRTC connection.
@@ -697,18 +714,6 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         _peerMajorVersion = 1;
         _peerMinorVersion = 0;
     }
-}
-
-/**
- * Returns True if the peer supports removing track when we mute the audio/video.
- *
- * This is supported starting with peer connection service 1.3.0.
- *
- * @return true if removing track on mute is supported.
- */
-- (BOOL)hasRemoveTrackOnMute {
-
-    return self.peerMajorVersion > 1 || (self.peerMajorVersion == 1 && self.peerMinorVersion > 2);
 }
 
 - (void)createIncomingPeerConnectionWithSessionDescription:(nullable RTC_OBJC_TYPE(RTCSessionDescription) *)sessionDescription dataChannelDelegate:(nullable id<TLPeerConnectionDataChannelDelegate>)dataChannelDelegate delegate:(nonnull id<TLPeerConnectionDelegate>)delegate withBlock:(nonnull void (^)(TLBaseServiceErrorCode errorCode, NSUUID *_Nullable peerConnectionId))block {
@@ -767,7 +772,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 }
 
 - (BOOL)isSignalingSupported {
-    
+    DDLogVerbose(@"%@ isSignalingSupported", LOG_TAG);
+
     return self.state == RTCIceConnectionStateConnected && self.dataChannelState == RTCDataChannelStateOpen
                     && self.peerOffer && self.peerOffer.version
                     && (self.peerOffer.version.major >= 3 || (self.peerOffer.version.major == 2 && self.peerOffer.version.minor >= 3));
@@ -786,7 +792,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 }
 
 - (int)allocateSequenceId {
-    
+    DDLogVerbose(@"%@ allocateSequenceId", LOG_TAG);
+
     return atomic_fetch_add(&_sequenceId, 1);
 }
 
@@ -884,7 +891,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
         } @catch (NSException *exception) {
             DDLogError(@"%@ sendPacketWithIQ: %@ exception: %@", LOG_TAG, iq, exception);
-            self.statCounters[TLPeerConnectionServiceStatTypeSerializeErrorCount]++;
+            [self incrementStatCounterWithStatType:TLPeerConnectionServiceStatTypeSerializeErrorCount];
         }
     });
 }
@@ -903,16 +910,24 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         case TLPeerConnectionServiceStatTypeSerializeErrorCount:
             // Must protect access to statCounters because the instance could have been deleted
             // while we receive SDPs.
-            @synchronized (self) {
-                if (self.statCounters) {
-                    self.statCounters[statType]++;
-                }
-            }
+            [self incrementStatCounterWithStatType:statType];
             break;
             
         default:
             // Other counters are incremented by sendMessageInternalWithData().
             break;
+    }
+}
+
+- (void)incrementStatCounterWithStatType:(TLPeerConnectionServiceStatType)statType {
+    DDLogVerbose(@"%@ incrementStatCounterWithStatType: %u", LOG_TAG, statType);
+
+    // The counters are released by disposeInternal() while the WebRTC signaling thread can still
+    // deliver data channel messages or SDPs: check under the lock that they are still allocated.
+    @synchronized (self) {
+        if (self.statCounters) {
+            self.statCounters[statType]++;
+        }
     }
 }
 
@@ -926,7 +941,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 }
 
 - (void)sendDeviceRinging {
-    [self.peerCallService deviceRingingWithSessionId:self.uuid to: self.peerId];
+    DDLogVerbose(@"%@ sendDeviceRinging", LOG_TAG);
+
+    [self.peerCallService deviceRingingWithSessionId:self.uuid to:self.peerId];
 }
 
 - (void)sessionPing {
@@ -953,7 +970,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     }
     
     dispatch_async(self.executorQueue, ^{
-        TLPeerConnectionServiceTerminateReason terminateReason = (self.connectedTimestamp > 0 ? TLPeerConnectionServiceTerminateReasonDisconnected : TLPeerConnectionServiceTerminateReasonTimeout);
+        TLPeerConnectionServiceTerminateReason terminateReason = (self.connectedTimestamp > 0 ? TLPeerConnectionServiceTerminateReasonDisconnected : TLPeerConnectionServiceTerminateReasonCancel);
         [self terminatePeerConnectionInternalWithTerminateReason:terminateReason notifyPeer:YES];
     });
 }
@@ -1059,9 +1076,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     [streamIds addObject:@"media"];
 
     // Block and track WebRTC observer calls to peerConnectionShouldNegotiate() while we update
-    // the audio/video tracks.  The counter will be incremented from the WebRTC signaling thread
-    // while we do the setDirection(), we handle the renegotation at the end if it was necessary.
-    atomic_store(&_renegotiationNeeded, 1);
+    // the audio/video tracks: add a block token on the counter (keeping a possible pending request),
+    // it is released by checkRenegotiationWithCounter:1 at the end and we handle the renegotiation if necessary.
+    atomic_fetch_add(&_renegotiationNeeded, 1);
 
     if (updateAudio) {
         if (self.audioSourceOn) {
@@ -1119,9 +1136,10 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 }
             }
         }
-    } else if (!atomic_load(&_initialized) && self.offer.audio) {
+    } else if (self.initiator && !self.negotiationStarted && self.offer.audio) {
         // If we add a participant while muted, we need to make sure to create an audio transceiver otherwise
-        // we won't receive the peer's audio.
+        // we won't receive the peer's audio.  This is only needed for the initiator before the first offer:
+        // the answerer gets the audio transceiver from the remote offer.
         RTC_OBJC_TYPE(RTCRtpTransceiver) *transceiver = [self.peerConnection addTransceiverOfType:RTCRtpMediaTypeAudio];
         if (transceiver) {
             [transceiver setDirection:RTCRtpTransceiverDirectionRecvOnly error:nil];
@@ -1174,7 +1192,10 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         }
     }
 
-    if (!atomic_load(&_initialized)) {
+    // Create the first offer/answer only once: initSourcesInternal() can be called several times
+    // before the first SDP is sent (ex: setAudioDirection() followed by initSources()) and a second
+    // createAnswer() would fail when its setLocalDescription() runs in the stable state.
+    if (!self.negotiationStarted) {
         if (self.initiator) {
             [self createOfferInternal];
         } else {
@@ -1190,11 +1211,12 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     DDLogInfo(@"%@ checkRenegotiationWithCounter: %@ counter: %d renegotiationNeeded: %d", LOG_TAG, self.uuid, counter, atomic_load(&_renegotiationNeeded));
 
     // Handle renegotiation only when:
-    // - we have sent the session-initiate,
+    // - we have sent the session-initiate or session-accept,
     // - the WebRTC observer peerConnectionShouldNegotiate() was called.
     // - the signaling state is stable.
+    RTC_OBJC_TYPE(RTCPeerConnection) *peerConnection = self.peerConnection;
     int updatedCounter = atomic_fetch_sub(&_renegotiationNeeded, counter) - counter;
-    if (updatedCounter > 0 && [self.peerConnection signalingState] == RTCSignalingStateStable) {
+    if (updatedCounter > 0 && atomic_load(&_initialized) && peerConnection && [peerConnection signalingState] == RTCSignalingStateStable) {
         // We can handle the renegotiation only if there is nothing in progress.
         // Check and update the pending counter as it will be used to decrement
         // the renegotationNeeded when we have sent our session-update.
@@ -1202,7 +1224,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         if (atomic_compare_exchange_strong(&_renegotationPending, &expect, updatedCounter)) {
             [self doRenegotiationInternal];
         } else {
-            DDLogError(@"%@ renegotation for %@ in progress: %d", LOG_TAG, self.uuid, atomic_load(&_renegotationPending));
+            DDLogInfo(@"%@ renegotation for %@ in progress: %d", LOG_TAG, self.uuid, atomic_load(&_renegotationPending));
         }
     }
 }
@@ -1239,7 +1261,6 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     if (self.acceptedTimestamp == 0) {
         self.acceptedTimestamp = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
     }
-    atomic_store(&_renegotiationNeeded, 1);
 
     RTC_OBJC_TYPE(RTCSessionDescription) *updatedSessionDescription = [self updateCodecsWithSdp:sessionDescription];
         
@@ -1262,7 +1283,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     
     NSAssert([self.peerConnectionService isExecutorQueue], @"must be executed from the P2P executor Queue");
 
-    if (atomic_load(&_terminated)) {
+    if (atomic_load(&_terminated) || !self.peerConnection) {
         return;
     }
 
@@ -1270,6 +1291,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     // An offer may come in while we are busy processing SRD(answer).
     // In this case, we will be in "stable" by the time the offer is processed
     // so it is safe to chain it on our Operations Chain now.
+    // When we have a local offer in flight, WebRTC performs an implicit rollback of our offer
+    // (enableImplicitRollback) and the local change is renegotiated by a new
+    // peerConnectionShouldNegotiate() when we are back to the stable state.
     RTCSignalingState state = [self.peerConnection signalingState];
     BOOL isOffer = sessionDescription.type == RTCSdpTypeOffer;
     BOOL readyForOffer = atomic_load(&_renegotationPending) == 0 && (state == RTCSignalingStateStable || state == RTCSignalingStateHaveLocalOffer || self.isSettingRemoteAnswerPending);
@@ -1283,7 +1307,15 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         return;
     }
 
-    atomic_store(&_renegotiationNeeded, 1);
+    // An answer is valid only when we have a local offer.  After a rollback (offer collision),
+    // the peer can still answer our rolled back offer: applying it fails, so ignore it.
+    if (!isOffer && state != RTCSignalingStateHaveLocalOffer && state != RTCSignalingStateHaveLocalPrAnswer) {
+
+        DDLogInfo(@"%@ ignore stale answer sdp state=%ld", LOG_TAG, (long) state);
+
+        return;
+    }
+
     RTC_OBJC_TYPE(RTCSessionDescription) *updatedSessionDescription = [self updateCodecsWithSdp:sessionDescription];
 
     self.isSettingRemoteAnswerPending = sessionDescription.type == RTCSdpTypeAnswer;
@@ -1300,11 +1332,11 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
         // Create the answer even if this failed.
         if (isOffer) {
-            // We can handle this renegotiation immediately but we must increment the pending counter
-            // so that it is taken into account by checkRenegotiationWithCounter().
-            atomic_fetch_add(&strongSelf->_renegotationPending, 1);
-
             [strongSelf createAnswerInternal];
+        } else {
+            // The peer answer is applied and the signaling state is back to stable: handle a renegotiation
+            // which was requested while our offer was in flight.
+            [strongSelf checkRenegotiationWithCounter:0];
         }
     }];
 }
@@ -1338,6 +1370,10 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     if (iceRemoteCandidates) {
         [self addIceCandidates:iceRemoteCandidates];
     }
+
+    // The peer answer is applied and the signaling state is back to stable: handle a renegotiation
+    // which was requested while our offer was in flight.
+    [self checkRenegotiationWithCounter:0];
 }
 
 - (void)addIceCandidateInternalWithIceCandidates:(nonnull NSArray<TLTransportCandidate *> *)candidates {
@@ -1414,8 +1450,12 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                     self.statCounters[TLPeerConnectionServiceStatTypeFirstSendError] = statType + 1;
                     self.statCounters[TLPeerConnectionServiceStatTypeFirstSendErrorTime] = (int) NS_TO_MSEC(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW) - self.connectedTimestamp);
                 }
+
+                // The first frame was not sent: don't send the continuation frames,
+                // the peer would not be able to re-assemble the message.
+                return;
             }
-            
+
             NSUInteger start = MAX_FRAME_SIZE;
             while (start < data.length) {
                 NSUInteger length = MIN(MAX_FRAME_SIZE - 1, data.length - start);
@@ -1430,6 +1470,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 [frame appendData:[data subdataWithRange:NSMakeRange(start, length)]];
                 if (![self.outDataChannel sendData:[[RTC_OBJC_TYPE(RTCDataBuffer) alloc] initWithData:frame isBinary:YES]]) {
                     self.statCounters[TLPeerConnectionServiceStatTypeSendErrorCount]++;
+                    break;
                 }
                 start += length;
             }
@@ -1454,6 +1495,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     if (self.acceptedTimestamp == 0) {
         self.acceptedTimestamp = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
     }
+    self.negotiationStarted = YES;
 
     RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil optionalConstraints:nil];
     __weak typeof(self) weakSelf = self;
@@ -1471,6 +1513,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     DDLogVerbose(@"%@ createOfferInternal", LOG_TAG);
     DDLogInfo(@"%@ creating-offer for %@", LOG_TAG, self.uuid);
 
+    self.negotiationStarted = YES;
     RTC_OBJC_TYPE(RTCMediaConstraints) *mediaConstraints = [[RTC_OBJC_TYPE(RTCMediaConstraints) alloc] initWithMandatoryConstraints:nil optionalConstraints:nil];
     __weak typeof(self) weakSelf = self;
     [self.peerConnection offerForConstraints:mediaConstraints completionHandler:^(RTC_OBJC_TYPE(RTCSessionDescription) *sessionDescription, NSError *error) {
@@ -1626,6 +1669,16 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
         return;
     }
 
+    // Offer collision: a remote offer was applied while our offer was being created (the signaling
+    // state is no longer stable).  Setting our offer would fail: drop it and keep the renegotiation
+    // request, it is retried when the state is back to stable.
+    if (sessionDescription.type == RTCSdpTypeOffer && atomic_load(&_initialized)
+        && [self.peerConnection signalingState] != RTCSignalingStateStable) {
+        DDLogInfo(@"%@ offer collision, drop local offer for %@", LOG_TAG, self.uuid);
+        atomic_store(&_renegotationPending, 0);
+        return;
+    }
+
     // Filter the codecs before sending the SDP to the peer.
     RTC_OBJC_TYPE(RTCSessionDescription) *updatedSessionDescription = [self updateCodecsWithSdp:sessionDescription];
 
@@ -1644,25 +1697,26 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 - (void)onRenegotiationNeededInternal {
     DDLogInfo(@"%@ onRenegotiationNeededInternal %@ renegotiationNeeded: %d", LOG_TAG, self.uuid, atomic_load(&_renegotiationNeeded));
 
-    // Check that we are allowed to make the renegotiation and update the counter to track the request.
-    int previous = atomic_fetch_add(&_renegotiationNeeded, 1);
-    if (previous > 0) {
-        return;
-    }
-
-    // We can handle this renegotiation immediately but before we must check and update the pending counter
-    // as it will be used to decrement the renegotationNeeded when we have sent our session-update.
-    int expect = 0;
-    if (atomic_compare_exchange_strong(&_renegotationPending, &expect, 1)) {
-        [self doRenegotiationInternal];
-    }
+    // Record the request: it is handled now if we are allowed to (block token released, signaling
+    // state stable, no renegotiation in progress) or it is deferred and handled when the token
+    // is released or when the signaling state is back to stable.
+    atomic_fetch_add(&_renegotiationNeeded, 1);
+    [self checkRenegotiationWithCounter:0];
 }
 
 - (void)doRenegotiationInternal {
     DDLogVerbose(@"%@ doRenegotiationInternal", LOG_TAG);
     
     // Called from the signaling thread
-    if (atomic_load(&_terminated)) {
+    RTC_OBJC_TYPE(RTCPeerConnection) *peerConnection = self.peerConnection;
+    if (atomic_load(&_terminated) || !peerConnection) {
+        return;
+    }
+
+    if ([peerConnection signalingState] != RTCSignalingStateStable) {
+        // Release the pending marker (the request is kept in renegotiationNeeded) otherwise
+        // no renegotiation could be started anymore.
+        atomic_store(&_renegotationPending, 0);
         return;
     }
     
@@ -1723,11 +1777,20 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
         [self.peerConnection statisticsWithCompletionHandler:^(RTC_OBJC_TYPE(RTCStatisticsReport) *report) {
             dispatch_async(self.executorQueue, ^{
-                self.statsReport = report;
-                
+                if (!atomic_load(&self->_disposed)) {
+                    self.statsReport = report;
+                }
                 [self disposeInternal];
             });
         }];
+
+        // Make sure the WebRTC connection is closed and released even if the statistics are never reported.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, DISPOSE_TIMEOUT * NSEC_PER_MSEC), self.executorQueue, ^{
+            if (!atomic_load(&self->_disposed)) {
+                DDLogWarn(@"%@ statistics not reported for %@, closing", LOG_TAG, self.uuid);
+                [self disposeInternal];
+            }
+        });
     } else {
         [self disposeInternal];
     }
@@ -1854,7 +1917,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                     dispatch_source_set_event_handler(strongSelf.failedIceTimer, ^{
                         __strong TLPeerConnection *strongSelf = weakSelf;
                         if (strongSelf) {
-                            [strongSelf failedIceTimer];
+                            [strongSelf failedIceHandler];
                         }
                     });
                     
@@ -2000,9 +2063,13 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
 - (void)onDataChannelMessageWithDataChannel:(nonnull RTC_OBJC_TYPE(RTCDataChannel) *)dataChannel buffer:(nonnull RTC_OBJC_TYPE(RTCDataBuffer) *)buffer {
     DDLogVerbose(@"%@ onDataChannelMessageWithDataChannel: %@ buffer: %@", LOG_TAG, dataChannel, buffer);
-    
+
+    if (atomic_load(&_terminated)) {
+        return;
+    }
+
     if (!self.leadingPadding) {
-        self.statCounters[TLPeerConnectionServiceStatTypeIqReceiveCount]++;
+        [self incrementStatCounterWithStatType:TLPeerConnectionServiceStatTypeIqReceiveCount];
         if (self.dataChannelDelegate) {
             [self.dataChannelDelegate onDataChannelMessageWithPeerConnectionId:self.uuid data:buffer.data leadingPadding:NO];
         }
@@ -2019,7 +2086,9 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     if (opcode == OP_BINARY) {
         NSData *frame = [buffer.data subdataWithRange:NSMakeRange(1, buffer.data.length - 1)];
         if (flags == FLAG_FIN) {
-            self.statCounters[TLPeerConnectionServiceStatTypeIqReceiveCount]++;
+            // A complete message: drop the frames of a message whose continuation was never completed.
+            [self.outDataFrames removeAllObjects];
+            [self incrementStatCounterWithStatType:TLPeerConnectionServiceStatTypeIqReceiveCount];
             if (self.dataChannelDelegate) {
                 [self.dataChannelDelegate onDataChannelMessageWithPeerConnectionId:self.uuid data:frame leadingPadding:YES];
             }
@@ -2028,6 +2097,11 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             [self.outDataFrames addObject:frame];
         }
     } else if (opcode == OP_CONTINUATION) {
+        // A continuation without a first frame (the peer failed to send it): the message cannot be re-assembled.
+        if (self.outDataFrames.count == 0) {
+            DDLogWarn(@"%@ dropping continuation frame without first frame for %@", LOG_TAG, self.uuid);
+            return;
+        }
         NSData *frame = [buffer.data subdataWithRange:NSMakeRange(1, buffer.data.length - 1)];
         [self.outDataFrames addObject:frame];
         
@@ -2041,7 +2115,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 [data appendData:lFrame];
             }
             [self.outDataFrames removeAllObjects];
-            self.statCounters[TLPeerConnectionServiceStatTypeIqReceiveCount]++;
+            [self incrementStatCounterWithStatType:TLPeerConnectionServiceStatTypeIqReceiveCount];
             if (self.dataChannelDelegate) {
                 [self.dataChannelDelegate onDataChannelMessageWithPeerConnectionId:self.uuid data:data leadingPadding:YES];
             }
@@ -2086,6 +2160,17 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 - (void)invalidateFailedIceTimer {
     DDLogVerbose(@"%@: invalidateFailedIceTimer", LOG_TAG);
 
+    // The timer is created and released from the executor queue: it can be invalidated from
+    // the WebRTC signaling thread (see onSetLocalDescriptionWithSessionDescription) so dispatch
+    // to the executor queue to avoid a race with its creation.
+    if (![self.peerConnectionService isExecutorQueue]) {
+        __weak typeof(self) weakSelf = self;
+        dispatch_async(self.executorQueue, ^{
+            [weakSelf invalidateFailedIceTimer];
+        });
+        return;
+    }
+
     if (self.failedIceTimer) {
         dispatch_source_cancel(self.failedIceTimer);
         self.failedIceTimer = nil;
@@ -2112,6 +2197,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 }
 
 - (void)ackTransportWithRequestId:(int64_t)requestId {
+    DDLogVerbose(@"%@ ackTransportWithRequestId: %lld", LOG_TAG, requestId);
 
     [self.pendingCandidates removeWithRequestId:requestId];
 }
@@ -2135,8 +2221,8 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
 
     DDLogInfo(@"%@ restart-ice for %@ in state %ld", LOG_TAG, self.uuid, (long)self.state);
 
-    // Allow and trigger renegotiation.
-    atomic_store(&_renegotiationNeeded, 0);
+    // The ICE restart triggers peerConnectionShouldNegotiate() which creates the offer with the new
+    // ICE credentials (or defers it if the signaling state is not stable).
     [self.peerConnection restartIce];
 
     // Give 5s to recover or fail.
@@ -2148,7 +2234,7 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
                 return;
             }
             
-            @synchronized(self) {
+            @synchronized(strongSelf) {
                 if (strongSelf.state == RTCIceConnectionStateConnected) {
                     return;
                 }
@@ -2378,21 +2464,21 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
             continue;
         }
         if ([stats.type isEqualToString:@"transport"]) {
-            long bytesSent = 0;
-            long bytesReceived = 0;
+            long long bytesSent = 0;
+            long long bytesReceived = 0;
             
             id value = stats.values[@"bytesSent"];
             if (value) {
-                bytesSent = [value intValue];
+                bytesSent = [value longLongValue];
             }
             
             value = stats.values[@"bytesReceived"];
             if (value) {
-                bytesReceived = [value intValue];
+                bytesReceived = [value longLongValue];
             }
             if (bytesSent > 0 || bytesReceived > 0) {
-                [report appendFormat:@":transport:%ld", bytesSent];
-                [report appendFormat:@":%ld:", bytesReceived];
+                [report appendFormat:@":transport:%lld", bytesSent];
+                [report appendFormat:@":%lld:", bytesReceived];
                 [report appendString:[self getCandidatesWithPairId:(NSString *)stats.values[@"selectedCandidatePairId"]]];
                 [report appendString:@":"];
             }
@@ -2581,6 +2667,12 @@ TL_CREATE_ASSERT_POINT(DECRYPT_ERROR_2, 309)
     DDLogVerbose(@"%@: disposeInternal", LOG_TAG);
 
     NSAssert([self.peerConnectionService isExecutorQueue], @"must be executed from the P2P executor Queue");
+
+    // Dispose only once: called either from the statistics completion or from the dispose timeout.
+    _Bool expect = NO;
+    if (!atomic_compare_exchange_strong(&_disposed, &expect, YES)) {
+        return;
+    }
     DDLogInfo(@"%@ closing for %@", LOG_TAG, self.uuid);
 
     self.stopTimestamp = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);

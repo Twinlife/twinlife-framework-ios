@@ -72,8 +72,11 @@ static const int ddLogLevel = DDLogLevelWarning;
 @property (weak, readonly) TLJobId *shutdownJobId;
 @property (readonly) UIBackgroundTaskIdentifier backgroundTaskIdentifier;
 @property (nullable, readonly) void (^fetchCompletionHandler) (TLBaseServiceErrorCode status);
+@property atomic_int terminated;
 
 - (nonnull instancetype)initWithJobService:(nonnull TLJobService *)jobService application:(nullable id<TLApplication>)application fetchCompletionHandler:(void (^)(TLBaseServiceErrorCode status))fetchCompletionHandler;
+
+- (BOOL)isTerminated;
 
 @end
 
@@ -245,12 +248,13 @@ static const int ddLogLevel = DDLogLevelWarning;
 
 - (nonnull instancetype)initWithJobService:(nonnull TLJobService *)jobService application:(nullable id<TLApplication>)application fetchCompletionHandler:(void (^)(TLBaseServiceErrorCode status))fetchCompletionHandler {
     DDLogVerbose(@"%@ initWithJobService: %@ application: %@", LOG_TAG, jobService, application);
-
+    
     self = [super init];
     if (self) {
         _jobService = jobService;
         _application = application;
         _fetchCompletionHandler = fetchCompletionHandler;
+        _terminated = 0;
         if (application) {
             _backgroundTaskIdentifier = [application beginBackgroundTaskWithExpirationHandler: ^{
                 DDLogError(@"%@ background task expiration %ld called, remaining: %f", LOG_TAG, self.backgroundTaskIdentifier, [self.application backgroundTimeRemaining]);
@@ -260,49 +264,55 @@ static const int ddLogLevel = DDLogLevelWarning;
         } else {
             _backgroundTaskIdentifier = UIBackgroundTaskInvalid;
         }
-
+        
         _shutdownJobId = [jobService scheduleWithJob:self delay:SHUTDOWN_TIMEOUT priority:TLJobPriorityMessage];
     }
-
+    
     return self;
 }
 
 - (void)runJob {
     DDLogVerbose(@"%@ runJob", LOG_TAG);
-
+    
     [self shutdown];
 }
 
 - (void)shutdown {
     DDLogVerbose(@"%@ shutdown", LOG_TAG);
-
+    
     [self.jobService suspend];
 }
 
 - (void)cancel {
     DDLogVerbose(@"%@ cancel", LOG_TAG);
-
+    
     __strong TLJobId *jobId = self.shutdownJobId;
     if (jobId) {
         [jobId cancel];
     }
-
+    
     [self terminate];
 }
 
 - (void)terminate {
     DDLogInfo(@"%@ terminate task %ld", LOG_TAG, self.backgroundTaskIdentifier);
-
+    
     if (self.application && self.backgroundTaskIdentifier != UIBackgroundTaskInvalid) {
         // After execution of these handlers, the system will suspend us may be immediately.
         [self.application endBackgroundTask:self.backgroundTaskIdentifier];
-
+        
         if (self.fetchCompletionHandler) {
             self.fetchCompletionHandler(TLBaseServiceErrorCodeSuccess);
         }
     } else if (self.fetchCompletionHandler) {
         self.fetchCompletionHandler(TLBaseServiceErrorCodeSuccess);
     }
+    _terminated = 1;
+}
+
+- (BOOL)isTerminated {
+    
+    return atomic_load(&_terminated) != 0;
 }
 
 @end
@@ -529,6 +539,26 @@ static const int ddLogLevel = DDLogLevelWarning;
                 }
             }
         }
+    }
+}
+
+- (void)willFinishLaunchingWithApplication:(nonnull id<TLApplication>)application {
+    DDLogInfo(@"%@ willFinishLaunchingWithApplication: %@", LOG_TAG, application);
+
+    // iOS launched us in the background (prewarm at unlock, silent push, ...): the twinlife library is about
+    // to open the database and take the connection lock but we will get no foreground event.  Arm the shutdown
+    // job with its background task so that the try-disconnect timer (once online) or the shutdown deadline
+    // closes the database, releases the lock and ends the task before iOS suspends us.
+    int64_t now = [[NSDate date] timeIntervalSince1970] * 1000;
+    @synchronized (self) {
+        self.state = TLApplicationStateBackground;
+        self.application = application;
+        self.backgroundTime = now;
+        if (self.shutdownJob) {
+            [self.shutdownJob cancel];
+        }
+        self.shutdownJob = [[TLShutdownJob alloc] initWithJobService:self application:application fetchCompletionHandler:nil];
+        self.shutdownDeadlineTime = now + SHUTDOWN_TIMEOUT * MSEC_PER_SEC;
     }
 }
 
@@ -1158,8 +1188,29 @@ static const int ddLogLevel = DDLogLevelWarning;
     // background task handler has been called otherwise iOS will report a fault/crash
     // in the application.  We cannot block the main UI thread for too long either
     // and trying to synchronize and wait for the complete shutdown appears complex and risky.
-    // Instead, block the current thread for 1.0 second which should be enough.
-    [NSThread sleepForTimeInterval:EMERGENCY_SUSPEND_DELAY];
+    // Instead, block the current thread at most 1.0 second by checking every 100ms
+    // whether the shutdown is completed.
+    for (int i = 0; i < 10; i++) {
+        [NSThread sleepForTimeInterval:EMERGENCY_SUSPEND_DELAY / 10];
+
+        BOOL done = shutdownJob ? [shutdownJob isTerminated] : [self applicationState] != TLApplicationStateSuspending;
+        if (done) {
+            return;
+        }
+    }
+
+    // Last emergency case: force the disconnect and close database.
+    if ([self applicationState] == TLApplicationStateSuspending) {
+        [self.twinlife disconnect];
+        if (![self.twinlife twinlifeSuspended]) {
+            TLShutdownJob *suspendJob;
+            @synchronized (self) {
+                suspendJob = self.suspendJob;
+                self.suspendJob = nil;
+            }
+            [suspendJob terminate];
+        }
+    }
 }
 
 - (void)scheduleJobs {

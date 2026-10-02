@@ -19,12 +19,13 @@
 #define MIGRATION_DATABASE_CIPHER_V3_NAME  @"migration-3.sqlcipher"
 #define MIGRATION_DATABASE_CIPHER_V4_NAME  @"migration-4.sqlcipher"
 #define MIGRATION_DATABASE_CIPHER_V5_NAME  @"migration-5.sqlcipher"
+#define MIGRATION_SNAPSHOT_NAME            @"migration-snapshot-5.sqlcipher"
 
 #define MIGRATION_DIR @"Migration"
 #define MIGRATION_DONE @"migration-done"
 #define MIGRATION_ID @"migration-id"
+#define MIGRATION_INITIATOR @"migration-initiator"
 
-@class TLDatabaseService;
 
 //
 // Interface: TLAccountMigrationHandler
@@ -100,7 +101,7 @@
 @property (readonly, nonnull) NSUUID *accountMigrationId;
 @property (nonatomic) TLAccountMigrationState state;
 
-- (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife accountMigrationService:(nonnull TLAccountMigrationService *)accountMigrationService databaseService:(nonnull TLDatabaseService *)databaseService databaseFile:(nonnull NSURL *)databaseFile accountMigrationId:(nonnull NSUUID *)accountMigrationId peerId:(nonnull NSString *)peerId rootDirectory:(nonnull NSURL *)rootDirectory;
+- (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife accountMigrationService:(nonnull TLAccountMigrationService *)accountMigrationService databaseFile:(nonnull NSURL *)databaseFile accountMigrationId:(nonnull NSUUID *)accountMigrationId peerId:(nonnull NSString *)peerId rootDirectory:(nonnull NSURL *)rootDirectory;
 
 - (BOOL)isConnected;
 

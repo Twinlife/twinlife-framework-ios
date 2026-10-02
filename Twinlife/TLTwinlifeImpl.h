@@ -108,7 +108,7 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 @property (nullable) FMDatabaseQueue *databaseQueue;
 @property (nullable) NSString *databasePath;
 @property (nullable) NSError *databaseError;
-@property int connectLockFd;
+@property atomic_int connectLockFd;
 @property (readonly, nonnull) NSString *connectLockFile;
 @property (readonly, nonnull) void *twinlifeQueueTag;
 @property int64_t serverTimeCorrection;
@@ -174,6 +174,13 @@ typedef void (^TLBinaryPacketListener) (TLBinaryPacketIQ * _Nonnull iq);
 - (BOOL)commitRestoredDatabase;
 
 - (BOOL)deleteRestoredDatabase;
+
+/// Export a consistent copy of the database in the given file.  The copy is made in a temporary
+/// file which is renamed on success: when the snapshot file exists, it is complete.
+- (BOOL)snapshotDatabaseWithPath:(nonnull NSString *)snapshotPath;
+
+/// Close the database and erase the existing database files before installing a migrated database.
+- (void)deleteDatabaseForMigration;
 
 - (void)prepareForRestart;
 

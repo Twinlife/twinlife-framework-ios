@@ -21,7 +21,6 @@
 #import "TLTwinlifeSecuredConfiguration.h"
 #import "TLManagementService.h"
 #import "TLJobServiceImpl.h"
-#import "TLDatabaseService.h"
 #import "TLFileInfo.h"
 #import "TLReceivingFileInfo.h"
 #import "TLSendingFileInfo.h"
@@ -154,12 +153,12 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
 @property (nonatomic, nonnull, readonly) NSMutableDictionary<NSNumber *, TLFileInfo *> *receivingFiles;
 @property (nonatomic, nonnull, readonly) NSMutableDictionary<NSNumber *, TLFileInfo *> *waitAckFiles;
 @property (nonatomic, nonnull, readonly) NSMutableDictionary<NSNumber *, TLReceivingFileInfo *> *receivingStreams;
-@property (nonatomic, nonnull, readonly) TLDatabaseService *databaseService;
 
 // No need for ConfigurationService : use TLKeyChain's static method to load configs directly.
 @property (nonatomic, nonnull, readonly) NSURL *rootDirectory;
 @property (nonatomic, nonnull, readonly) NSURL *migrationDirectory;
 @property (nonatomic, nonnull, readonly) NSURL *databaseFile;
+@property (nonatomic, nonnull, readonly) NSURL *snapshotFile;
 
 @property (nonatomic, readonly) int databaseFileIndex;
 @property (nonatomic) int fileIndex;
@@ -177,7 +176,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
 @property (nonatomic) BOOL needRestart;
 @property (nonatomic) BOOL accountReceived;
 @property (nonatomic) BOOL accountSent;
-@property (nonatomic) BOOL settingsSent;
+/// Track our AccountIQ request ID, needed because the other device
+/// may use a different request ID when it sends its AccountIQ.
+@property (nonatomic) int64_t accountRequestId;
 @property (nonatomic) BOOL settingsReceived;
 @property (nonatomic) BOOL requestTimeoutExpired;
 @property (nonatomic) TLAccountMigrationErrorCode currentError;
@@ -217,7 +218,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     IQ_ON_PUT_FILE_SERIALIZER = [[TLOnPutFileIQSerializer alloc] initWithSchema:ON_PUT_FILE_SCHEMA_ID schemaVersion:1];
 }
 
-- (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife accountMigrationService:(nonnull TLAccountMigrationService *)accountMigrationService databaseService:(nonnull TLDatabaseService *)databaseService databaseFile:(nonnull NSURL *)databaseFile accountMigrationId:(nonnull NSUUID *)accountMigrationId peerId:(nonnull NSString *)peerId rootDirectory:(nonnull NSURL *)rootDirectory {
+- (nonnull instancetype)initWithTwinlife:(nonnull TLTwinlife *)twinlife accountMigrationService:(nonnull TLAccountMigrationService *)accountMigrationService databaseFile:(nonnull NSURL *)databaseFile accountMigrationId:(nonnull NSUUID *)accountMigrationId peerId:(nonnull NSString *)peerId rootDirectory:(nonnull NSURL *)rootDirectory {
     self = [super initWithTwinlife:twinlife peerId:peerId];
     
     if (self) {
@@ -232,8 +233,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         _waitAckFiles = [[NSMutableDictionary alloc] init];
         _receivingStreams = [[NSMutableDictionary alloc] init];
         _rootDirectory = rootDirectory;
-        _databaseService = databaseService;
         _databaseFile = databaseFile;
+        _snapshotFile = [[databaseFile URLByDeletingLastPathComponent] URLByAppendingPathComponent:MIGRATION_SNAPSHOT_NAME];
         _state = TLAccountMigrationStateStarting;
         
         _sent = 0;
@@ -247,8 +248,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         _lastReport = 0;
         _needRestart = NO;
         _accountSent = NO;
+        _accountRequestId = 0;
         _accountReceived = NO;
-        _settingsSent = NO;
         _settingsReceived = NO;
         _requestTimeoutExpired = NO;
         _currentError = TLAccountMigrationErrorCodeNone;
@@ -263,6 +264,8 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         _databaseFileIndex = DATABASE_CIPHER_5_FILE_INDEX;
         
         _migrationDirectory = [rootDirectory URLByAppendingPathComponent:MIGRATION_DIR];
+        
+        _maxFileSize = INT64_MAX;
         
         __weak TLAccountMigrationExecutor *handler = self;
         [self addPacketListener:IQ_QUERY_STAT_SERIALIZER listener:^(TLBinaryPacketIQ * _Nonnull iq) {
@@ -352,6 +355,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         
         self.state = TLAccountMigrationStateStopped;
         [self finish];
+
+        [self.fileManager removeItemAtPath:self.snapshotFile.path error:nil];
+
         [self cleanup];
     }
 }
@@ -541,6 +547,14 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         [self sendMessageWithIQ:startIQ statType:IQ_STAT_ERROR];
         self.state = TLAccountMigrationStateError;
         return;
+    }
+    
+    // Remember we are the initiator: we are responsible for starting the termination phase and
+    // this must survive an application restart.
+    NSError *error = nil;
+    NSURL *initiatorURL = [self.migrationDirectory URLByAppendingPathComponent:MIGRATION_INITIATOR];
+    if (![self.accountMigrationId.UUIDString writeToURL:initiatorURL atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
+        DDLogError(@"%@ Cannot create %@: %@", LOG_TAG, initiatorURL.path, error.localizedFailureReason);
     }
     
     if (self.localInfo) {
@@ -762,16 +776,20 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     NSDictionary *results = [self.databaseFile resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey, NSURLFileSizeKey] error:&error];
     if (!results) {
         DDLogError(@"%@ Error retrieving resource keys for DB file (%@): %@\n%@", LOG_TAG, self.databaseFile.path, [error localizedDescription], [error userInfo]);
+        [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeIoError] statType:IQ_STAT_ERROR];
+        self.state = TLAccountMigrationStateError;
         return;
     }
     
     NSNumber *databaseFileSize = results[NSURLFileSizeKey];
     NSNumber *dbSpaceAvailable = results[NSURLVolumeAvailableCapacityForImportantUsageKey];
-    
-    results = [self.databaseFile resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey, NSURLFileSizeKey] error:&error];
-    
+
+    results = [self.migrationDirectory resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:&error];
+
     if (!results) {
-        DDLogError(@"%@ Error retrieving resource keys for migration directory (%@): %@\n%@", LOG_TAG, self.databaseFile.path, error.localizedDescription, error.userInfo);
+        DDLogError(@"%@ Error retrieving resource keys for migration directory (%@): %@\n%@", LOG_TAG, self.migrationDirectory.path, error.localizedDescription, error.userInfo);
+        [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeIoError] statType:IQ_STAT_ERROR];
+        self.state = TLAccountMigrationStateError;
         return;
     }
     
@@ -810,6 +828,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     
     if (self.offsetRequestId == 0) {
         self.offsetRequestId = REQUEST_ID_OFFSET_CLIENT;
+
+        // The peer started the migration: we are not the initiator, even if we were before a restart.
+        [self.fileManager removeItemAtURL:[self.migrationDirectory URLByAppendingPathComponent:MIGRATION_INITIATOR] error:nil];
     }
 
     // Check that we have enough space to receive the files.
@@ -878,6 +899,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         
         if (fileInfo.fileId >= FIRST_FILE_INDEX) {
             self.receiveTotal += fileInfo.size;
+        } else {
+            // DB file: replace the size of the peer's live DB with the actual size of the
+            // peer's snapshot.
+            int64_t peerLiveDBSize = self.peerInfo ? self.peerInfo.databaseFileSize : 0;
+            self.receiveTotal += fileInfo.size - peerLiveDBSize;
         }
         
         TLFileState *state = [[TLFileState alloc] initWithFileId:fileInfo.fileId offset:offset];
@@ -905,7 +931,14 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
             } else {
                 fileInfo.remoteOffset = 0;
             }
-            self.sendTotal += fileInfo.size;
+            if (fileInfo.fileId >= FIRST_FILE_INDEX) {
+                self.sendTotal += fileInfo.size;
+            } else {
+                // DB file: replace the size of the live DB (used when the migration starts, before we
+                // make the snapshot) with the actual size of the snapshot.
+                int64_t liveDBSize = self.localInfo ? self.localInfo.databaseFileSize : 0;
+                self.sendTotal += fileInfo.size - liveDBSize;
+            }
             self.sendingFiles[fileInfo.index] = fileInfo;
         } else {
             DDLogWarn(@"%@ File %d was not found", LOG_TAG, state.fileId);
@@ -974,27 +1007,15 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
             DDLogWarn(@"%@ File %d not registered in receiving list", LOG_TAG, iq.fileId);
             self.receiveErrorCount++;
             
-            TLOnPutFileIQ *response = [[TLOnPutFileIQ alloc] initWithSerializer:IQ_ON_PUT_FILE_SERIALIZER iq:iq fileId:iq.fileId offset:iq.offset];
+            TLOnPutFileIQ *response = [[TLOnPutFileIQ alloc] initWithSerializer:IQ_ON_PUT_FILE_SERIALIZER iq:iq fileId:iq.fileId offset:-1];
             [self sendMessageWithIQ:response statType:IQ_STAT_ON_PUT_FILE];
             return;
         }
         
         NSString *path = [self toLocalPath:fileInfo];
-        if (![self.fileManager fileExistsAtPath:path]) {
-            NSString *dir = [path stringByDeletingLastPathComponent];
-            if (![self.fileManager fileExistsAtPath:dir]) {
-                NSError *error;
-                if (![self.fileManager createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:&error]) {
-                    DDLogError(@"%@ cannot create directory %@ error: %@", LOG_TAG, dir, error);
-                }
-            }
-            if (![self.fileManager createFileAtPath:path contents:nil attributes:nil]) {
-                DDLogError(@"%@ cannot create file %@", LOG_TAG, path);
-            }
-        }
 
         DDLogInfo(@"%@ receiving file: %@", LOG_TAG, path);
-        fileStream = [[TLReceivingFileInfo alloc] initWithPath:path fileInfo:fileInfo];
+        fileStream = [[TLReceivingFileInfo alloc] initWithPath:path fileInfo:fileInfo offset:iq.offset];
         if (![fileStream isOpened]) {
             DDLogError(@"%@ Fatal IO error for %d", LOG_TAG, iq.fileId);
             [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeIoError] statType:IQ_STAT_ERROR];
@@ -1003,10 +1024,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
             [self sendMessageWithIQ:response statType:IQ_STAT_ON_PUT_FILE];
             return;
         }
-        if (![fileStream seekToFileOffset:iq.offset]) {
-            DDLogError(@"%@ seekToFileOffset failed %d", LOG_TAG, iq.fileId);
-        }
-        
+
         self.receivingStreams[fileInfo.index] = fileStream;
         self.receivePending += fileStream.position;
     }
@@ -1054,7 +1072,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
 
             [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeIoError] statType:IQ_STAT_ERROR];
         } else {
-            DDLogError(@"%@ Error error for %d: %@", LOG_TAG, iq.fileId, exception);
+            DDLogError(@"%@ Error for %d: %@", LOG_TAG, iq.fileId, exception);
             offset = 0; // We could retry
         }
     }
@@ -1089,6 +1107,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
             [self.waitAckFiles removeObjectForKey:fileId];
             self.sendingFiles[fileInfo.index] = fileInfo;
             fileInfo.remoteOffset = iq.offset;
+            self.sendPending -= fileInfo.size;
             if (self.sendPending < 0) {
                 self.sendPending = 0;
             }
@@ -1108,13 +1127,13 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
             self.lastReport = now;
             [self updateProgress];
         }
-
-        //Continue the migration process
-        if (self.state != TLAccountMigrationStateStopped) {
-            dispatch_async(self.executorQueue, ^{
-                [self processMigration];
-            });
-        }
+    }
+    
+    //Continue the migration process
+    if (self.state != TLAccountMigrationStateStopped) {
+        dispatch_async(self.executorQueue, ^{
+            [self processMigration];
+        });
     }
 }
 
@@ -1132,19 +1151,17 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         [self.fileManager removeItemAtURL:settingsUrl error:nil];
 
         [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeIoError] statType:IQ_STAT_ERROR];
+        self.receiveErrorCount++;
         return;
     }
     
     NSNumber *requestId = [[NSNumber alloc] initWithLongLong:iq.requestId];
     
-    if ([self.pendingIQRequests containsObject:requestId]) {
-        self.settingsSent = YES;
-    }
     [self.pendingIQRequests removeObject:requestId];
     
     self.settingsReceived = YES;
     if (!iq.hasPeerSettings) {
-        iq = [self sendSettings];
+        iq = [self sendSettingsWithRequestId:iq.requestId];
         [self sendMessageWithIQ:iq statType:IQ_STAT_SETTINGS];
     }
     
@@ -1168,6 +1185,10 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     
     if (isKnown || iq.hasPeerAccount) {
         self.accountSent = YES;
+
+        // The peer has our account: our account request is answered even when the peer did not
+        // respond with its request id (it received our account before it was ready to send its own).
+        [self.pendingIQRequests removeObject:[[NSNumber alloc] initWithLongLong:self.accountRequestId]];
     }
     self.accountReceived = YES;
 
@@ -1175,17 +1196,20 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     self.secureConfiguration = [TLTwinlifeSecuredConfiguration loadWithSerializerFactory:self.serializerFactory content:iq.securedConfiguration];
     if (!self.secureConfiguration) {
         [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeSecureStoreError] statType:IQ_STAT_ERROR];
+        self.state = TLAccountMigrationStateError;
         return;
     }
     
     if (![TLKeyChain updateKeyChainWithKey:[MIGRATION_PREFIX stringByAppendingString:TWINLIFE_SECURED_CONFIGURATION_KEY] tag:nil data:iq.securedConfiguration alternateApplication:NO]) {
         DDLogError(@"%@ cannot store secure configuration", LOG_TAG);
         [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeSecureStoreError] statType:IQ_STAT_ERROR];
+        self.state = TLAccountMigrationStateError;
         return;
     }
     if (![TLKeyChain updateKeyChainWithKey:[MIGRATION_PREFIX stringByAppendingString:ACCOUNT_SERVICE_SECURED_CONFIGURATION_KEY] tag:nil data:iq.accountConfiguration alternateApplication:NO]) {
         DDLogError(@"%@ cannot store account configuration", LOG_TAG);
         [self sendMessageWithIQ:[self sendErrorWithRequestId:iq.requestId errorCode:TLAccountMigrationErrorCodeSecureStoreError] statType:IQ_STAT_ERROR];
+        self.state = TLAccountMigrationStateError;
         return;
     }
     
@@ -1354,6 +1378,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         if (![TLKeyChain updateKeyChainWithKey:[MIGRATION_PREFIX stringByAppendingString:TWINLIFE_SECURED_CONFIGURATION_KEY] tag:nil data:data alternateApplication:NO]) {
             DDLogError(@"%@ cannot update secure configuration", LOG_TAG);
             [self sendMessageWithIQ:[self sendErrorWithRequestId:[self newRequestId] errorCode:TLAccountMigrationErrorCodeSecureStoreError] statType:IQ_STAT_ERROR];
+            self.state = TLAccountMigrationStateError;
             return;
         }
         self.secureConfiguration = [TLTwinlifeSecuredConfiguration loadWithSerializerFactory:self.serializerFactory content:data];
@@ -1422,15 +1447,25 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
                 break;
             }
             case TLAccountMigrationStateSendSettings: {
-                TLSettingsIQ *settingsIQ = [self sendSettings];
-                [self sendIQRequestWithIQ:settingsIQ statType:IQ_STAT_SETTINGS];
-                
+                // If we already received the peer settings, we have also sent ours (either as a response
+                // to the peer request, or because the peer settings are the response to our request):
+                // sending them again would register a request for which the peer never responds.
+                if (!self.settingsReceived) {
+                    TLSettingsIQ *settingsIQ = [self sendSettingsWithRequestId:[self newRequestId]];
+                    [self sendIQRequestWithIQ:settingsIQ statType:IQ_STAT_SETTINGS];
+                }
+
                 self.state = TLAccountMigrationStateSendDatabase;
 
-                // Force another database sync to flush the WAL file before sending the database file in the next step.
-                [self.databaseService syncDatabase];
+                // Send a snapshot of the database: it is created once and re-used if the migration is
+                // resumed, because the peer continues a partial file at its current length.
+                if (![self.fileManager fileExistsAtPath:self.snapshotFile.path] && ![self.twinlife snapshotDatabaseWithPath:self.snapshotFile.path]) {
+                    [self sendMessageWithIQ:[self sendErrorWithRequestId:[self newRequestId] errorCode:TLAccountMigrationErrorCodeNoSpaceLeft] statType:IQ_STAT_ERROR];
+                    self.state = TLAccountMigrationStateError;
+                    return;
+                }
 
-                NSDictionary *dbAttrs = [self.fileManager attributesOfItemAtPath:self.databaseFile.path error:nil];
+                NSDictionary *dbAttrs = [self.fileManager attributesOfItemAtPath:self.snapshotFile.path error:nil];
                 int64_t dbSize = ((NSNumber *)dbAttrs[NSFileSize]).longLongValue;
                 NSDate *dbDate = (NSDate *)dbAttrs[NSFileModificationDate];
                 
@@ -1470,6 +1505,7 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
             case TLAccountMigrationStateSendAccount: {
                 TLAccountIQ *accountIQ = [self sendAccountWithRequestId:[self newRequestId]];
                 if (accountIQ) {
+                    self.accountRequestId = accountIQ.requestId;
                     [self sendIQRequestWithIQ:accountIQ statType:IQ_STAT_ACCOUNT];
                     self.state = TLAccountMigrationStateWaitAccount;
                 } else {
@@ -1554,11 +1590,11 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
     return [[TLMigrationErrorIQ alloc] initWithSerializer:IQ_ERROR_SERIALIZER requestId:requestId errorCode:errorCode];
 }
 
--(nonnull TLSettingsIQ *)sendSettings {
-    DDLogVerbose(@"%@ sendSettings", LOG_TAG);
+-(nonnull TLSettingsIQ *)sendSettingsWithRequestId:(int64_t)requestId {
+    DDLogVerbose(@"%@ sendSettingsWithRequestId: %lld", LOG_TAG, requestId);
 
     NSDictionary<NSUUID *, NSString*> *settings = [TLConfigIdentifier exportConfig];
-    return [[TLSettingsIQ alloc] initWithSerializer:IQ_SETTINGS_SERIALIZER requestId:[self newRequestId] hasPeerSettings:self.settingsReceived settings:settings];
+    return [[TLSettingsIQ alloc] initWithSerializer:IQ_SETTINGS_SERIALIZER requestId:requestId hasPeerSettings:self.settingsReceived settings:settings];
 }
 
 -(nonnull TLAccountIQ *)sendAccountWithRequestId:(int64_t)requestId {
@@ -1616,9 +1652,9 @@ static TLBinaryPacketIQSerializer *IQ_ON_PUT_FILE_SERIALIZER = nil;
         self.waitAckFiles[sendFile.index] = sendFile;
         
         NSURL *fileUrl;
-        // Unlike Android, we only send the cipher V5 database.
+        // Unlike Android, we only send the cipher V5 database (from its snapshot).
         if (sendFile.fileId == DATABASE_CIPHER_5_FILE_INDEX) {
-            fileUrl = self.databaseFile;
+            fileUrl = self.snapshotFile;
         } else {
             fileUrl = [self.rootDirectory URLByAppendingPathComponent:sendFile.path];
         }
